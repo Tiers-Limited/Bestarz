@@ -1,0 +1,107 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #121212;
+  color: #FFFFFF;
+  line-height: 1.6;
+}
+
+.App {
+  min-height: 100vh;
+  background-color: #121212;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1A1A1A;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444444;
+}
+
+/* Smooth transitions */
+* {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ant Design overrides for dark theme */
+.ant-layout {
+  background-color: #121212 !important;
+}
+
+.ant-layout-sider {
+  background-color: #1A1A1A !important;
+}
+
+.ant-menu-dark {
+  background-color: #1A1A1A !important;
+}
+
+.ant-card {
+  background-color: #1A1A1A !important;
+  border: 1px solid #333333 !important;
+}
+
+.ant-btn-primary {
+  background-color: #3B82F6 !important;
+  border-color: #3B82F6 !important;
+}
+
+.ant-btn-primary:hover {
+  background-color: #2563EB !important;
+  border-color: #2563EB !important;
+}
+
+.bestarz-logo {
+  font-size: 24px;
+  font-weight: 700;
+  color: #3B82F6;
+  text-decoration: none;
+}
+
+.bestarz-logo:hover {
+  color: #2563EB;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #3B82F6, #22C55E);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glass-card {
+  background: rgba(26, 26, 26, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.hover-lift {
+  transition: transform 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+.ant-select-dropdown {
+  z-index: 9999 !important;
+}
