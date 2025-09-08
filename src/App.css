@@ -38,7 +38,16 @@ body {
 
 /* Smooth transitions */
 * {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ant-select-dropdown,
+.ant-modal,
+.ant-drawer {
+  transition: none !important;
 }
 
 /* Ant Design overrides for true black theme */
@@ -179,19 +188,105 @@ body {
   transform: translateY(-4px);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
 }
-
+/* Blue Button */
 .glow-button {
+  position: relative;
+  overflow: hidden;
+  border: 2px solid #3b82f6 !important;
+  background: rgba(59, 130, 246, 0.1) !important; 
+  color: #3b82f6 !important;
+  font-weight: 600;
+  backdrop-filter: blur(6px);
+  border-radius: 12px;
+  transition: all 0.4s ease;
   box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
-  animation: pulse-glow 2s infinite;
+}
+
+.glow-button span {
+  position: relative;
+  z-index: 2;
+}
+
+/* Slim shine effect */
+.glow-button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 50%;       /* much slimmer */
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(59, 130, 246, 0.8) 50%,
+    transparent 100%
+  );
+  transform: skewX(-20deg); /* tilted streak */
+  z-index: 1;
+  opacity: 0;
+}
+
+.glow-button:hover::before {
+  animation: shine 0.8s forwards;
+  opacity: 1;
 }
 
 .glow-button:hover {
-  box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+  color: #3b82f6 !important; 
+  background: rgba(59, 130, 246, 0.1) !important; 
 }
 
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
-  50% { box-shadow: 0 0 25px rgba(59, 130, 246, 0.4); }
+/* Green Button */
+.glow-button-green {
+  position: relative;
+  overflow: hidden;
+  border: 2px solid green !important;
+  background: rgba(59, 130, 246, 0.1) !important; 
+  color: green !important;
+  font-weight: 600;
+  backdrop-filter: blur(6px);
+  border-radius: 12px;
+  transition: all 0.4s ease;
+  box-shadow: 0 0 20px rgba(59, 246, 184, 0.3);
+}
+
+.glow-button-green span {
+  position: relative;
+  z-index: 2;
+}
+
+.glow-button-green::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(59, 246, 184, 0.8) 50%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  z-index: 1;
+  opacity: 0;
+}
+
+.glow-button-green:hover::before {
+  animation: shine 0.8s forwards;
+  opacity: 1;
+}
+
+.glow-button-green:hover {
+  color: green !important; 
+  background: rgba(59, 130, 246, 0.1) !important; 
+}
+
+/* Keyframes */
+@keyframes shine {
+  0% { left: -60%; }
+  100% { left: 120%; }
 }
 
 .glow-border {
@@ -230,7 +325,7 @@ body {
 
 .feature-card {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(34, 197, 94, 0.02));
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255v, 255, 0.1);
   transition: all 0.3s ease;
 }
 
@@ -238,6 +333,7 @@ body {
   border-color: rgba(59, 130, 246, 0.3);
   box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);
   transform: translateY(-5px) scale(1.02);
+  cursor: pointer;
 }
 
 .rating-glow .ant-rate-star {
@@ -246,6 +342,7 @@ body {
 
 .rating-glow .ant-rate-star:hover {
   filter: drop-shadow(0 0 8px currentColor);
+  cursor: pointer;
 }
 
 .trust-badge {
@@ -273,16 +370,6 @@ body {
 .testimonial-card:hover {
   border-color: rgba(59, 130, 246, 0.2);
   box-shadow: 0 0 25px rgba(59, 130, 246, 0.1);
+  cursor: pointer;
 }
 
-/* Loading animations */
-.loading-shimmer {
-  background: linear-gradient(90deg, #111111 25%, #222222 50%, #111111 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}

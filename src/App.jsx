@@ -14,7 +14,13 @@ import PublicProviderPage from './pages/public/ProviderPage';
 import AdminDashboard from './pages/admin/Dashboard';
 import ProviderCustomers from './pages/provider/Customer';
 
+import SignUp from "./pages/auth/SignUp"
+import SignIn from "./pages/auth/SignIn"
+import ProviderHelpandDocs from './pages/provider/HelpandDocs';
+
 const App = () => {
+
+  
   return (
     <ConfigProvider
       theme={{
@@ -36,11 +42,17 @@ const App = () => {
         <div className="App">
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/signin" element={<SignIn />} />
+
+            <Route path="/signup" element={<SignUp />} />
+
             <Route path="/client/booking" element={<ClientBooking />} />
             <Route path="/provider/dashboard" element={<ProviderDashboard />} />
             <Route path="/provider/profile" element={<ProviderProfile />} />
             <Route path="/provider/subscription" element={<ProviderSubscription />} />
             <Route path="/provider/customers" element={<ProviderCustomers />} />
+            <Route path="/provider/docs" element={<ProviderHelpandDocs />} />
+
             <Route path="/provider/:providerId/book" element={<PublicProviderPage />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
           </Routes>

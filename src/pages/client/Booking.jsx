@@ -110,7 +110,6 @@ const ClientBooking = () => {
                   size="large"
                   placeholder="Budget Range"
                   className="w-full"
-                  getPopupContainer={(triggerNode) => triggerNode.parentNode}
                   options={[
                     { value: '100-500', label: '$100 - $500' },
                     { value: '500-1000', label: '$500 - $1,000' },
@@ -124,7 +123,7 @@ const ClientBooking = () => {
                   size="large"
                   placeholder="Service Type"
                   className="w-full"
-                  getPopupContainer={(triggerNode) => triggerNode.parentNode}
+                  getPopupContainer={() => document.body}
                   options={categories.map((cat) => ({
                     value: cat,
                     label: cat
@@ -136,7 +135,7 @@ const ClientBooking = () => {
                   size="large"
                   placeholder="Location"
                   className="w-full"
-                  getPopupContainer={(triggerNode) => triggerNode.parentNode}
+                  getPopupContainer={() => document.body}
                   options={[
                     { value: 'new-york', label: 'New York, NY' },
                     { value: 'brooklyn', label: 'Brooklyn, NY' },
@@ -163,7 +162,7 @@ const ClientBooking = () => {
                     <Select
                       size="large"
                       placeholder="Select event type"
-                      getPopupContainer={(triggerNode) => triggerNode.parentNode}
+                      getPopupContainer={() => document.body}
                       options={[
                         { value: 'wedding', label: 'Wedding' },
                         { value: 'corporate', label: 'Corporate Event' },
@@ -184,7 +183,7 @@ const ClientBooking = () => {
                     <Select
                       size="large"
                       placeholder="What service do you need?"
-                      getPopupContainer={(triggerNode) => triggerNode.parentNode}
+                      getPopupContainer={() => document.body}
                       options={categories.map((cat) => ({
                         value: cat,
                         label: cat
@@ -216,7 +215,7 @@ const ClientBooking = () => {
                     <Select
                       size="large"
                       placeholder="Expected guests"
-                      getPopupContainer={(triggerNode) => triggerNode.parentNode}
+                      getPopupContainer={() => document.body}
                       options={[
                         { value: '1-25', label: '1-25 guests' },
                         { value: '26-50', label: '26-50 guests' },
@@ -330,7 +329,7 @@ const ClientBooking = () => {
                     size="large"
                     placeholder="Sort by"
                     className="w-full"
-                    getPopupContainer={(triggerNode) => triggerNode.parentNode}
+                    getPopupContainer={() => document.body}
                     defaultValue="rating"
                     options={[
                       { value: 'rating', label: 'Highest Rated' },
@@ -346,7 +345,7 @@ const ClientBooking = () => {
                     size="large"
                     placeholder="Rating"
                     className="w-full"
-                    getPopupContainer={(triggerNode) => triggerNode.parentNode}
+                    getPopupContainer={() => document.body}
                     options={[
                       { value: '5', label: '5 Stars Only' },
                       { value: '4+', label: '4+ Stars' },
@@ -359,7 +358,7 @@ const ClientBooking = () => {
                     size="large"
                     placeholder="Response Time"
                     className="w-full"
-                    getPopupContainer={(triggerNode) => triggerNode.parentNode}
+                    getPopupContainer={() => document.body}
                     options={[
                       { value: '1hour', label: 'Within 1 hour' },
                       { value: '4hours', label: 'Within 4 hours' },
