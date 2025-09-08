@@ -15,6 +15,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import VideoPlayer from "../components/VideoPlayer";
 import ScreenshotGallery from "../components/ScreenShotGallery";
+import Testimonials from "../components/Testimonials";
 
 const { Title, Paragraph } = Typography;
 
@@ -63,32 +64,7 @@ const LandingPage = () => {
     },
   ];
 
-  const testimonials = [
-    {
-      name: "Sarah Johnson",
-      role: "Wedding Photographer",
-      avatar:
-        "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=100",
-      rating: 5,
-      text: "Bestarz transformed my photography business. I've booked 200% more clients and the payment system is flawless!",
-    },
-    {
-      name: "Mike Rodriguez",
-      role: "DJ & Music Producer",
-      avatar:
-        "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=100",
-      rating: 5,
-      text: "The auto-matching feature is incredible. I get high-quality bookings without spending time on lead generation.",
-    },
-    {
-      name: "Emma Chen",
-      role: "Event Coordinator",
-      avatar:
-        "https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=100",
-      rating: 5,
-      text: "Finding the perfect vendors for my events is now effortless. The platform's quality control is outstanding.",
-    },
-  ];
+
 
   const stats = [
     { number: "5000+", label: "Active Providers" },
@@ -272,53 +248,13 @@ const LandingPage = () => {
         <VideoPlayer />
       </section>
 
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-black to-gray-900">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <Title level={2} className="text-white mb-4">
-              Loved by thousands of professionals
-            </Title>
-            <Paragraph className="text-xl text-gray-400">
-              See how Bestarz is transforming businesses across every service
-              category
-            </Paragraph>
-          </div>
 
-          <Row gutter={[32, 32]}>
-            {testimonials.map((testimonial, index) => (
-              <Col xs={24} lg={8} key={index}>
-                <Card className="testimonial-card h-full">
-                  <div className="mb-4 rating-glow">
-                    <Rate
-                      disabled
-                      defaultValue={testimonial.rating}
-                      className="text-sm"
-                    />
-                  </div>
-                  <Paragraph className="text-gray-300 mb-6 text-lg">
-                    "{testimonial.text}"
-                  </Paragraph>
-                  <div className="flex items-center">
-                    <Avatar
-                      src={testimonial.avatar}
-                      size={48}
-                      className="mr-4"
-                    />
-                    <div>
-                      <div className="text-white font-semibold">
-                        {testimonial.name}
-                      </div>
-                      <div className="text-gray-400 text-sm">
-                        {testimonial.role}
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        </div>
+
+      <section>
+        <Testimonials/>
       </section>
+
+ 
 
 
 

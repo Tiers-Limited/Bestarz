@@ -1,13 +1,13 @@
-import { Typography } from "antd";
+import { Image, Typography } from "antd";
 
 const { Title, Paragraph } = Typography;
 
 const images = [
-  "https://images.pexels.com/photos/3184357/pexels-photo-3184357.jpeg?auto=compress&cs=tinysrgb&w=800",
-  "https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=800",
-  "https://images.pexels.com/photos/3184454/pexels-photo-3184454.jpeg?auto=compress&cs=tinysrgb&w=800",
-  "https://images.pexels.com/photos/210186/pexels-photo-210186.jpeg?auto=compress&cs=tinysrgb&w=800",
-  "https://images.pexels.com/photos/462118/pexels-photo-462118.jpeg?auto=compress&cs=tinysrgb&w=800"
+  { src: "./images/page1.png", name: "Booking Page" },
+  { src: "./images/page2.png", name: "Provider Dashboard" },
+  { src: "./images/page3.png", name: "Provider Profile" },
+  { src: "./images/page4.png", name: "Provider Customers" },
+  { src: "./images/page5.png", name: "Provider Details" },
 ];
 
 export default function ScreenShotGallery() {
@@ -23,47 +23,47 @@ export default function ScreenShotGallery() {
       </div>
 
       {/* Gallery Grid */}
-      <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* First row: 3 images */}
-        {images.slice(0, 3).map((src, i) => (
-          <div
-            key={i}
-            className="overflow-hidden rounded-xl relative group h-64 sm:h-52 lg:h-64"
-          >
-            <img
-              src={src}
-              alt={`Screenshot ${i + 1}`}
+      <Image.PreviewGroup>
+        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* First row: 3 images */}
+          {images.slice(0, 3).map((img, i) => (
+            <div
+              key={i}
+              className="overflow-hidden rounded-xl relative group h-64 sm:h-52 lg:h-64"
+            >
+              <Image
+                src={img.src}
+                alt={img.name}
+                preview={{ mask: <div className="text-white">{img.name}</div> }}
+                className="h-100 w-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-500"
+              />
+            </div>
+          ))}
+
+          {/* Second row: 2 images */}
+          <div className="overflow-hidden rounded-xl relative group h-64 sm:h-52 lg:h-64 lg:col-span-2">
+            <Image
+              src={images[3].src}
+              alt={images[3].name}
+              preview={{
+                mask: <div className="text-white">{images[3].name}</div>,
+              }}
               className="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-500"
             />
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end">
-              <div className="p-3 text-white text-sm">Screenshot {i + 1}</div>
-            </div>
           </div>
-        ))}
 
-        {/* Second row: 2 images */}
-        <div className="overflow-hidden rounded-xl relative group h-64 sm:h-52 lg:h-64 lg:col-span-2">
-          <img
-            src={images[3]}
-            alt="Screenshot 4"
-            className="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-500"
-          />
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end">
-            <div className="p-3 text-white text-sm">Screenshot 4</div>
+          <div className="overflow-hidden rounded-xl relative group h-64 sm:h-52 lg:h-64">
+            <Image
+              src={images[4].src}
+              alt={images[4].name}
+              preview={{
+                mask: <div className="text-white">{images[4].name}</div>,
+              }}
+              className="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-500"
+            />
           </div>
         </div>
-
-        <div className="overflow-hidden rounded-xl relative group h-64 sm:h-52 lg:h-64">
-          <img
-            src={images[4]}
-            alt="Screenshot 5"
-            className="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-500"
-          />
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end">
-            <div className="p-3 text-white text-sm">Screenshot 5</div>
-          </div>
-        </div>
-      </div>
+      </Image.PreviewGroup>
     </section>
   );
 }

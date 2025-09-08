@@ -373,3 +373,25 @@ body {
   cursor: pointer;
 }
 
+
+
+/* globals.css */
+.ant-carousel .slick-dots li button {
+  background-color: white; /* Tailwind gray-500 for inactive dots */
+}
+
+.ant-carousel .slick-dots li.slick-active button {
+  background-color: #ffffff !important; /* active dot white */
+}
+
+
+.ant-image {
+  height: 100% !important; 
+  width: 100% !important;
+  object-fit: cover;
+}
+
+
+.h-100{
+  height: 100% !important;
+}
