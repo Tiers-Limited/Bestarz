@@ -8,17 +8,15 @@ import {
   Settings, 
   Shield,
   LogOut,
-  Bell
+  Bell,
+  HelpCircle,
+  FileText
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const { Sider, Content, Header } = Layout;
 
-interface AdminLayoutProps {
-  children: React.ReactNode;
-}
-
-const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
+const AdminLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -54,6 +52,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       label: 'Security',
     },
     {
+      key: '/admin/docs',
+      icon: <FileText size={18} />,
+      label: 'Documentation',
+    },
+    {
       key: '/admin/settings',
       icon: <Settings size={18} />,
       label: 'Settings',
@@ -72,6 +75,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       icon: <Settings size={16} />,
     },
     {
+      key: 'help',
+      label: 'Help Center',
+      icon: <HelpCircle size={16} />,
+    },
+    {
       key: 'divider',
       type: 'divider',
     },
@@ -83,7 +91,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     },
   ];
 
-  const handleMenuClick = ({ key }: { key: string }) => {
+  const handleMenuClick = ({ key }) => {
     if (key === 'logout') {
       navigate('/');
     } else {
@@ -95,7 +103,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     <Layout className="min-h-screen">
       <Sider
         width={240}
-        className="bg-gray-900"
+        className="bg-black border-r border-gray-800"
         style={{
           position: 'fixed',
           height: '100vh',
@@ -116,14 +124,13 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           selectedKeys={[location.pathname]}
           items={menuItems}
           onClick={handleMenuClick}
-          className="border-r-0"
-          style={{ backgroundColor: 'transparent' }}
+          className="border-r-0 bg-black"
         />
       </Sider>
 
       <Layout style={{ marginLeft: 240 }}>
         <Header 
-          className="bg-gray-800 border-b border-gray-700 px-6"
+          className="bg-black border-b border-gray-800 px-6"
           style={{ height: '64px', lineHeight: '64px' }}
         >
           <div className="flex justify-between items-center">
@@ -131,6 +138,13 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               <span className="text-white text-lg">Admin Portal</span>
             </div>
             <Space size="large">
+              <Button 
+                type="text" 
+                icon={<HelpCircle size={16} />}
+                className="text-gray-300 hover:text-white glow-button"
+              >
+                Help
+              </Button>
               <Button 
                 type="text" 
                 icon={<Bell size={16} />}
@@ -148,8 +162,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                   }
                 }}
                 trigger={['click']}
+                getPopupContainer={(triggerNode) => triggerNode.parentNode}
               >
-                <div className="flex items-center cursor-pointer">
+                <div className="flex items-center cursor-pointer hover-lift">
                   <Avatar style={{ backgroundColor: '#8B5CF6' }}>AD</Avatar>
                   <span className="text-white ml-2">Admin</span>
                 </div>
@@ -158,7 +173,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </div>
         </Header>
         
-        <Content className="bg-gray-900">
+        <Content className="bg-black">
           {children}
         </Content>
       </Layout>

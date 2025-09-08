@@ -9,17 +9,16 @@ import {
   Star,
   LogOut,
   Bell,
-  ExternalLink
+  ExternalLink,
+  Users,
+  FileText,
+  HelpCircle
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const { Sider, Content, Header } = Layout;
 
-interface ProviderLayoutProps {
-  children: React.ReactNode;
-}
-
-const ProviderLayout: React.FC<ProviderLayoutProps> = ({ children }) => {
+const ProviderLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -40,6 +39,11 @@ const ProviderLayout: React.FC<ProviderLayoutProps> = ({ children }) => {
       label: 'Bookings',
     },
     {
+      key: '/provider/customers',
+      icon: <Users size={18} />,
+      label: 'Customers',
+    },
+    {
       key: '/provider/earnings',
       icon: <DollarSign size={18} />,
       label: 'Earnings',
@@ -48,6 +52,11 @@ const ProviderLayout: React.FC<ProviderLayoutProps> = ({ children }) => {
       key: '/provider/subscription',
       icon: <Star size={18} />,
       label: 'Subscription',
+    },
+    {
+      key: '/provider/docs',
+      icon: <FileText size={18} />,
+      label: 'Help & Docs',
     },
     {
       key: '/provider/settings',
@@ -68,6 +77,11 @@ const ProviderLayout: React.FC<ProviderLayoutProps> = ({ children }) => {
       icon: <Bell size={16} />,
     },
     {
+      key: 'help',
+      label: 'Help Center',
+      icon: <HelpCircle size={16} />,
+    },
+    {
       key: 'divider',
       type: 'divider',
     },
@@ -79,7 +93,7 @@ const ProviderLayout: React.FC<ProviderLayoutProps> = ({ children }) => {
     },
   ];
 
-  const handleMenuClick = ({ key }: { key: string }) => {
+  const handleMenuClick = ({ key }) => {
     if (key === 'logout') {
       navigate('/');
     } else {
@@ -91,7 +105,7 @@ const ProviderLayout: React.FC<ProviderLayoutProps> = ({ children }) => {
     <Layout className="min-h-screen">
       <Sider
         width={240}
-        className="bg-gray-900"
+        className="bg-black border-r border-gray-800"
         style={{
           position: 'fixed',
           height: '100vh',
@@ -112,14 +126,13 @@ const ProviderLayout: React.FC<ProviderLayoutProps> = ({ children }) => {
           selectedKeys={[location.pathname]}
           items={menuItems}
           onClick={handleMenuClick}
-          className="border-r-0"
-          style={{ backgroundColor: 'transparent' }}
+          className="border-r-0 bg-black"
         />
       </Sider>
 
       <Layout style={{ marginLeft: 240 }}>
         <Header 
-          className="bg-gray-800 border-b border-gray-700 px-6"
+          className="bg-black border-b border-gray-800 px-6"
           style={{ height: '64px', lineHeight: '64px' }}
         >
           <div className="flex justify-between items-center">
@@ -134,6 +147,13 @@ const ProviderLayout: React.FC<ProviderLayoutProps> = ({ children }) => {
                 className="text-gray-300 hover:text-white"
               >
                 Public Page
+              </Button>
+              <Button 
+                type="text" 
+                icon={<HelpCircle size={16} />}
+                className="text-gray-300 hover:text-white glow-button"
+              >
+                Help
               </Button>
               <Button 
                 type="text" 
@@ -152,8 +172,9 @@ const ProviderLayout: React.FC<ProviderLayoutProps> = ({ children }) => {
                   }
                 }}
                 trigger={['click']}
+                getPopupContainer={(triggerNode) => triggerNode.parentNode}
               >
-                <div className="flex items-center cursor-pointer">
+                <div className="flex items-center cursor-pointer hover-lift">
                   <Avatar style={{ backgroundColor: '#3B82F6' }}>DM</Avatar>
                   <span className="text-white ml-2">DJ Master</span>
                 </div>
@@ -162,7 +183,7 @@ const ProviderLayout: React.FC<ProviderLayoutProps> = ({ children }) => {
           </div>
         </Header>
         
-        <Content className="bg-gray-900">
+        <Content className="bg-black">
           {children}
         </Content>
       </Layout>

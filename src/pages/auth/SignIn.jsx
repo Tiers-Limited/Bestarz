@@ -5,10 +5,10 @@ import { useNavigate } from 'react-router-dom';
 
 const { Title, Paragraph, Link } = Typography;
 
-const SignIn: React.FC = () => {
+const SignIn= () => {
   const navigate = useNavigate();
 
-  const onFinish = (values: any) => {
+  const onFinish = (values) => {
     console.log('Login values:', values);
     // Simulate login based on email
     if (values.email.includes('admin')) {
@@ -21,7 +21,7 @@ const SignIn: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-black flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <Button 
           type="text" 

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 const { Title, Paragraph } = Typography;
 
-const ProviderSubscription: React.FC = () => {
+const ProviderSubscription= () => {
   const navigate = useNavigate();
 
   const plans = [
@@ -64,7 +64,7 @@ const ProviderSubscription: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4">
+    <div className="min-h-screen bg-black p-4">
       <div className="max-w-6xl mx-auto">
         <Button 
           type="text" 

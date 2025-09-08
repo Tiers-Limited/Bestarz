@@ -6,12 +6,12 @@ import { useNavigate } from 'react-router-dom';
 const { Title, Paragraph, Link } = Typography;
 const { Option } = Select;
 
-const SignUp: React.FC = () => {
+const SignUp = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
-  const [userType, setUserType] = useState<string>('');
+  const [userType, setUserType] = useState('');
 
-  const onFinish = (values: any) => {
+  const onFinish = (values) => {
     console.log('Signup values:', values);
     if (values.userType === 'provider') {
       navigate('/provider/subscription');
@@ -171,7 +171,7 @@ const SignUp: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-black flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         <Button 
           type="text" 

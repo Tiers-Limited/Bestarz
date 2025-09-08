@@ -5,7 +5,7 @@ import { MapPin, Phone, Mail, Globe, Calendar, Clock, DollarSign, Star, Check } 
 const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
 
-const PublicProviderPage: React.FC = () => {
+const PublicProviderPage = () => {
   const provider = {
     name: 'DJ Master',
     category: 'DJ & Music',
@@ -27,12 +27,12 @@ const PublicProviderPage: React.FC = () => {
     ]
   };
 
-  const onFinish = (values: any) => {
+  const onFinish = (values) => {
     console.log('Booking request:', values);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-screen bg-black">
       {/* Header */}
       <header className="bg-gray-900/50 backdrop-blur border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
