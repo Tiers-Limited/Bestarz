@@ -1,20 +1,21 @@
-import React from 'react';
-import { Layout, Menu, Button, Avatar, Dropdown, Space } from 'antd';
-import { 
-  LayoutDashboard, 
-  User, 
-  Calendar, 
-  DollarSign, 
-  Settings, 
+import React from "react";
+import { Layout, Menu, Button, Avatar, Dropdown, Space } from "antd";
+import {
+  LayoutDashboard,
+  User,
+  Calendar,
+  DollarSign,
+  Settings,
   Star,
   LogOut,
   Bell,
   ExternalLink,
   Users,
   FileText,
-  HelpCircle
-} from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+  HelpCircle,
+  Package,
+} from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const { Sider, Content, Header } = Layout;
 
@@ -24,78 +25,84 @@ const ProviderLayout = ({ children }) => {
 
   const menuItems = [
     {
-      key: '/provider/dashboard',
+      key: "/provider/dashboard",
       icon: <LayoutDashboard size={18} />,
-      label: 'Dashboard',
+      label: "Dashboard",
     },
     {
-      key: '/provider/profile',
+      key: "/provider/profile",
       icon: <User size={18} />,
-      label: 'Profile',
+      label: "Profile",
     },
     {
-      key: '/provider/bookings',
+      key: "/provider/bookings",
       icon: <Calendar size={18} />,
-      label: 'Bookings',
+      label: "Bookings",
+    },
+
+    {
+      key: "/provider/services-rates",
+      icon: <Package size={18} />,
+      label: "Service Rates",
     },
     {
-      key: '/provider/customers',
+      key: "/provider/customers",
       icon: <Users size={18} />,
-      label: 'Customers',
+      label: "Customers",
     },
     {
-      key: '/provider/earnings',
+      key: "/provider/earnings",
       icon: <DollarSign size={18} />,
-      label: 'Earnings',
+      label: "Earnings",
     },
     {
-      key: '/provider/subscription',
+      key: "/provider/subscription",
       icon: <Star size={18} />,
-      label: 'Subscription',
+      label: "Subscription",
     },
     {
-      key: '/provider/docs',
+      key: "/provider/docs",
       icon: <FileText size={18} />,
-      label: 'Help & Docs',
+      label: "Help & Docs",
     },
     {
-      key: '/provider/settings',
+      key: "/provider/settings",
       icon: <Settings size={18} />,
-      label: 'Settings',
+      label: "Settings",
     },
   ];
 
   const userMenuItems = [
     {
-      key: 'profile',
-      label: 'Profile Settings',
+      key: "profile",
+      label: "Profile Settings",
       icon: <User size={16} />,
     },
     {
-      key: 'notifications',
-      label: 'Notifications',
+      key: "notifications",
+      label: "Notifications",
       icon: <Bell size={16} />,
     },
     {
-      key: 'help',
-      label: 'Help Center',
+      key: "help",
+      label: "Help Center",
       icon: <HelpCircle size={16} />,
     },
     {
-      key: 'divider',
-      type: 'divider',
+      key: "divider",
+      type: "divider",
     },
     {
-      key: 'logout',
-      label: 'Sign Out',
+      key: "logout",
+      label: "Sign Out",
       icon: <LogOut size={16} />,
       danger: true,
     },
   ];
 
   const handleMenuClick = ({ key }) => {
-    if (key === 'logout') {
-      navigate('/');
+    if (key === "logout") {
+      navigate("/");
     } else {
       navigate(key);
     }
@@ -107,8 +114,8 @@ const ProviderLayout = ({ children }) => {
         width={240}
         className="bg-black border-r border-gray-800"
         style={{
-          position: 'fixed',
-          height: '100vh',
+          position: "fixed",
+          height: "100vh",
           left: 0,
           top: 0,
           bottom: 0,
@@ -119,7 +126,7 @@ const ProviderLayout = ({ children }) => {
             Best<span className="text-green-400">★</span>rz
           </div>
         </div>
-        
+
         <Menu
           theme="dark"
           mode="inline"
@@ -131,32 +138,37 @@ const ProviderLayout = ({ children }) => {
       </Sider>
 
       <Layout style={{ marginLeft: 240 }}>
-        <Header 
+        <Header
           className="bg-black border-b border-gray-800 px-6"
-          style={{ height: '64px', lineHeight: '64px' }}
+          style={{ height: "64px", lineHeight: "64px" }}
         >
           <div className="flex justify-between items-center">
             <div>
               <span className="text-white text-lg">Provider Portal</span>
             </div>
             <Space size="large">
-              <Button 
-                type="text" 
+              <Button
+                type="text"
                 icon={<ExternalLink size={16} />}
-                onClick={() => window.open('/provider/dj-master/book', '_blank')}
+                onClick={() =>
+                  window.open("/provider/dj-master/book", "_blank")
+                }
                 className="text-gray-300 hover:text-white"
               >
                 Public Page
               </Button>
-              <Button 
-                type="text" 
+              <Button
+                type="text"
                 icon={<HelpCircle size={16} />}
                 className="text-gray-300 hover:text-white glow-button"
+                onClick={()=>{
+                    navigate("/provider/docs")
+                }}
               >
                 Help
               </Button>
-              <Button 
-                type="text" 
+              <Button
+                type="text"
                 icon={<Bell size={16} />}
                 className="text-gray-300 hover:text-white"
               >
@@ -166,26 +178,34 @@ const ProviderLayout = ({ children }) => {
                 menu={{
                   items: userMenuItems,
                   onClick: ({ key }) => {
-                    if (key === 'logout') {
-                      navigate('/');
+                    if (key === "logout") {
+                      navigate("/");
                     }
-                  }
+                    else if (key === "notifications") {
+                      navigate("/provider/notifications");
+                    }
+                   else if (key === "help") {
+                      navigate("/provider/docs");
+                    }
+                  
+                    else if (key === "profile") {
+                      navigate("/provider/profile");
+                    }
+                  },
                 }}
-                trigger={['click']}
+                trigger={["click"]}
                 getPopupContainer={(triggerNode) => triggerNode.parentNode}
               >
                 <div className="flex items-center cursor-pointer hover-lift">
-                  <Avatar style={{ backgroundColor: '#3B82F6' }}>DM</Avatar>
+                  <Avatar style={{ backgroundColor: "#3B82F6" }}>DM</Avatar>
                   <span className="text-white ml-2">DJ Master</span>
                 </div>
               </Dropdown>
             </Space>
           </div>
         </Header>
-        
-        <Content className="bg-black">
-          {children}
-        </Content>
+
+        <Content className="bg-black">{children}</Content>
       </Layout>
     </Layout>
   );

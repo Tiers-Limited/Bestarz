@@ -95,6 +95,8 @@ const ProviderDashboard = () => {
               className="hover:bg-gray-800/50 rounded-lg px-4 transition-colors glow-border mb-2"
             >
               <List.Item.Meta
+
+              className='p-3'
                 avatar={
                   <Avatar style={{ backgroundColor: '#3B82F6' }}>
                     {booking.client.split(' ').map(n => n[0]).join('')}
@@ -152,6 +154,8 @@ const ProviderDashboard = () => {
               className="hover:bg-gray-800/50 rounded-lg px-4 transition-colors glow-border mb-2"
             >
               <List.Item.Meta
+
+              className='p-3'
                 avatar={
                   <Avatar style={{ backgroundColor: '#22C55E' }}>
                     {inquiry.client.split(' ').map(n => n[0]).join('')}
@@ -203,6 +207,9 @@ const ProviderDashboard = () => {
             <Button 
               icon={<Bell size={16} />} 
               className="border-gray-600 hover:border-blue-400 hover:text-blue-400"
+              onClick={()=>{
+                  navigate('/provider/notifications')
+              }}
             >
               Notifications
             </Button>

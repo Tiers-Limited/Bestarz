@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, Typography, Button, Row, Col, List, Tag, Space, Divider } from 'antd';
 import { Check, Star, Zap, Crown, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import ProviderLayout from '../../components/ProviderLayout';
 
 const { Title, Paragraph } = Typography;
 
@@ -64,6 +65,8 @@ const ProviderSubscription= () => {
   };
 
   return (
+
+    <ProviderLayout >
     <div className="min-h-screen bg-black p-4">
       <div className="max-w-6xl mx-auto">
         <Button 
@@ -188,6 +191,8 @@ const ProviderSubscription= () => {
         </Card>
       </div>
     </div>
+
+    </ProviderLayout>
   );
 };
 

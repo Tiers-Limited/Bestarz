@@ -32,12 +32,14 @@ import {
   HelpCircle,
 } from "lucide-react";
 import AdminLayout from "../../components/AdminLayout";
+import { useNavigate } from "react-router-dom";
 
 const { Title, Paragraph } = Typography;
 
 const AdminDashboard = () => {
-  const [auditLogVisible, setAuditLogVisible] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState(null);
+
+  const navigate=useNavigate();
 
   const platformStats = [
     { title: "Total Revenue", value: 125680, prefix: "$", color: "#22C55E" },
@@ -342,19 +344,23 @@ const AdminDashboard = () => {
               <Button
                 icon={<HelpCircle size={16} />}
                 className="border-gray-600 hover-lift"
+                onClick={() => navigate("/admin/docs")}
               >
                 Help Center
               </Button>
               <Button
                 icon={<Shield size={16} />}
                 className="border-gray-600 hover-lift"
-                onClick={() => setAuditLogVisible(true)}
+                onClick={() => navigate("/admin/security")}
               >
-                Audit Log
+                Security Center
               </Button>
               <Button
                 icon={<Bell size={16} />}
                 className="border-gray-600 hover-lift"
+                onClick={()=>{
+                  navigate('/admin/notifications')
+                }}
               >
                 Notifications
               </Button>
@@ -362,6 +368,9 @@ const AdminDashboard = () => {
                 type="primary"
                 icon={<Settings size={16} />}
                 className="glow-button"
+                onClick={()=>{
+                  navigate('/admin/platform-settings')
+                }}
               >
                 Platform Settings
               </Button>
@@ -436,6 +445,9 @@ const AdminDashboard = () => {
                     size="large"
                     icon={<Users size={16} />}
                     className="hover-lift"
+                    onClick={()=>{
+                      navigate('/admin/providers')
+                    }}
                   >
                     Manage Providers
                   </Button>
@@ -444,6 +456,9 @@ const AdminDashboard = () => {
                     size="large"
                     icon={<DollarSign size={16} />}
                     className="hover-lift"
+                    onClick={()=>{
+                      navigate('/admin/payments')
+                    }}
                   >
                     Payment Reports
                   </Button>
@@ -452,6 +467,9 @@ const AdminDashboard = () => {
                     size="large"
                     icon={<TrendingUp size={16} />}
                     className="hover-lift"
+                    onClick={()=>{
+                      navigate('/admin/analytics')
+                    }}
                   >
                     Analytics
                   </Button>
@@ -460,23 +478,19 @@ const AdminDashboard = () => {
                     size="large"
                     icon={<Settings size={16} />}
                     className="hover-lift"
+                    onClick={()=>{
+                      navigate('/admin/platform-settings')
+                    }}
                   >
                     Platform Settings
                   </Button>
-                  <Button
-                    block
-                    size="large"
-                    icon={<Activity size={16} />}
-                    className="hover-lift"
-                  >
-                    System Health
-                  </Button>
+                
                   <Button
                     block
                     size="large"
                     icon={<Shield size={16} />}
                     className="hover-lift"
-                    onClick={() => setAuditLogVisible(true)}
+                    onClick={() => navigate("/admin/security")}
                   >
                     Security Center
                   </Button>
@@ -486,54 +500,7 @@ const AdminDashboard = () => {
           </Row>
         </div>
 
-        {/* Audit Log Drawer */}
-        <Drawer
-          title="Audit Log - Account Actions"
-          placement="right"
-          size="large"
-          onClose={() => setAuditLogVisible(false)}
-          open={auditLogVisible}
-          className="bg-black"
-        >
-          <Paragraph className="text-gray-400 mb-6">
-            Track all account management actions for transparency and
-            compliance.
-          </Paragraph>
-
-          <Timeline
-            items={auditLogs.map((log) => ({
-              dot:
-                log.type === "block" ? (
-                  <Shield size={16} className="text-red-500" />
-                ) : log.type === "disable" ? (
-                  <Ban size={16} className="text-orange-500" />
-                ) : (
-                  <CheckCircle size={16} className="text-green-500" />
-                ),
-              children: (
-                <div>
-                  <div className="flex justify-between items-start mb-2">
-                    <Title level={5} className="text-white mb-1">
-                      {log.action}
-                    </Title>
-                    <span className="text-gray-500 text-sm">
-                      {log.timestamp}
-                    </span>
-                  </div>
-                  <Paragraph className="text-gray-300 mb-1">
-                    <strong>Target:</strong> {log.target}
-                  </Paragraph>
-                  <Paragraph className="text-gray-300 mb-1">
-                    <strong>Reason:</strong> {log.reason}
-                  </Paragraph>
-                  <Paragraph className="text-gray-400 text-sm">
-                    Action by: {log.admin}
-                  </Paragraph>
-                </div>
-              ),
-            }))}
-          />
-        </Drawer>
+    
       </div>
     </AdminLayout>
   );

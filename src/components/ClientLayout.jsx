@@ -4,82 +4,55 @@ import {
   LayoutDashboard, 
   Users, 
   DollarSign, 
-  BarChart3, 
   Settings, 
-  Shield,
   LogOut,
   Bell,
   HelpCircle,
-  FileText,
-  User
+  FileText
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const { Sider, Content, Header } = Layout;
 
-const AdminLayout = ({ children }) => {
+const ClientLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // ✅ Client-specific sidebar menu
   const menuItems = [
     {
-      key: '/admin/dashboard',
+      key: '/client/dashboard',
       icon: <LayoutDashboard size={18} />,
       label: 'Dashboard',
     },
-
     {
-      key: '/admin/profile',
-      icon: <User size={18} />,
-      label: 'Profile',
-    },
-    {
-      key: '/admin/providers',
+      key: '/client/providers',
       icon: <Users size={18} />,
       label: 'Providers',
     },
     {
-      key: '/admin/clients',
-      icon: <Users size={18} />,
-      label: 'Clients',
-    },
-    {
-      key: '/admin/payments',
+      key: '/client/payments',
       icon: <DollarSign size={18} />,
       label: 'Payments',
     },
     {
-      key: '/admin/analytics',
-      icon: <BarChart3 size={18} />,
-      label: 'Analytics',
-    },
-    {
-      key: '/admin/security',
-      icon: <Shield size={18} />,
-      label: 'Security',
-    },
-    {
-      key: '/admin/docs',
+      key: '/client/docs',
       icon: <FileText size={18} />,
-      label: 'Help & Docs',
+      label: 'Documentation',
     },
     {
-      key: '/admin/platform-settings',
+      key: '/client/settings',
       icon: <Settings size={18} />,
       label: 'Settings',
     },
   ];
 
+  // ✅ Client-focused dropdown menu
   const userMenuItems = [
     {
       key: 'profile',
-      label: 'Admin Profile',
-      icon: <User size={16} />,
-    },
-    {
-      key: 'platform',
-      label: 'Platform Settings',
-      icon: <Settings size={16} />,
+      label: 'My Profile',
+      icon: <Users size={16} />,
     },
     {
       key: 'help',
@@ -142,16 +115,13 @@ const AdminLayout = ({ children }) => {
         >
           <div className="flex justify-between items-center">
             <div>
-              <span className="text-white text-lg">Admin Portal</span>
+              <span className="text-white text-lg">Client Portal</span>
             </div>
             <Space size="large">
               <Button 
                 type="text" 
                 icon={<HelpCircle size={16} />}
                 className="text-gray-300 hover:text-white glow-button"
-                onClick={()=>{
-                  navigate('/admin/docs')
-                }}
               >
                 Help
               </Button>
@@ -169,25 +139,14 @@ const AdminLayout = ({ children }) => {
                     if (key === 'logout') {
                       navigate('/');
                     }
-
-                    else if (key === 'profile') {
-                      navigate('/admin/profile');
-                    }
-                    else if (key === 'platform') {
-                      navigate('/admin/platform-settings');
-                    }
-                    else if (key === 'help') {
-                      navigate('/admin/docs');
-                    }
-
                   }
                 }}
                 trigger={['click']}
                 getPopupContainer={(triggerNode) => triggerNode.parentNode}
               >
                 <div className="flex items-center cursor-pointer hover-lift">
-                  <Avatar style={{ backgroundColor: '#8B5CF6' }}>AD</Avatar>
-                  <span className="text-white ml-2">Admin</span>
+                  <Avatar style={{ backgroundColor: '#8B5CF6' }}>CL</Avatar>
+                  <span className="text-white ml-2">Client</span>
                 </div>
               </Dropdown>
             </Space>
@@ -202,4 +161,4 @@ const AdminLayout = ({ children }) => {
   );
 };
 
-export default AdminLayout;
+export default ClientLayout;

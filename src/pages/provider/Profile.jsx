@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, Typography, Upload, Select, Row, Col, InputNumber, Space, Tag, Divider, Table, Modal } from 'antd';
-import { Camera, MapPin, Phone, Mail, Globe, Copy, Check, Plus, Edit, Trash2 } from 'lucide-react';
+import { Form, Input, Button, Card, Typography, Upload, Select, Row, Col, InputNumber, Space, Tag } from 'antd';
+import { Camera, MapPin, Phone, Mail, Globe, Copy, Check, Edit, Trash2 } from 'lucide-react';
 import ProviderLayout from '../../components/ProviderLayout';
 
 const { Title, Paragraph } = Typography;
@@ -10,43 +10,7 @@ const { Option } = Select;
 const ProviderProfile = () => {
   const [form] = Form.useForm();
   const [copied, setCopied] = useState(false);
-  const [rateCardVisible, setRateCardVisible] = useState(false);
-  const [rateCards, setRateCards] = useState([
-    {
-      key: '1',
-      service: 'Wedding DJ',
-      basePrice: 1200,
-      duration: '6 hours',
-      includes: ['Sound system', 'Microphones', 'Basic lighting', 'Music library access'],
-      addOns: [
-        { name: 'Extra hour', price: 150 },
-        { name: 'Premium lighting', price: 300 },
-        { name: 'Photo booth', price: 400 }
-      ]
-    },
-    {
-      key: '2',
-      service: 'Corporate Event',
-      basePrice: 800,
-      duration: '4 hours',
-      includes: ['Sound system', 'Microphones', 'Background music'],
-      addOns: [
-        { name: 'Extra hour', price: 100 },
-        { name: 'Live mixing', price: 200 }
-      ]
-    },
-    {
-      key: '3',
-      service: 'Private Party',
-      basePrice: 600,
-      duration: '4 hours',
-      includes: ['Sound system', 'Basic setup'],
-      addOns: [
-        { name: 'Extra hour', price: 120 },
-        { name: 'Karaoke setup', price: 250 }
-      ]
-    }
-  ]);
+
   
   const publicUrl = 'https://bestarz.com/provider/dj-master/book';
 
@@ -171,55 +135,7 @@ const ProviderProfile = () => {
           </div>
         </Card>
 
-        {/* Rate Card Management */}
-        <Card 
-          title="Service Rate Cards" 
-          className="mb-8 glow-border"
-          extra={
-            <Button 
-              type="primary" 
-              icon={<Plus size={16} />}
-              onClick={() => setRateCardVisible(true)}
-              className="glow-button"
-            >
-              Add Rate Card
-            </Button>
-          }
-        >
-          <Paragraph className="text-gray-400 mb-6">
-            Set different pricing for different types of events. This helps clients understand 
-            your pricing structure and makes booking decisions easier.
-          </Paragraph>
-          
-          <Table
-            dataSource={rateCards}
-            columns={rateCardColumns}
-            pagination={false}
-            className="mb-4"
-            scroll={{ x: 800 }}
-          />
-          
-          <div className="mt-4 p-4 bg-gray-800 rounded-lg">
-            <Title level={5} className="text-white mb-2">Rate Card Benefits</Title>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} sm={8}>
-                <div className="trust-badge">
-                  ✨ Clear pricing for clients
-                </div>
-              </Col>
-              <Col xs={24} sm={8}>
-                <div className="trust-badge">
-                  💰 Higher booking conversion
-                </div>
-              </Col>
-              <Col xs={24} sm={8}>
-                <div className="trust-badge">
-                  🎯 Targeted service offerings
-                </div>
-              </Col>
-            </Row>
-          </div>
-        </Card>
+      
 
         <Form
           form={form}
@@ -438,55 +354,7 @@ const ProviderProfile = () => {
           </div>
         </Form>
 
-        {/* Rate Card Modal */}
-        <Modal
-          title="Create Rate Card"
-          open={rateCardVisible}
-          onCancel={() => setRateCardVisible(false)}
-          footer={null}
-          width={600}
-        >
-          <Form layout="vertical">
-            <Form.Item name="service" label="Service Type" required>
-              <Input size="large" placeholder="e.g., Wedding DJ" />
-            </Form.Item>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} md={12}>
-                <Form.Item name="basePrice" label="Base Price" required>
-                  <InputNumber 
-                    size="large" 
-                    style={{ width: '100%' }}
-                    prefix="$"
-                    placeholder="Base price"
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={12}>
-                <Form.Item name="duration" label="Duration" required>
-                  <Input size="large" placeholder="e.g., 6 hours" />
-                </Form.Item>
-              </Col>
-            </Row>
-            <Form.Item name="includes" label="What's Included">
-              <Select
-                mode="tags"
-                size="large"
-                placeholder="Add what's included in base price"
-                getPopupContainer={(triggerNode) => triggerNode.parentNode}
-              />
-            </Form.Item>
-            <div className="text-center mt-6">
-              <Space>
-                <Button onClick={() => setRateCardVisible(false)}>
-                  Cancel
-                </Button>
-                <Button type="primary" className="glow-button">
-                  Create Rate Card
-                </Button>
-              </Space>
-            </div>
-          </Form>
-        </Modal>
+    
       </div>
     </ProviderLayout>
   );

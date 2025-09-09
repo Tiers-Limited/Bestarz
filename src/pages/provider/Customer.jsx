@@ -328,9 +328,7 @@ const ProviderCustomers = () => {
             />
             <Space>
               <Button className="hover-lift">Export List</Button>
-              <Button type="primary" className="glow-button">
-                Customer Analytics
-              </Button>
+              
             </Space>
           </div>
         </Card>
