@@ -235,10 +235,7 @@ const ProviderDashboard = () => {
                 valueStyle={{ color: '#22C55E' }}
                 prefix={<DollarSign size={20} />}
               />
-              <div className="mt-2 text-green-400 text-sm flex items-center">
-                <TrendingUp size={14} className="mr-1" />
-                +23% from last month
-              </div>
+            
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
@@ -249,9 +246,7 @@ const ProviderDashboard = () => {
                 valueStyle={{ color: '#F59E0B' }}
                 prefix={<Calendar size={20} />}
               />
-              <div className="mt-2 text-orange-400 text-sm">
-                Respond within 2 hours for best results
-              </div>
+             
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
@@ -262,9 +257,7 @@ const ProviderDashboard = () => {
                 valueStyle={{ color: '#3B82F6' }}
                 prefix={<Users size={20} />}
               />
-              <div className="mt-2 text-blue-400 text-sm">
-                +5 new clients this month
-              </div>
+             
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
@@ -276,9 +269,7 @@ const ProviderDashboard = () => {
                 valueStyle={{ color: '#F59E0B' }}
                 prefix={<Star size={20} />}
               />
-              <div className="mt-2 text-yellow-400 text-sm">
-                Based on 127 reviews
-              </div>
+             
             </Card>
           </Col>
         </Row>
@@ -342,27 +333,7 @@ const ProviderDashboard = () => {
               </Space>
             </Card>
 
-            {/* Performance Metrics */}
-            <Card title="This Week's Performance" className="glow-border">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Response Rate</span>
-                  <span className="text-green-400 font-semibold">96%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Booking Rate</span>
-                  <span className="text-blue-400 font-semibold">85%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Avg Response Time</span>
-                  <span className="text-orange-400 font-semibold">2.3 hrs</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Profile Views</span>
-                  <span className="text-purple-400 font-semibold">234</span>
-                </div>
-              </div>
-            </Card>
+      
           </Col>
         </Row>
       </div>

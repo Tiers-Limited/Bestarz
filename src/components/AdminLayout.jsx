@@ -11,7 +11,8 @@ import {
   Bell,
   HelpCircle,
   FileText,
-  User
+  User,
+  MessageCircle
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -62,6 +63,12 @@ const AdminLayout = ({ children }) => {
       key: '/admin/docs',
       icon: <FileText size={18} />,
       label: 'Help & Docs',
+    },
+
+    {
+      key: '/admin/messages',
+      icon: <MessageCircle size={18} />,
+      label: 'Messages',
     },
     {
       key: '/admin/platform-settings',
@@ -159,6 +166,8 @@ const AdminLayout = ({ children }) => {
                 type="text" 
                 icon={<Bell size={16} />}
                 className="text-gray-300 hover:text-white"
+
+                onClick={()=>navigate('/admin/messages')}
               >
                 5
               </Button>

@@ -21,12 +21,14 @@ import {
   Star,
 } from "lucide-react";
 import ClientLayout from "../../components/ClientLayout"; // or create ClientLayout if needed
+import { useNavigate } from "react-router-dom";
 
 const { Title, Paragraph } = Typography;
 
 const ClientDashboard = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [eventDrawerVisible, setEventDrawerVisible] = useState(false);
+  const navigate = useNavigate();
 
   // Stats for client
   const clientStats = [
@@ -151,12 +153,14 @@ const ClientDashboard = () => {
               <Button
                 icon={<HelpCircle size={16} />}
                 className="border-gray-600 hover-lift"
+                onClick={() => navigate('/client/docs')}
               >
                 Help
               </Button>
               <Button
                 icon={<Settings size={16} />}
                 className="border-gray-600 hover-lift"
+                onClick={() => navigate('/client/settings')}
               >
                 Account Settings
               </Button>
@@ -200,13 +204,13 @@ const ClientDashboard = () => {
             <Col xs={24} lg={8}>
               <Card title="Quick Actions" className="h-full glow-border">
                 <Space direction="vertical" size="middle" className="w-full">
-                  <Button block size="large" icon={<Calendar size={16} />}>
+                  <Button onClick={()=>{navigate('/client/booking')}} block size="large" icon={<Calendar size={16} />}>
                     Book New Event
                   </Button>
-                  <Button block size="large" icon={<CreditCard size={16} />}>
+                  <Button onClick={()=>{navigate('/client/payments')}} block size="large" icon={<CreditCard size={16} />}>
                     Payments & Invoices
                   </Button>
-                  <Button block size="large" icon={<MessageCircle size={16} />}>
+                  <Button onClick={()=>{navigate('/client/support')}} block size="large" icon={<MessageCircle size={16} />}>
                     Contact Support
                   </Button>
                 </Space>

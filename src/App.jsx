@@ -32,6 +32,13 @@ import AdminProfileSettings from "./pages/admin/ProfileSettings";
 import AdminNotifications from "./pages/admin/Notifications";
 import ProviderNotifications from "./pages/provider/Notifications";
 import ProviderRateCards from "./pages/provider/RateCards";
+import ClientDocumentation from "./pages/client/Documentation";
+import ClientProfileSettings from "./pages/client/ProfileSettings";
+import ClientProviders from "./pages/client/Providers";
+import ClientPayments from "./pages/client/Payments";
+import ClientMessages from "./pages/client/Messages";
+import ProviderMessages from "./pages/provider/Messages";
+import AdminMessages from "./pages/admin/Messages";
 
 const App = () => {
   return (
@@ -61,6 +68,11 @@ const App = () => {
 
             <Route path="/client/booking" element={<ClientBooking />} />
             <Route path="/client/dashboard" element={<ClientDashboard />} />
+            <Route path="/client/providers" element={<ClientProviders />} />
+            <Route path="/client/payments" element={<ClientPayments />} />
+            <Route path="/client/docs" element={<ClientDocumentation />} />
+            <Route path="/client/settings" element={<ClientProfileSettings />} />
+            <Route path="/client/support" element={<ClientMessages />} />
 
             <Route path="/provider/dashboard" element={<ProviderDashboard />} />
             <Route path="/provider/profile" element={<ProviderProfile />} />
@@ -78,8 +90,9 @@ const App = () => {
             <Route path="/provider/bookings" element={<ProviderBookings />} />
             <Route path="/provider/settings" element={<ProviderSettings />} />
             <Route path="/provider/services-rates" element={<ProviderRateCards />} />
+            <Route path="/provider/messages" element={<ProviderMessages />} />
 
-            
+
             <Route
               path="/provider/:providerId/book"
               element={<PublicProviderPage />}
@@ -93,6 +106,9 @@ const App = () => {
             <Route path="/admin/analytics" element={<AdminAnalytics />} />
 
             <Route path="/admin/profile" element={<AdminProfileSettings />} />
+
+            <Route path="/admin/messages" element={<AdminMessages />} />
+
             <Route
               path="/admin/notifications"
               element={<AdminNotifications />}

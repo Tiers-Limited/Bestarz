@@ -14,6 +14,7 @@ import {
   FileText,
   HelpCircle,
   Package,
+  MessageCircle,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -59,6 +60,12 @@ const ProviderLayout = ({ children }) => {
       key: "/provider/subscription",
       icon: <Star size={18} />,
       label: "Subscription",
+    },
+
+    {
+      key: '/provider/messages',
+      icon: <MessageCircle size={18} />,
+      label: 'Messages',
     },
     {
       key: "/provider/docs",
@@ -171,6 +178,7 @@ const ProviderLayout = ({ children }) => {
                 type="text"
                 icon={<Bell size={16} />}
                 className="text-gray-300 hover:text-white"
+                onClick={()=>navigate('/provider/messages')}
               >
                 3
               </Button>
@@ -182,7 +190,7 @@ const ProviderLayout = ({ children }) => {
                       navigate("/");
                     }
                     else if (key === "notifications") {
-                      navigate("/provider/notifications");
+                      navigate("/provider/messages");
                     }
                    else if (key === "help") {
                       navigate("/provider/docs");

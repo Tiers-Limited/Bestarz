@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Steps, Card, Typography, Form, Input, Select, Button, Row, Col, Slider, DatePicker, Space, List, Avatar, Tag, Rate, Spin } from 'antd';
 import { Search, MapPin, Zap, Filter, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import ClientLayout from '../../components/ClientLayout';
 
 const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -501,6 +502,9 @@ const ClientBooking = () => {
   ];
 
   return (
+
+
+    <ClientLayout >
     <div className="min-h-screen bg-black">
       {/* Header */}
       <header className="bg-black/90 backdrop-blur border-b border-gray-700">
@@ -533,6 +537,8 @@ const ClientBooking = () => {
         </div>
       </div>
     </div>
+
+    </ClientLayout>
   );
 };
 

@@ -8,7 +8,8 @@ import {
   LogOut,
   Bell,
   HelpCircle,
-  FileText
+  FileText,
+  MessageCircle
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -35,11 +36,18 @@ const ClientLayout = ({ children }) => {
       icon: <DollarSign size={18} />,
       label: 'Payments',
     },
+
+    {
+      key: '/client/messages',
+      icon: <MessageCircle size={18} />,
+      label: 'Messages',
+    },
     {
       key: '/client/docs',
       icon: <FileText size={18} />,
       label: 'Documentation',
     },
+
     {
       key: '/client/settings',
       icon: <Settings size={18} />,
@@ -122,6 +130,10 @@ const ClientLayout = ({ children }) => {
                 type="text" 
                 icon={<HelpCircle size={16} />}
                 className="text-gray-300 hover:text-white glow-button"
+
+                onClick={()=>{
+                  navigate('/client/docs');
+                }}
               >
                 Help
               </Button>
@@ -138,6 +150,12 @@ const ClientLayout = ({ children }) => {
                   onClick: ({ key }) => {
                     if (key === 'logout') {
                       navigate('/');
+                    }
+                    else if (key === 'help') {
+                      navigate('/client/docs');
+                    }
+                    else if (key === 'profile') {
+                      navigate('/client/settings');
                     }
                   }
                 }}
