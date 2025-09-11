@@ -126,11 +126,12 @@ const AdminLayout = ({ children }) => {
           bottom: 0,
         }}
       >
-        <div className="p-6">
-          <div className="bestarz-logo text-2xl text-center mb-8">
-            Best<span className="text-green-400">★</span>rz
-          </div>
-        </div>
+  <div className="p-6">
+  <div className="bestarz-logo text-2xl text-center mb-8">
+    Best<span className="bestarz-star">★</span>rz
+  </div>
+</div>
+
         
         <Menu
           theme="dark"
