@@ -80,7 +80,7 @@ const ProviderSubscription= () => {
 
         <div className="text-center mb-12">
           <div className="bestarz-logo text-4xl mb-4">
-            Best<span className="text-green-400">★</span>rz
+            Best<span className="bestarz-star">★</span>rz
           </div>
           <Title level={1} className="text-white mb-4">Choose Your Plan</Title>
           <Paragraph className="text-xl text-gray-400 max-w-2xl mx-auto">

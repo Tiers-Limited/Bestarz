@@ -38,7 +38,7 @@ const PublicProviderPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="bestarz-logo">
-              Best<span className="text-green-400">★</span>rz
+              Best<span className="bestarz-star">★</span>rz
             </div>
             <Button type="primary">
               Join Bestarz
