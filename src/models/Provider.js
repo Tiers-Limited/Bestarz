@@ -46,17 +46,6 @@ const providerSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: [
-      'DJ & Music',
-      'Photography',
-      'Catering',
-      'Event Planning',
-      'Videography',
-      'Entertainment',
-      'Transportation',
-      'Flowers & Decor',
-      'Uncategorized'
-    ]
   },
   description: {
     type: String,

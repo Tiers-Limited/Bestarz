@@ -453,7 +453,7 @@ export const getProviderBySlug = async (req, res) => {
 	  
 	  const provider = await Provider.findOne({ slug, isActive: true })
 		.populate('user', 'firstName lastName profileImage')
-		.select('-user.passwordHash -user.email -user.phone'); // Don't expose private info
+		.select('-user.passwordHash -user.email -user.phone'); 
 	  
 	  if (!provider) {
 		return res.status(404).json({ message: 'Provider not found' });
@@ -485,4 +485,4 @@ export const getProviderBySlug = async (req, res) => {
 	} catch (err) {
 	  return res.status(500).json({ message: err.message });
 	}
-  };
+};

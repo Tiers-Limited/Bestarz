@@ -10,6 +10,9 @@ import jwt from 'jsonwebtoken';
 import authRoutes from './routes/auth.routes.js';
 import providerRoutes from './routes/provider.routes.js';
 import bookingRoutes from './routes/booking.routes.js';
+import paymentRoutes from './routes/payment.routes.js';
+
+
 
 dotenv.config();
 
@@ -42,6 +45,10 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/providers', providerRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/payments', paymentRoutes);
+
+
+
 
 
 // Not found handler
