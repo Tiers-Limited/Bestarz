@@ -7,7 +7,11 @@ const userSchema = new mongoose.Schema(
 		lastName: { type: String, required: true },
 		email: { type: String, required: true, unique: true, lowercase: true },
 		passwordHash: { type: String, required: true },
-		role: { type: String, enum: ['admin', 'provider', 'client'], default: 'client' }
+		role: { type: String, enum: ['admin', 'provider', 'client'], default: 'client' },
+		phone: { type: String },
+		profileImage: { type: String },
+		isActive: { type: Boolean, default: true },
+		lastLogin: { type: Date }
 	},
 	{ timestamps: true }
 );

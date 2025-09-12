@@ -10,10 +10,16 @@ const bookingSchema = new mongoose.Schema(
 		guests: { type: String },
 		dateStart: { type: Date },
 		dateEnd: { type: Date },
+		eventTime: { type: String },
+		duration: { type: Number }, // in hours
 		budgetMin: { type: Number },
 		budgetMax: { type: Number },
 		description: { type: String },
-		status: { type: String, enum: ['pending', 'confirmed', 'cancelled'], default: 'pending' }
+		contactInfo: { type: String },
+		status: { type: String, enum: ['pending', 'confirmed', 'cancelled', 'completed'], default: 'pending' },
+		amount: { type: Number },
+		paymentStatus: { type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' },
+		notes: { type: String }
 	},
 	{ timestamps: true }
 );

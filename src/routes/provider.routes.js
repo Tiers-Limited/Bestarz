@@ -1,11 +1,61 @@
-import { Router } from 'express';
-import { listProviders, getProvider, upsertMyProviderProfile } from '../controllers/provider.controller.js';
+import express from 'express';
+import { 
+  getProviderDashboard,
+  getMyProviderProfile,
+  updateProviderProfile,
+  getProviderBookings,
+  updateBookingStatus,
+  getProviderCustomers,
+  getProviderEarnings,
+
+  getProviderRateCards,
+  createRateCard,
+  updateRateCard,
+  deleteRateCard,
+  getProviderSettings,
+  updateProviderSettings,
+  getProviderBySlug
+} from '../controllers/provider.controller.js';
+import { getBooking } from '../controllers/booking.controller.js';
+// import { getPayment } from '../controllers/payment.controller.js';
 import { auth } from '../middleware/auth.js';
 
-const router = Router();
+const router = express.Router();
 
-router.get('/', listProviders);
-router.get('/:id', getProvider);
-router.put('/me', auth('provider'), upsertMyProviderProfile);
+router.use(auth('provider'));
+
+// Dashboard
+router.get('/dashboard', getProviderDashboard);
+
+// Profile Management
+router.get('/profile', getMyProviderProfile);
+router.put('/profile', updateProviderProfile);
+
+// Booking Management
+router.get('/bookings', getProviderBookings);
+router.get('/bookings/:id', getBooking);
+router.patch('/bookings/:id/status', updateBookingStatus);
+
+// Customer Management
+router.get('/customers', getProviderCustomers);
+
+// Earnings
+router.get('/earnings', getProviderEarnings);
+// router.get('/payments/:id', getPayment);
+
+
+// Rate Cards
+router.get('/rate-cards', getProviderRateCards);
+router.post('/rate-cards', createRateCard);
+router.put('/rate-cards/:id', updateRateCard);
+router.delete('/rate-cards/:id', deleteRateCard);
+
+// Settings
+router.get('/settings', getProviderSettings);
+router.put('/settings', updateProviderSettings);
+
+
+// Public provider booking page
+router.get('/provider/:slug', getProviderBySlug);
 
 export default router;

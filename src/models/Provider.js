@@ -14,9 +14,14 @@ const providerSchema = new mongoose.Schema(
 		services: [{ type: String }],
 		availability: [{ type: String }],
 		portfolio: [{ type: String }],
+		profileImage: { type: String },
 		rating: { type: Number, default: 0 },
 		reviews: { type: Number, default: 0 },
-		verified: { type: Boolean, default: false }
+		verified: { type: Boolean, default: false },
+		isActive: { type: Boolean, default: true },
+		responseTime: { type: String, default: '2 hours' },
+		bookingRate: { type: String, default: '95%' },
+		slug: { type: String, unique: true, sparse: true } // For public URLs like /provider/dj-master/book
 	},
 	{ timestamps: true }
 );
