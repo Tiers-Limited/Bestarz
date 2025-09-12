@@ -504,7 +504,7 @@ const ClientBooking = () => {
   return (
 
 
-    <ClientLayout >
+    // <ClientLayout >
     <div className="min-h-screen bg-black">
       {/* Header */}
       <header className="bg-black/90 backdrop-blur border-b border-gray-700">
@@ -538,7 +538,7 @@ const ClientBooking = () => {
       </div>
     </div>
 
-    </ClientLayout>
+    // </ClientLayout>
   );
 };
 
