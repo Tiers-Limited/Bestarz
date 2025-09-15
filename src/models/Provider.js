@@ -20,10 +20,6 @@ const rateCardSchema = new mongoose.Schema({
   includes: [{
     type: String
   }],
-  addOns: [{
-    name: String,
-    price: Number
-  }]
 });
 
 const providerSchema = new mongoose.Schema({
@@ -68,8 +64,8 @@ const providerSchema = new mongoose.Schema({
     trim: true
   },
   portfolio: [{
-    url: String,
-    caption: String
+    type: String,
+  
   }],
   rating: {
     type: Number,
@@ -86,12 +82,7 @@ const providerSchema = new mongoose.Schema({
     enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
   }],
   rateCards: [rateCardSchema],
-  settings: {
-    bookingAlerts: {
-      type: Boolean,
-      default: true
-    }
-  },
+  
   isActive: {
     type: Boolean,
     default: true

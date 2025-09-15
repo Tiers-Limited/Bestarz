@@ -11,7 +11,18 @@ const userSchema = new mongoose.Schema(
 		phone: { type: String },
 		profileImage: { type: String },
 		isActive: { type: Boolean, default: true },
-		lastLogin: { type: Date }
+		lastLogin: { type: Date },
+
+		subscriptionPlan: {
+			type: String,
+			enum: ['starter', 'professional', 'enterprise', 'none'],
+			default: 'none'
+		},
+		subscriptionStatus: { type: String, enum: ['active', 'canceled', 'expired'], default: 'canceled' },
+		stripeSubscriptionId: { type: String },
+		stripeCustomerId: { type: String },
+		subscriptionStart: { type: Date },
+		subscriptionEnd: { type: Date }
 	},
 	{ timestamps: true }
 );

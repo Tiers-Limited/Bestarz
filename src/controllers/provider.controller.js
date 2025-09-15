@@ -264,7 +264,7 @@ export const getProviderEarnings = async (req, res) => {
 		const payments = await Payment.find(filter)
 			.populate([
 				{ path: 'booking', select: 'serviceCategory eventType dateStart location' },
-				{ path: 'client', select: 'firstName lastName' }
+				{ path: 'client', select: '-passwordHash -refreshToken -__v' }
 			])
 			.sort({ createdAt: -1 })
 			.skip((Number(page) - 1) * Number(limit))
@@ -323,7 +323,7 @@ export const getProviderRateCards = async (req, res) => {
 export const createRateCard = async (req, res) => {
 	try {
 		const userId = req.user.id;
-		const { service, basePrice, duration, includes, addOns } = req.body;
+		const { service, basePrice, duration, includes } = req.body;
 		
 		const provider = await Provider.findOne({ user: userId });
 		if (!provider) return res.status(404).json({ message: 'Provider profile not found' });
@@ -333,8 +333,7 @@ export const createRateCard = async (req, res) => {
 			service,
 			basePrice,
 			duration,
-			includes: includes || [],
-			addOns: addOns || []
+			includes: includes || []
 		};
 		
 		if (!provider.rateCards) provider.rateCards = [];
@@ -402,9 +401,7 @@ export const getProviderSettings = async (req, res) => {
 				businessName: provider.businessName,
 				email: provider.user.email,
 				phone: provider.user.phone,
-				notifications: {
-					bookingAlerts: provider.settings?.bookingAlerts ?? true
-				},
+				
 
 			}
 		});
@@ -416,7 +413,7 @@ export const getProviderSettings = async (req, res) => {
 export const updateProviderSettings = async (req, res) => {
 	try {
 		const userId = req.user.id;
-		const { businessName, phone, notifications } = req.body;
+		const { businessName, phone } = req.body;
 		
 		const provider = await Provider.findOne({ user: userId });
 		if (!provider) return res.status(404).json({ message: 'Provider profile not found' });
@@ -426,9 +423,7 @@ export const updateProviderSettings = async (req, res) => {
 	
 		
 		provider.settings = {
-			...provider.settings,
-			bookingAlerts: notifications?.bookingAlerts ?? provider.settings?.bookingAlerts ?? true,
-
+			...provider.settings
 		};
 		
 		await provider.save();

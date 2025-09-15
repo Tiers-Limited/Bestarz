@@ -6,24 +6,35 @@ import morgan from 'morgan';
 import mongoose from 'mongoose';
 import { createServer } from 'http';
 import jwt from 'jsonwebtoken';
-
+import 'dotenv/config';
 import authRoutes from './routes/auth.routes.js';
 import providerRoutes from './routes/provider.routes.js';
 import bookingRoutes from './routes/booking.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
+import subscriptionRoutes from './routes/subscription.routes.js';
+import clientRoutes from './routes/client.routes.js'
+import adminRoutes from './routes/admin.routes.js';
 
 
 
-dotenv.config();
 
 const app = express();
 const server = createServer(app);
 
+console.log("Mongo URI:", process.env.MONGODB_URI);
+console.log("PORT:", process.env.PORT);
 
 
 app.use(cors({ origin: '*', credentials: false }));
 app.use(helmet());
-app.use(express.json({ limit: '1mb' }));
+
+app.use((req, res, next) => {
+	if (req.originalUrl .includes('webhook')) {
+	  next();
+	} else {
+	  express.json({ limit: '10mb' })(req, res, next);
+	}
+  });
 app.use(morgan('dev'));
 
 const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/bestarz';
@@ -46,6 +57,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/providers', providerRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/subscription', subscriptionRoutes);
+app.use('/api/client', clientRoutes);
+app.use('/api/admin', adminRoutes);
 
 
 

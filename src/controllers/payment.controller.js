@@ -7,6 +7,8 @@ import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+
+
 export const createPayment = async (req, res) => {
 	try {
 		const { bookingId, amount, paymentMethod = 'stripe' } = req.body;
@@ -22,10 +24,15 @@ export const createPayment = async (req, res) => {
 			return res.status(403).json({ message: 'Forbidden' });
 		}
 		
-		// Check if payment already exists
+		// Check if payment already exists and is successful
 		const existingPayment = await Payment.findOne({ booking: bookingId });
-		if (existingPayment) {
-			return res.status(400).json({ message: 'Payment already exists for this booking' });
+		if (existingPayment && existingPayment.status === 'completed') {
+			return res.status(400).json({ message: 'Payment already completed for this booking' });
+		}
+		
+		// If payment exists but failed or is pending, delete it to allow retry
+		if (existingPayment && (existingPayment.status === 'failed' || existingPayment.status === 'pending')) {
+			await Payment.findByIdAndDelete(existingPayment._id);
 		}
 		
 		// Create payment record
@@ -54,6 +61,7 @@ export const createPayment = async (req, res) => {
 			sessionId
 		});
 	} catch (err) {
+		console.error('Create payment error:', err);
 		return res.status(500).json({ message: err.message });
 	}
 };
@@ -294,6 +302,8 @@ export const confirmPayment = async (req, res) => {
 	}
 };
 
+
+
 export const handleStripeWebhook = async (req, res) => {
 	try {
 		const sig = req.headers['stripe-signature'];
@@ -317,6 +327,10 @@ export const handleStripeWebhook = async (req, res) => {
 			case 'payment_intent.succeeded':
 				const paymentIntent = event.data.object;
 				await handlePaymentIntentSucceeded(paymentIntent);
+				break;
+			case 'payment_intent.payment_failed':
+				const failedPaymentIntent = event.data.object;
+				await handlePaymentIntentFailed(failedPaymentIntent);
 				break;
 			default:
 				console.log(`Unhandled event type ${event.type}`);
@@ -367,5 +381,24 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
 		}
 	} catch (err) {
 		console.error('Error handling payment intent succeeded:', err);
+	}
+}
+
+async function handlePaymentIntentFailed(paymentIntent) {
+	try {
+		const payment = await Payment.findOne({ transactionId: paymentIntent.id });
+		if (payment) {
+			payment.status = 'failed';
+			await payment.save();
+			
+			// Update booking payment status
+			const booking = await Booking.findById(payment.booking);
+			if (booking) {
+				booking.paymentStatus = 'failed';
+				await booking.save();
+			}
+		}
+	} catch (err) {
+		console.error('Error handling payment intent failed:', err);
 	}
 }
