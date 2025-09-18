@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import AuditLog from '../models/AuditLog.js';
+import { createAuditLog } from '../services/auditlog.service.js';
 
 const signToken = (user) => {
 	return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'dev_secret', {
@@ -7,11 +9,17 @@ const signToken = (user) => {
 	});
 };
 
+
+
 export const signup = async (req, res) => {
 	try {
 		const { firstName, lastName, email, password, userType, businessName } = req.body;
 		const existing = await User.findOne({ email });
-		if (existing) return res.status(409).json({ message: 'Email already registered' });
+		if (existing) {
+			// Log failed signup attempt
+			await createAuditLog(`Failed signup attempt - email already registered: ${email}`, existing._id, 'warning');
+			return res.status(409).json({ message: 'Email already registered' });
+		}
 
 		const passwordHash = await User.hashPassword(password);
 		const role = userType === 'provider' ? 'provider' : 'client';
@@ -28,6 +36,9 @@ export const signup = async (req, res) => {
 			});
 		}
 
+		// Log successful signup
+		await createAuditLog(`User signup successful`, user._id, 'normal');
+
 		const token = signToken(user);
 		return res.status(201).json({ 
 			token, 
@@ -42,14 +53,31 @@ export const signin = async (req, res) => {
 	try {
 		const { email, password } = req.body;
 		const user = await User.findOne({ email });
-		if (!user) return res.status(401).json({ message: 'Invalid credentials' });
-		if (!user.isActive) return res.status(401).json({ message: 'Account is deactivated' });
+		
+		if (!user) {
+			// Log failed login attempt - user not found
+			await createAuditLog(`Failed login attempt - user not found: ${email}`, null, 'warning');
+			return res.status(401).json({ message: 'Invalid credentials' });
+		}
+		
+		if (!user.isActive) {
+			// Log failed login attempt - account deactivated
+			await createAuditLog(`Failed login attempt - account deactivated`, user._id, 'critical');
+			return res.status(401).json({ message: 'Account is deactivated' });
+		}
 		
 		const ok = await user.comparePassword(password);
-		if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
+		if (!ok) {
+			// Log failed login attempt - wrong password
+			await createAuditLog(`Failed login attempt - incorrect password`, user._id, 'warning');
+			return res.status(401).json({ message: 'Invalid credentials' });
+		}
 		
 		user.lastLogin = new Date();
 		await user.save();
+		
+		// Log successful login
+		await createAuditLog(`User login successful`, user._id, 'normal');
 		
 		const token = signToken(user);
 		return res.json({ 
@@ -89,6 +117,10 @@ export const updateProfile = async (req, res) => {
 		user.profileImage = profileImage || user.profileImage;
 		
 		await user.save();
+		
+		// Log profile update
+		await createAuditLog(`User profile updated`, user._id, 'normal');
+		
 		return res.json({ 
 			user: { 
 				id: user._id, 
@@ -111,10 +143,17 @@ export const changePassword = async (req, res) => {
 		if (!user) return res.status(404).json({ message: 'User not found' });
 		
 		const isValidPassword = await user.comparePassword(currentPassword);
-		if (!isValidPassword) return res.status(400).json({ message: 'Current password is incorrect' });
+		if (!isValidPassword) {
+			// Log failed password change attempt
+			await createAuditLog(`Failed password change - incorrect current password`, user._id, 'warning');
+			return res.status(400).json({ message: 'Current password is incorrect' });
+		}
 		
 		user.passwordHash = await User.hashPassword(newPassword);
 		await user.save();
+		
+		// Log successful password change
+		await createAuditLog(`Password changed successfully`, user._id, 'critical');
 		
 		return res.json({ message: 'Password updated successfully' });
 	} catch (err) {

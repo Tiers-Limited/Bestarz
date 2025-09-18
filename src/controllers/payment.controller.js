@@ -1,11 +1,8 @@
 import Payment from '../models/Payment.js';
 import Booking from '../models/Booking.js';
 import Provider from '../models/Provider.js';
-import User from '../models/User.js';
 import { createPaymentLink, retrieveSession, createStripeRefund } from '../services/stripe.service.js';
-import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 
 
@@ -303,102 +300,3 @@ export const confirmPayment = async (req, res) => {
 };
 
 
-
-export const handleStripeWebhook = async (req, res) => {
-	try {
-		const sig = req.headers['stripe-signature'];
-		const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-		
-		let event;
-		
-		try {
-			event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
-		} catch (err) {
-			console.error('Webhook signature verification failed:', err.message);
-			return res.status(400).send(`Webhook Error: ${err.message}`);
-		}
-		
-		// Handle the event
-		switch (event.type) {
-			case 'checkout.session.completed':
-				const session = event.data.object;
-				await handleCheckoutSessionCompleted(session);
-				break;
-			case 'payment_intent.succeeded':
-				const paymentIntent = event.data.object;
-				await handlePaymentIntentSucceeded(paymentIntent);
-				break;
-			case 'payment_intent.payment_failed':
-				const failedPaymentIntent = event.data.object;
-				await handlePaymentIntentFailed(failedPaymentIntent);
-				break;
-			default:
-				console.log(`Unhandled event type ${event.type}`);
-		}
-		
-		res.json({ received: true });
-	} catch (err) {
-		console.error('Webhook error:', err);
-		return res.status(500).json({ message: err.message });
-	}
-};
-
-async function handleCheckoutSessionCompleted(session) {
-	try {
-		const payment = await Payment.findOne({ stripePaymentIntentId: session.id });
-		if (payment) {
-			payment.status = 'completed';
-			payment.transactionId = session.payment_intent;
-			payment.processedAt = new Date();
-			await payment.save();
-			
-			// Update booking payment status
-			const booking = await Booking.findById(payment.booking);
-			if (booking) {
-				booking.paymentStatus = 'paid';
-				await booking.save();
-			}
-		}
-	} catch (err) {
-		console.error('Error handling checkout session completed:', err);
-	}
-}
-
-async function handlePaymentIntentSucceeded(paymentIntent) {
-	try {
-		const payment = await Payment.findOne({ transactionId: paymentIntent.id });
-		if (payment && payment.status !== 'completed') {
-			payment.status = 'completed';
-			payment.processedAt = new Date();
-			await payment.save();
-			
-			// Update booking payment status
-			const booking = await Booking.findById(payment.booking);
-			if (booking) {
-				booking.paymentStatus = 'paid';
-				await booking.save();
-			}
-		}
-	} catch (err) {
-		console.error('Error handling payment intent succeeded:', err);
-	}
-}
-
-async function handlePaymentIntentFailed(paymentIntent) {
-	try {
-		const payment = await Payment.findOne({ transactionId: paymentIntent.id });
-		if (payment) {
-			payment.status = 'failed';
-			await payment.save();
-			
-			// Update booking payment status
-			const booking = await Booking.findById(payment.booking);
-			if (booking) {
-				booking.paymentStatus = 'failed';
-				await booking.save();
-			}
-		}
-	} catch (err) {
-		console.error('Error handling payment intent failed:', err);
-	}
-}

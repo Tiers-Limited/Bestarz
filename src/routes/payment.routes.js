@@ -7,7 +7,6 @@ import {
 	getPaymentStats,
 	createRefund,
 	confirmPayment,
-	handleStripeWebhook
 } from '../controllers/payment.controller.js';
 import { auth } from '../middleware/auth.js';
 
@@ -15,7 +14,6 @@ const router = Router();
 
 router.post('/', auth(['client', 'admin']), createPayment);
 router.post('/confirm', confirmPayment); // No auth needed for webhook confirmation
-router.post('/webhook', handleStripeWebhook); // Stripe webhook endpoint
 router.get('/me', auth(['client', 'provider']), getMyPayments);
 router.get('/stats', auth(['client', 'provider']), getPaymentStats);
 router.get('/:id', auth(), getPayment);
