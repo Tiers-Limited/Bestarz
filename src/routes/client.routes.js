@@ -10,17 +10,19 @@ import { auth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Apply client authentication middleware
+// Apply client authentication to the client
 router.use(auth('client'));
-
 // Dashboard
-router.get('/dashboard', getClientDashboard);
 
+
+router.get('/dashboard', getClientDashboard);
 // Profile Management
 router.get('/profile', getClientProfile);
 router.put('/profile', updateClientProfile);
 
+
 // Provider Search & Discovery
+
 router.get('/search', searchProviders);
 
 

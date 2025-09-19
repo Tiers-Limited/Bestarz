@@ -3,9 +3,6 @@ import Booking from '../models/Booking.js';
 import Provider from '../models/Provider.js';
 import { createPaymentLink, retrieveSession, createStripeRefund } from '../services/stripe.service.js';
 
-
-
-
 export const createPayment = async (req, res) => {
 	try {
 		const { bookingId, amount, paymentMethod = 'stripe' } = req.body;

@@ -96,7 +96,6 @@ export const getClientDashboard = async (req, res) => {
 		return res.status(500).json({ message: err.message });
 	}
 };
-
 // Get client profile
 export const getClientProfile = async (req, res) => {
 	try {
@@ -108,7 +107,6 @@ export const getClientProfile = async (req, res) => {
 		return res.status(500).json({ message: err.message });
 	}
 };
-
 // Update client profile
 export const updateClientProfile = async (req, res) => {
 	try {

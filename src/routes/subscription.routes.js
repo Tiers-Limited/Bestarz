@@ -8,10 +8,9 @@ import {
 import { auth } from '../middleware/auth.js';
 
 const router = express.Router();
-
-
 router.post('/create',auth('provider'), createSubscription);
-router.post('/cancel',auth('provider'), cancelSubscription);
 router.post('/update',auth('provider'), updateSubscription);
+router.post('/cancel',auth('provider'), cancelSubscription);
+
 
 export default router;

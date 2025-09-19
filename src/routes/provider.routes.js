@@ -7,7 +7,6 @@ import {
   updateBookingStatus,
   getProviderCustomers,
   getProviderEarnings,
-
   getProviderRateCards,
   createRateCard,
   updateRateCard,

@@ -18,6 +18,7 @@ import adminRoutes from './routes/admin.routes.js';
 import reviewRoutes from './routes/review.routes.js';
 import webhookRoutes from './routes/webhook.routes.js'
 import messageRoutes from './routes/message.routes.js';
+import supportRoutes from "./routes/supportRoutes.js";
 
 
 const app = express();
@@ -191,6 +192,10 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/reviews',reviewRoutes)
 app.use('/api/webhook',webhookRoutes)
 app.use('/api/messages', messageRoutes);
+
+app.use('/api/support', supportRoutes);
+
+
 
 
 // Not found handler
