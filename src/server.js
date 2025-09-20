@@ -18,7 +18,7 @@ import adminRoutes from './routes/admin.routes.js';
 import reviewRoutes from './routes/review.routes.js';
 import webhookRoutes from './routes/webhook.routes.js'
 import messageRoutes from './routes/message.routes.js';
-import supportRoutes from "./routes/supportRoutes.js";
+import supportRoutes from "./routes/support.routes.js";
 
 
 const app = express();

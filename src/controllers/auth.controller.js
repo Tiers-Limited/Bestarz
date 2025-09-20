@@ -9,92 +9,129 @@ const signToken = (user) => {
 	});
 };
 
-
-
-export const signup = async (req, res) => {
-	try {
-		const { firstName, lastName, email, password, userType, businessName } = req.body;
-		const existing = await User.findOne({ email });
-		if (existing) {
-			// Log failed signup attempt
-			await createAuditLog(`Failed signup attempt - email already registered: ${email}`, existing._id, 'warning');
-			return res.status(409).json({ message: 'Email already registered' });
-		}
-
-		const passwordHash = await User.hashPassword(password);
-		const role = userType === 'provider' ? 'provider' : 'client';
-		const user = await User.create({ firstName, lastName, email, passwordHash, role });
-
-		// Create provider profile if provider
-		if (role === 'provider' && businessName) {
-			const { default: Provider } = await import('../models/Provider.js');
-			await Provider.create({ 
-				user: user._id, 
-				businessName, 
-				category: 'Uncategorized',
-				slug: businessName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-			});
-		}
-
-		// Log successful signup
-		await createAuditLog(`User signup successful`, user._id, 'normal');
-
-		const token = signToken(user);
-		return res.status(201).json({ 
-			token, 
-			user: { id: user._id, role: user.role, firstName, lastName, email } 
-		});
-	} catch (err) {
-		return res.status(500).json({ message: err.message });
+// utility to generate a unique slug
+async function generateUniqueSlug(Provider, baseName) {
+	const baseSlug = baseName
+	  .toLowerCase()
+	  .replace(/[^a-z0-9]+/g, "-")
+	  .replace(/^-+|-+$/g, "");
+  
+	let slug = baseSlug;
+	let counter = 1;
+  
+	while (await Provider.findOne({ slug })) {
+	  slug = `${baseSlug}-${counter++}`;
 	}
-};
-
-export const signin = async (req, res) => {
+  
+	return slug;
+  }
+  
+  export const signup = async (req, res) => {
 	try {
-		const { email, password } = req.body;
-		const user = await User.findOne({ email });
-		
-		if (!user) {
-			// Log failed login attempt - user not found
-			await createAuditLog(`Failed login attempt - user not found: ${email}`, null, 'warning');
-			return res.status(401).json({ message: 'Invalid credentials' });
-		}
-		
-		if (!user.isActive) {
-			// Log failed login attempt - account deactivated
-			await createAuditLog(`Failed login attempt - account deactivated`, user._id, 'critical');
-			return res.status(401).json({ message: 'Account is deactivated' });
-		}
-		
-		const ok = await user.comparePassword(password);
-		if (!ok) {
-			// Log failed login attempt - wrong password
-			await createAuditLog(`Failed login attempt - incorrect password`, user._id, 'warning');
-			return res.status(401).json({ message: 'Invalid credentials' });
-		}
-		
-		user.lastLogin = new Date();
-		await user.save();
-		
-		// Log successful login
-		await createAuditLog(`User login successful`, user._id, 'normal');
-		
-		const token = signToken(user);
-		return res.json({ 
-			token, 
-			user: { 
-				id: user._id, 
-				role: user.role, 
-				firstName: user.firstName, 
-				lastName: user.lastName, 
-				email: user.email 
-			} 
+	  const { firstName, lastName, email, password, userType, businessName } = req.body;
+  
+	  const existing = await User.findOne({ email });
+	  if (existing) {
+		await createAuditLog(
+		  `Failed signup attempt - email already registered: ${email}`,
+		  existing._id,
+		  "warning"
+		);
+		return res.status(409).json({ message: "Email already registered" });
+	  }
+  
+	  const passwordHash = await User.hashPassword(password);
+	  const role = userType === "provider" ? "provider" : "client";
+  
+	  // ✅ auto-activate clients, keep providers pending
+	  const isActive = role === "client";
+  
+	  const user = await User.create({
+		firstName,
+		lastName,
+		email,
+		passwordHash,
+		role,
+		isActive,
+	  });
+  
+	  // If provider, also create Provider profile with unique slug
+	  if (role === "provider" && businessName) {
+		const { default: Provider } = await import("../models/Provider.js");
+		const slug = await generateUniqueSlug(Provider, businessName);
+  
+		await Provider.create({
+		  user: user._id,
+		  businessName,
+		  category: "Uncategorized",
+		  slug,
 		});
+	  }
+  
+	  await createAuditLog(`User signup successful`, user._id, "normal");
+  
+	  return res.status(201).json({
+		message:
+		  role === "client"
+			? "Account created successfully! You can sign in now."
+			: "Signup successful. Your account is pending admin approval.",
+	  });
 	} catch (err) {
-		return res.status(500).json({ message: err.message });
+	  // Handle duplicate key error gracefully
+	  if (err.code === 11000) {
+		return res.status(409).json({ message: "Business name already taken. Please choose another." });
+	  }
+	  return res.status(500).json({ message: err.message });
 	}
-};
+  };
+  
+  
 
+  export const signin = async (req, res) => {
+	try {
+	  const { email, password } = req.body;
+	  const user = await User.findOne({ email });
+  
+	  if (!user) {
+		await createAuditLog(`Failed login attempt - user not found: ${email}`, null, "warning");
+		return res.status(401).json({ message: "Invalid credentials" });
+	  }
+  
+	
+	  if (!user.isActive) {
+		await createAuditLog(`Failed login attempt - account pending/disabled`, user._id, "critical");
+		return res.status(401).json({ message: "Account is pending approval by admin" });
+	  }
+  
+	  const ok = await user.comparePassword(password);
+	  if (!ok) {
+		await createAuditLog(`Failed login attempt - incorrect password`, user._id, "warning");
+		return res.status(401).json({ message: "Invalid credentials" });
+	  }
+  
+	  user.lastLogin = new Date();
+	  await user.save();
+  
+	  await createAuditLog(`User login successful`, user._id, "normal");
+  
+	  const token = signToken(user);
+	  return res.json({
+		token,
+		user: {
+		  id: user._id,
+		  role: user.role,
+		  firstName: user.firstName,
+		  lastName: user.lastName,
+		  email: user.email,
+		  isActive: user.isActive,
+		  profileImage:user.profileImage
+		},
+	  });
+	} catch (err) {
+	  return res.status(500).json({ message: err.message });
+	}
+  };
+  
 export const me = async (req, res) => {
 	try {
 		const user = await User.findById(req.user.id).select('-passwordHash');

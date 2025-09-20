@@ -90,28 +90,42 @@ export const getMyProviderProfile = async (req, res) => {
 // Update provider profile
 export const updateProviderProfile = async (req, res) => {
 	try {
-		const userId = req.user.id;
-		const update = req.body;
-		
-		// Generate slug from business name if changed
-		if (update.businessName && !update.slug) {
-			update.slug = update.businessName
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, '-')
-				.replace(/^-+|-+$/g, '');
-		}
-		
-		const provider = await Provider.findOneAndUpdate(
-			{ user: userId },
-			{ $set: update },
-			{ new: true, upsert: true }
-		).populate('user', 'firstName lastName profileImage email phone');
-		
-		return res.json({ provider });
+	  const userId = req.user.id;
+	  const update = req.body;
+  
+	  // Generate slug if needed
+	  if (update.businessName && !update.slug) {
+		update.slug = update.businessName
+		  .toLowerCase()
+		  .replace(/[^a-z0-9]+/g, '-')
+		  .replace(/^-+|-+$/g, '');
+	  }
+  
+	  // Extract profileImage if present
+	  const { profileImage, ...providerUpdate } = update;
+  
+	  // Update Provider
+	  const provider = await Provider.findOneAndUpdate(
+		{ user: userId },
+		{ $set: providerUpdate },
+		{ new: true, upsert: true }
+	  ).populate('user', 'firstName lastName profileImage email phone');
+  
+	  // Update User profileImage if provided
+	  if (profileImage) {
+		await User.findByIdAndUpdate(
+		  userId,
+		  { $set: { profileImage } },
+		  { new: true }
+		);
+	  }
+  
+	  return res.json({ provider });
 	} catch (err) {
-		return res.status(500).json({ message: err.message });
+	  return res.status(500).json({ message: err.message });
 	}
-};
+  };
+  
 
 // Get provider bookings with filtering
 export const getProviderBookings = async (req, res) => {
@@ -446,7 +460,7 @@ export const getProviderBySlug = async (req, res) => {
 	try {
 	  const { slug } = req.params;
 	  
-	  const provider = await Provider.findOne({ slug, isActive: true })
+	  const provider = await Provider.findOne({ slug})
 		.populate('user', 'firstName lastName profileImage')
 		.select('-user.passwordHash -user.email -user.phone'); 
 	  

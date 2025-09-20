@@ -6,6 +6,8 @@ import { bookingEmailTemplate } from '../templates/bookingTemplate.js';
 export const createBooking = async (req, res) => {
 	try {
 		const clientId = req.user.id;
+
+		console.log(clientId,"clientId")
 		const {
 			providerId,
 			serviceCategory,
@@ -47,6 +49,9 @@ export const createBooking = async (req, res) => {
 			{ path: 'provider', populate: { path: 'user', select: 'firstName lastName email phone' } },
 			{ path: 'client', select: 'firstName lastName email phone' }
 		]);
+
+
+		console.log(booking,"booking")
 
 		const mailOptions = {
 			from: process.env.EMAIL,

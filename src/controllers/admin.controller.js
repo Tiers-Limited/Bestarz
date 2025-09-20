@@ -10,36 +10,6 @@ import PlatformSettings from '../models/PlatformSettings.js';
 // Platform Statistics
 export const getPlatformStats = async (req, res) => {
     try {
-        const [
-            totalRevenue,
-            activeProviders,
-            totalBookings,
-            totalClients,
-            recentBookings,
-            recentPayments
-        ] = await Promise.all([
-            Payment.aggregate([
-                { $match: { status: 'completed' } },
-                { $group: { _id: null, total: { $sum: '$amount' } } }
-            ]),
-            Provider.countDocuments({ isActive: true }),
-            Booking.countDocuments(),
-            User.countDocuments({ role: 'client' }),
-            Booking.find()
-                .populate('client', 'firstName lastName email')
-                .populate('provider', 'businessName user')
-                .populate('provider.user', 'firstName lastName')
-                .sort({ createdAt: -1 })
-                .limit(5),
-            Payment.find()
-                .populate('client', 'firstName lastName email')
-                .populate('provider', 'businessName user')
-                .populate('provider.user', 'firstName lastName')
-                .sort({ createdAt: -1 })
-                .limit(5)
-        ]);
-
-        const revenue = totalRevenue[0]?.total || 0;
         const now = new Date();
 
         // Current month start & end
@@ -49,29 +19,76 @@ export const getPlatformStats = async (req, res) => {
         // Previous month start & end
         const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const endOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-        
-        const [currentRevenue, prevRevenue] = await Promise.all([
-          Payment.aggregate([
-            { $match: { status: 'completed', createdAt: { $gte: startOfCurrentMonth, $lte: endOfCurrentMonth } } },
-            { $group: { _id: null, total: { $sum: '$amount' } } }
-          ]),
-          Payment.aggregate([
-            { $match: { status: 'completed', createdAt: { $gte: startOfPrevMonth, $lte: endOfPrevMonth } } },
-            { $group: { _id: null, total: { $sum: '$amount' } } }
-          ])
+
+        // Run all queries in parallel
+        const [
+            totalRevenueAgg,
+            activeProvidersAgg,
+            totalBookings,
+            totalClients,
+            recentBookings,
+            recentPayments,
+            currentRevenueAgg,
+            prevRevenueAgg
+        ] = await Promise.all([
+            // Total revenue
+            Payment.aggregate([
+                { $match: { status: 'completed' } },
+                { $group: { _id: null, total: { $sum: '$amount' } } }
+            ]),
+            // Active providers based on User.isActive
+            Provider.aggregate([
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'user',
+                        foreignField: '_id',
+                        as: 'user'
+                    }
+                },
+                { $unwind: '$user' },
+                { $match: { 'user.isActive': true } },
+                { $count: 'activeProviders' }
+            ]),
+            // Total bookings
+            Booking.countDocuments(),
+            // Total clients
+            User.countDocuments({ role: 'client' }),
+            // Recent bookings
+            Booking.find()
+                .populate('client', 'firstName lastName email')
+                .populate('provider', 'businessName user')
+                .populate('provider.user', 'firstName lastName')
+                .sort({ createdAt: -1 })
+                .limit(5),
+            // Recent payments
+            Payment.find()
+                .populate('client', 'firstName lastName email')
+                .populate('provider', 'businessName user')
+                .populate('provider.user', 'firstName lastName')
+                .sort({ createdAt: -1 })
+                .limit(5),
+            // Current month revenue
+            Payment.aggregate([
+                { $match: { status: 'completed', createdAt: { $gte: startOfCurrentMonth, $lte: endOfCurrentMonth } } },
+                { $group: { _id: null, total: { $sum: '$amount' } } }
+            ]),
+            // Previous month revenue
+            Payment.aggregate([
+                { $match: { status: 'completed', createdAt: { $gte: startOfPrevMonth, $lte: endOfPrevMonth } } },
+                { $group: { _id: null, total: { $sum: '$amount' } } }
+            ])
         ]);
-        
-        const currentTotal = currentRevenue[0]?.total || 0;
-        const prevTotal = prevRevenue[0]?.total || 0;
-        
-        let growthRate = 0;
-        if (prevTotal > 0) {
-          growthRate = ((currentTotal - prevTotal) / prevTotal) * 100;
-        }
-        
+
+        const totalRevenue = totalRevenueAgg[0]?.total || 0;
+        const activeProviders = activeProvidersAgg[0]?.activeProviders || 0;
+        const currentTotal = currentRevenueAgg[0]?.total || 0;
+        const prevTotal = prevRevenueAgg[0]?.total || 0;
+
+        const growthRate = prevTotal > 0 ? ((currentTotal - prevTotal) / prevTotal) * 100 : 0;
 
         return res.json({
-            totalRevenue: revenue,
+            totalRevenue,
             activeProviders,
             totalBookings,
             totalClients,
@@ -79,11 +96,12 @@ export const getPlatformStats = async (req, res) => {
             recentBookings,
             recentPayments
         });
-        
+
     } catch (err) {
         return res.status(500).json({ message: err.message });
     }
 };
+
 
 // Get all users (clients and providers) with filtering
 export const getAllUsers = async (req, res) => {

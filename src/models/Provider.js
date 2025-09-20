@@ -82,15 +82,7 @@ const providerSchema = new mongoose.Schema({
     enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
   }],
   rateCards: [rateCardSchema],
-  
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  isVerified: {
-    type: Boolean,
-    default: false
-  },
+
   createdAt: {
     type: Date,
     default: Date.now

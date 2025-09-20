@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema(
 		role: { type: String, enum: ['admin', 'provider', 'client'], default: 'client' },
 		phone: { type: String },
 		profileImage: { type: String },
-		isActive: { type: Boolean, default: true },
+		isActive: { type: Boolean, default: false },
 		lastLogin: { type: Date },
 
 		subscriptionPlan: {
