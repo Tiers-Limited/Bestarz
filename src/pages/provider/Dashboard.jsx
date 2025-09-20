@@ -1,193 +1,279 @@
-import React from 'react';
-import { Layout, Card, Typography, Row, Col, Statistic, List, Button, Tag, Space, Avatar, Tabs } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Layout, Card, Typography, Row, Col, Statistic, List, Button, Tag, Space, Avatar, Tabs, message, Spin } from 'antd';
 import { Calendar, DollarSign, Users, Star, Settings, Bell, ExternalLink, MessageCircle, Clock, TrendingUp } from 'lucide-react';
 import ProviderLayout from '../../components/ProviderLayout';
+import BookingStatusModal from '../../components/BookingStatusModal';
 import { useNavigate } from 'react-router-dom';
+import { useProvider } from '../../context/ProviderContext';
+import { useAuth } from '../../context/AuthContext';
 
 const { Title, Paragraph } = Typography;
 
 const ProviderDashboard = () => {
   const navigate = useNavigate();
+  const { dashboardData, loading, fetchDashboardData } = useProvider();
+  const { user } = useAuth();
+  const [statusModal, setStatusModal] = useState({
+    visible: false,
+    booking: null,
+    currentStatus: 'pending'
+  });
 
-  const upcomingBookings = [
-    {
-      id: 1,
-      client: 'Sarah Johnson',
-      service: 'Wedding DJ',
-      date: '2025-01-15',
-      time: '6:00 PM',
-      status: 'confirmed',
-      amount: '$1,200',
-      contact: '+1 (555) 234-5678',
-      notes: 'Outdoor wedding, backup sound system needed'
-    },
-    {
-      id: 2,
-      client: 'Mike Chen',
-      service: 'Corporate Event',
-      date: '2025-01-18',
-      time: '2:00 PM',
-      status: 'pending',
-      amount: '$800',
-      contact: '+1 (555) 987-6543',
-      notes: 'Professional setting, jazz/background music preferred'
-    },
-    {
-      id: 3,
-      client: 'Emily Davis',
-      service: 'Birthday Party',
-      date: '2025-01-22',
-      time: '4:00 PM',
-      status: 'confirmed',
-      amount: '$600',
-      contact: '+1 (555) 345-6789',
-      notes: '18th birthday, pop/hip-hop playlist requested'
-    }
-  ];
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
-  const recentInquiries = [
-    {
-      id: 1,
-      client: 'Alex Thompson',
-      service: 'Anniversary Party',
-      date: '2025-02-14',
-      budget: '$900',
-      message: 'Looking for romantic music for our 10th anniversary celebration...',
-      time: '2 hours ago'
-    },
-    {
-      id: 2,
-      client: 'Jennifer Liu',
-      service: 'Corporate Gala',
-      date: '2025-03-15',
-      budget: '$1,500',
-      message: 'Need professional DJ for annual company gala, 200+ guests...',
-      time: '5 hours ago'
-    }
-  ];
+  const handleStatusUpdate = (booking, newStatus = 'confirmed') => {
+    setStatusModal({
+      visible: true,
+      booking: booking,
+      currentStatus: newStatus
+    });
+  };
+
+  const handleModalClose = () => {
+    setStatusModal({
+      visible: false,
+      booking: null,
+      currentStatus: 'pending'
+    });
+  };
+
+  const handleModalSuccess = () => {
+    fetchDashboardData(); 
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'confirmed': return 'green';
       case 'pending': return 'orange';
       case 'cancelled': return 'red';
-      default: return 'blue';
+      case 'completed': return 'blue';
+      default: return 'default';
     }
   };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (dateString) => {
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
+  };
+
+  if (loading && !dashboardData) {
+    return (
+      <ProviderLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <Spin size="large" />
+        </div>
+      </ProviderLayout>
+    );
+  }
+
+
+  console.log(dashboardData,"dashboardData")
+  const stats = dashboardData?.stats || {};
+  const recentBookings = dashboardData?.recentBookings || [];
+  const recentInquiries = dashboardData?.recentInquiries || [];
 
   const tabItems = [
     {
       key: 'bookings',
-      label: 'Upcoming Bookings',
+      label: `Recent Bookings (${recentBookings.length})`,
       children: (
         <List
-          dataSource={upcomingBookings}
+          dataSource={recentBookings}
           renderItem={(booking) => (
             <List.Item
               actions={[
-                <Button key="view" type="primary" size="small" className="glow-button">
+                <Button 
+                  key="view" 
+                  type="primary" 
+                  size="small" 
+                  className="glow-button"
+                  onClick={() => navigate(`/provider/bookings?id=${booking._id}`)}
+                >
                   View Details
                 </Button>,
-                <Button key="message" size="small" icon={<MessageCircle size={14} />}>
+                <Button 
+                  key="message" 
+                  size="small" 
+                  icon={<MessageCircle size={14} />}
+                  onClick={() => navigate(`/provider/messages?client=${booking.client._id}`)}
+                >
                   Message
-                </Button>
-              ]}
+                </Button>,
+                booking.status === 'pending' && (
+                  <Button 
+                    key="confirm" 
+                    size="small" 
+                    type="primary"
+                    onClick={() => handleStatusUpdate(booking, 'confirmed')}
+                  >
+                    Confirm
+                  </Button>
+                ),
+                booking.status === 'confirmed' && (
+                  <Button 
+                    key="complete" 
+                    size="small" 
+                    type="default"
+                    onClick={() => handleStatusUpdate(booking, 'completed')}
+                  >
+                    Mark Complete
+                  </Button>
+                )
+              ].filter(Boolean)}
               className="hover:bg-gray-800/50 rounded-lg px-4 transition-colors glow-border mb-2"
             >
               <List.Item.Meta
-
-              className='p-3'
+                className='p-3'
                 avatar={
                   <Avatar style={{ backgroundColor: '#3B82F6' }}>
-                    {booking.client.split(' ').map(n => n[0]).join('')}
+                    {booking.client?.firstName?.charAt(0) || ''}
+                    {booking.client?.lastName?.charAt(0) || ''}
                   </Avatar>
                 }
                 title={
                   <div className="flex items-center justify-between">
-                    <span className="text-white font-semibold">{booking.client}</span>
+                    <span className="text-white font-semibold">
+                      {booking.client?.firstName}
+                    </span>
                     <div className="flex items-center space-x-2">
                       <Tag color={getStatusColor(booking.status)} className="ml-2">
                         {booking.status.toUpperCase()}
                       </Tag>
-                      <span className="text-green-400 font-bold">{booking.amount}</span>
+                      <span className="text-green-400 font-bold">
+                        {booking.amount ? formatCurrency(booking.amount) : 
+                         `${formatCurrency(booking.budgetMin)} - ${formatCurrency(booking.budgetMax)}`}
+                      </span>
                     </div>
                   </div>
                 }
                 description={
                   <div className="text-gray-400">
-                    <div className="font-medium text-white mb-1">{booking.service}</div>
+                    <div className="font-medium text-white mb-1">
+                      {booking.serviceCategory} - {booking.eventType}
+                    </div>
                     <div className="text-sm flex items-center space-x-4 mb-2">
                       <span className="flex items-center">
                         <Calendar size={12} className="mr-1" />
-                        {booking.date} at {booking.time}
+                        {formatDate(booking.dateStart)} at {formatTime(booking.dateStart)}
                       </span>
                       <span className="flex items-center">
                         <Users size={12} className="mr-1" />
-                        {booking.contact}
+                        {booking.guests} guests
                       </span>
                     </div>
+                    <div className="text-sm mb-2">
+                      <strong>Duration:</strong> {booking.duration}
+                    </div>
                     <div className="text-xs bg-gray-800 p-2 rounded">
-                      <strong>Notes:</strong> {booking.notes}
+                      <strong>Description:</strong> {booking.description}
+                      {booking.notes && (
+                        <>
+                          <br />
+                          <strong>Notes:</strong> {booking.notes}
+                        </>
+                      )}
                     </div>
                   </div>
                 }
               />
             </List.Item>
           )}
+          locale={{
+            emptyText: "No recent bookings"
+          }}
         />
       )
     },
     {
       key: 'inquiries',
-      label: 'New Inquiries',
+      label: `New Inquiries (${recentInquiries.length})`,
       children: (
         <List
           dataSource={recentInquiries}
           renderItem={(inquiry) => (
             <List.Item
               actions={[
-                <Button key="respond" type="primary" className="glow-button">
-                  Respond
+                <Button 
+                  key="respond" 
+                  type="primary" 
+                  className="glow-button"
+                  onClick={() => navigate(`/provider/messages?client=${inquiry.client._id}`)}
+                >
+                  Message
                 </Button>,
-                <Button key="view">View Full</Button>
+                <Button 
+                  key="confirm" 
+                  size="small"
+                  onClick={() => handleStatusUpdate(inquiry, 'confirmed')}
+                >
+                  Accept
+                </Button>
               ]}
               className="hover:bg-gray-800/50 rounded-lg px-4 transition-colors glow-border mb-2"
             >
               <List.Item.Meta
-
-              className='p-3'
+                className='p-3'
                 avatar={
                   <Avatar style={{ backgroundColor: '#22C55E' }}>
-                    {inquiry.client.split(' ').map(n => n[0]).join('')}
+                    {inquiry.client?.firstName?.charAt(0) || ''}
+                    {inquiry.client?.lastName?.charAt(0) || ''}
                   </Avatar>
                 }
                 title={
                   <div className="flex items-center justify-between">
-                    <span className="text-white font-semibold">{inquiry.client}</span>
+                    <span className="text-white font-semibold">
+                      {inquiry.client?.firstName} {inquiry.client?.lastName}
+                    </span>
                     <div className="flex items-center space-x-2">
-                      <span className="text-green-400 font-bold">{inquiry.budget}</span>
+                      <span className="text-green-400 font-bold">
+                        {formatCurrency(inquiry.budgetMin)} - {formatCurrency(inquiry.budgetMax)}
+                      </span>
                       <span className="text-gray-400 text-sm flex items-center">
                         <Clock size={12} className="mr-1" />
-                        {inquiry.time}
+                        {new Date(inquiry.createdAt).toLocaleDateString()}
                       </span>
                     </div>
                   </div>
                 }
                 description={
                   <div className="text-gray-400">
-                    <div className="font-medium text-white mb-1">{inquiry.service}</div>
+                    <div className="font-medium text-white mb-1">
+                      {inquiry.serviceCategory} - {inquiry.eventType}
+                    </div>
                     <div className="text-sm mb-2">
                       <Calendar size={12} className="mr-1 inline" />
-                      {inquiry.date}
+                      {formatDate(inquiry.dateStart)} • {inquiry.guests} guests
                     </div>
                     <div className="text-sm bg-gray-800 p-2 rounded">
-                      {inquiry.message}
+                      {inquiry.description}
                     </div>
                   </div>
                 }
               />
             </List.Item>
           )}
+          locale={{
+            emptyText: "No new inquiries"
+          }}
         />
       )
     }
@@ -200,23 +286,21 @@ const ProviderDashboard = () => {
           <div>
             <Title level={2} className="text-white mb-2">Dashboard</Title>
             <Paragraph className="text-gray-400">
-              Welcome back! Here's what's happening with your business.
+              Welcome back, {user?.firstName}! Here's what's happening with your business.
             </Paragraph>
           </div>
           <Space>
             <Button 
               icon={<Bell size={16} />} 
               className="border-gray-600 hover:border-blue-400 hover:text-blue-400"
-              onClick={()=>{
-                  navigate('/provider/notifications')
-              }}
+              onClick={() => navigate('/provider/notifications')}
             >
               Notifications
             </Button>
             <Button 
               type="primary" 
               icon={<ExternalLink size={16} />}
-              onClick={() => window.open('/provider/dj-master/book', '_blank')}
+              onClick={() => window.open(`/provider/${user?.id}/book`, '_blank')}
               className="glow-button"
             >
               View Public Page
@@ -230,46 +314,43 @@ const ProviderDashboard = () => {
             <Card className="hover-lift glow-border">
               <Statistic
                 title="This Month's Revenue"
-                value={5280}
+                value={stats.thisMonthRevenue || 0}
                 precision={0}
                 valueStyle={{ color: '#22C55E' }}
                 prefix={<DollarSign size={20} />}
+                formatter={(value) => formatCurrency(value)}
               />
-            
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <Card className="hover-lift glow-border">
               <Statistic
                 title="Pending Requests"
-                value={3}
+                value={stats.pendingBookings || 0}
                 valueStyle={{ color: '#F59E0B' }}
                 prefix={<Calendar size={20} />}
               />
-             
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <Card className="hover-lift glow-border">
               <Statistic
-                title="Total Clients"
-                value={47}
+                title="Total Bookings"
+                value={stats.totalBookings || 0}
                 valueStyle={{ color: '#3B82F6' }}
                 prefix={<Users size={20} />}
               />
-             
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <Card className="hover-lift glow-border">
               <Statistic
                 title="Average Rating"
-                value={4.9}
+                value={stats.averageRating || 0}
                 precision={1}
                 valueStyle={{ color: '#F59E0B' }}
                 prefix={<Star size={20} />}
               />
-             
             </Card>
           </Col>
         </Row>
@@ -332,10 +413,17 @@ const ProviderDashboard = () => {
                 </Button>
               </Space>
             </Card>
-
-      
           </Col>
         </Row>
+
+        {/* Booking Status Modal */}
+        <BookingStatusModal
+          visible={statusModal.visible}
+          onClose={handleModalClose}
+          booking={statusModal.booking}
+          currentStatus={statusModal.currentStatus}
+          onSuccess={handleModalSuccess}
+        />
       </div>
     </ProviderLayout>
   );

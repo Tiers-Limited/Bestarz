@@ -16,11 +16,14 @@ import { useNavigate } from "react-router-dom";
 import VideoPlayer from "../components/VideoPlayer";
 import ScreenshotGallery from "../components/ScreenShotGallery";
 import Testimonials from "../components/Testimonials";
+import { useAuth } from "../context/AuthContext";
 
 const { Title, Paragraph } = Typography;
 
 const LandingPage = () => {
   const navigate = useNavigate();
+
+  const { user,signOut } = useAuth();
 
   const features = [
     {
@@ -64,8 +67,6 @@ const LandingPage = () => {
     },
   ];
 
-
-
   const stats = [
     { number: "5000+", label: "Active Providers" },
     { number: "50k+", label: "Happy Clients" },
@@ -80,24 +81,49 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="bestarz-logo">
-              Best<span className="text-green-400">★</span>rz
+              Best<span className="bestarz-star">★</span>rz
             </div>
-            <Space>
-              <Button
-                type="text"
-                onClick={() => navigate("/signin")}
-                className="text-white hover:text-blue-400"
-              >
-                Sign In
-              </Button>
-              <Button
-                type="primary"
-                onClick={() => navigate("/signup")}
-                className="glow-button"
-              >
-                Get Started Free
-              </Button>
-            </Space>
+
+            {!user ? (
+              <Space>
+                <Button
+                  type="text"
+                  onClick={() => navigate("/signin")}
+                  className="text-white hover:text-blue-400"
+                >
+                  Sign In
+                </Button>
+                <Button
+                  type="primary"
+                  onClick={() => navigate("/signup")}
+                  className="glow-button"
+                >
+                  Get Started Free
+                </Button>
+              </Space>
+            ) : (
+              <Space>
+                <Button
+                  type="text"
+                  onClick={() => {
+                    signOut(); // call your AuthContext signOut
+                    navigate("/signin");
+                  }}
+                  className="text-white bg-red-400 hover:bg-red-300"
+                >
+                  Logout
+                </Button>
+                <Button
+                  type="primary"
+                  onClick={() =>
+                    navigate(user.role ? getRoleDashboard(user.role) : "/")
+                  }
+                  className="glow-button"
+                >
+                  Go to Dashboard
+                </Button>
+              </Space>
+            )}
           </div>
         </div>
       </header>
@@ -248,23 +274,13 @@ const LandingPage = () => {
         <VideoPlayer />
       </section>
 
-
-
       <section>
-        <Testimonials/>
+        <Testimonials />
       </section>
-
- 
-
-
-
 
       {/* Gallery */}
 
       <ScreenshotGallery />
-
-
-      
 
       {/* CTA Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
@@ -322,7 +338,7 @@ const LandingPage = () => {
           <Row gutter={[32, 32]}>
             <Col xs={24} md={8}>
               <div className="bestarz-logo mb-4">
-                Best<span className="text-green-400">★</span>rz
+                Best<span className="bestarz-star">★</span>rz
               </div>
               <Paragraph className="text-gray-400 mb-6">
                 The platform that connects amazing service providers with

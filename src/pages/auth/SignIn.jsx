@@ -1,24 +1,28 @@
 import React from 'react';
-import { Form, Input, Button, Card, Typography, Space, Divider, Checkbox } from 'antd';
+import { Form, Input, Button, Card, Typography, Space, Divider, Checkbox, message } from 'antd';
 import { Mail, Lock, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const { Title, Paragraph, Link } = Typography;
 
-const SignIn= () => {
+const SignIn = () => {
   const navigate = useNavigate();
+  const { signIn, loading, getRoleDashboard } = useAuth();
 
-  const onFinish = (values) => {
-    console.log('Login values:', values);
-    // Simulate login based on email
-    if (values.email.includes('admin')) {
-      navigate('/admin/dashboard');
-    } else if (values.email.includes('provider')) {
-      navigate('/provider/dashboard');
+  const onFinish = async (values) => {
+    const result = await signIn(values);
+  
+    if (result.success) {
+      message.success(`Welcome back! ${result?.user?.firstName} ${result?.user?.lastName}`);
+      
+      const dashboardRoute = getRoleDashboard(result.user.role);
+      navigate(dashboardRoute);
     } else {
-      navigate('/client/booking');
+      message.error(result.error);
     }
   };
+  
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -35,7 +39,7 @@ const SignIn= () => {
         <Card className="glass-card" style={{ border: '1px solid rgba(59, 130, 246, 0.2)' }}>
           <div className="text-center mb-8">
             <div className="bestarz-logo text-3xl mb-2">
-              Best<span className="text-green-400">★</span>rz
+              Best<span className="bestarz-star">★</span>rz
             </div>
             <Title level={3} className="text-white mb-2">Welcome back</Title>
             <Paragraph className="text-gray-400">Sign in to your account</Paragraph>
@@ -87,6 +91,7 @@ const SignIn= () => {
                 htmlType="submit" 
                 size="large" 
                 block
+                loading={loading}
                 className="h-12 text-lg font-medium"
               >
                 Sign In

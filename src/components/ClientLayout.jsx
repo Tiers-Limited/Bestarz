@@ -12,12 +12,16 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const { Sider, Content, Header } = Layout;
 
 const ClientLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const { user,signOut } = useAuth();
+
 
   // ✅ Client-specific sidebar menu
   const menuItems = [
@@ -150,6 +154,8 @@ const ClientLayout = ({ children }) => {
                   items: userMenuItems,
                   onClick: ({ key }) => {
                     if (key === 'logout') {
+
+                      signOut();
                       navigate('/');
                     }
                     else if (key === 'help') {

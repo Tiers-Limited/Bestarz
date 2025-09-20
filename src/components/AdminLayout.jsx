@@ -1,20 +1,21 @@
-import React from 'react';
-import { Layout, Menu, Button, Avatar, Dropdown, Space } from 'antd';
-import { 
-  LayoutDashboard, 
-  Users, 
-  DollarSign, 
-  BarChart3, 
-  Settings, 
+import React from "react";
+import { Layout, Menu, Button, Avatar, Dropdown, Space } from "antd";
+import {
+  LayoutDashboard,
+  Users,
+  DollarSign,
+  BarChart3,
+  Settings,
   Shield,
   LogOut,
   Bell,
   HelpCircle,
   FileText,
   User,
-  MessageCircle
-} from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+  MessageCircle,
+} from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const { Sider, Content, Header } = Layout;
 
@@ -22,92 +23,94 @@ const AdminLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const {user,signOut}=useAuth();
+
   const menuItems = [
     {
-      key: '/admin/dashboard',
+      key: "/admin/dashboard",
       icon: <LayoutDashboard size={18} />,
-      label: 'Dashboard',
+      label: "Dashboard",
     },
 
     {
-      key: '/admin/profile',
+      key: "/admin/profile",
       icon: <User size={18} />,
-      label: 'Profile',
+      label: "Profile",
     },
     {
-      key: '/admin/providers',
+      key: "/admin/providers",
       icon: <Users size={18} />,
-      label: 'Providers',
+      label: "Providers",
     },
     {
-      key: '/admin/clients',
+      key: "/admin/clients",
       icon: <Users size={18} />,
-      label: 'Clients',
+      label: "Clients",
     },
     {
-      key: '/admin/payments',
+      key: "/admin/payments",
       icon: <DollarSign size={18} />,
-      label: 'Payments',
+      label: "Payments",
     },
     {
-      key: '/admin/analytics',
+      key: "/admin/analytics",
       icon: <BarChart3 size={18} />,
-      label: 'Analytics',
+      label: "Analytics",
     },
     {
-      key: '/admin/security',
+      key: "/admin/security",
       icon: <Shield size={18} />,
-      label: 'Security',
+      label: "Security",
     },
     {
-      key: '/admin/docs',
+      key: "/admin/docs",
       icon: <FileText size={18} />,
-      label: 'Help & Docs',
+      label: "Help & Docs",
     },
 
     {
-      key: '/admin/messages',
+      key: "/admin/messages",
       icon: <MessageCircle size={18} />,
-      label: 'Messages',
+      label: "Messages",
     },
     {
-      key: '/admin/platform-settings',
+      key: "/admin/platform-settings",
       icon: <Settings size={18} />,
-      label: 'Settings',
+      label: "Settings",
     },
   ];
 
   const userMenuItems = [
     {
-      key: 'profile',
-      label: 'Admin Profile',
+      key: "profile",
+      label: "Admin Profile",
       icon: <User size={16} />,
     },
     {
-      key: 'platform',
-      label: 'Platform Settings',
+      key: "platform",
+      label: "Platform Settings",
       icon: <Settings size={16} />,
     },
     {
-      key: 'help',
-      label: 'Help Center',
+      key: "help",
+      label: "Help Center",
       icon: <HelpCircle size={16} />,
     },
     {
-      key: 'divider',
-      type: 'divider',
+      key: "divider",
+      type: "divider",
     },
     {
-      key: 'logout',
-      label: 'Sign Out',
+      key: "logout",
+      label: "Sign Out",
       icon: <LogOut size={16} />,
       danger: true,
     },
   ];
 
   const handleMenuClick = ({ key }) => {
-    if (key === 'logout') {
-      navigate('/');
+    if (key === "logout") {
+      navigate("/");
     } else {
       navigate(key);
     }
@@ -119,20 +122,19 @@ const AdminLayout = ({ children }) => {
         width={240}
         className="bg-black border-r border-gray-800"
         style={{
-          position: 'fixed',
-          height: '100vh',
+          position: "fixed",
+          height: "100vh",
           left: 0,
           top: 0,
           bottom: 0,
         }}
       >
-  <div className="p-6">
-  <div className="bestarz-logo text-2xl text-center mb-8">
-    Best<span className="bestarz-star">★</span>rz
-  </div>
-</div>
+        <div className="p-6">
+          <div className="bestarz-logo text-2xl text-center mb-8">
+            Best<span className="bestarz-star">★</span>rz
+          </div>
+        </div>
 
-        
         <Menu
           theme="dark"
           mode="inline"
@@ -144,31 +146,30 @@ const AdminLayout = ({ children }) => {
       </Sider>
 
       <Layout style={{ marginLeft: 240 }}>
-        <Header 
+        <Header
           className="bg-black border-b border-gray-800 px-6"
-          style={{ height: '64px', lineHeight: '64px' }}
+          style={{ height: "64px", lineHeight: "64px" }}
         >
           <div className="flex justify-between items-center">
             <div>
               <span className="text-white text-lg">Admin Portal</span>
             </div>
             <Space size="large">
-              <Button 
-                type="text" 
+              <Button
+                type="text"
                 icon={<HelpCircle size={16} />}
                 className="text-gray-300 hover:text-white glow-button"
-                onClick={()=>{
-                  navigate('/admin/docs')
+                onClick={() => {
+                  navigate("/admin/docs");
                 }}
               >
                 Help
               </Button>
-              <Button 
-                type="text" 
+              <Button
+                type="text"
                 icon={<Bell size={16} />}
                 className="text-gray-300 hover:text-white"
-
-                onClick={()=>navigate('/admin/messages')}
+                onClick={() => navigate("/admin/messages")}
               >
                 5
               </Button>
@@ -176,37 +177,32 @@ const AdminLayout = ({ children }) => {
                 menu={{
                   items: userMenuItems,
                   onClick: ({ key }) => {
-                    if (key === 'logout') {
-                      navigate('/');
-                    }
+                    if (key === "logout") {
 
-                    else if (key === 'profile') {
-                      navigate('/admin/profile');
+                      signOut();
+                      navigate("/");
+                    } else if (key === "profile") {
+                      navigate("/admin/profile");
+                    } else if (key === "platform") {
+                      navigate("/admin/platform-settings");
+                    } else if (key === "help") {
+                      navigate("/admin/docs");
                     }
-                    else if (key === 'platform') {
-                      navigate('/admin/platform-settings');
-                    }
-                    else if (key === 'help') {
-                      navigate('/admin/docs');
-                    }
-
-                  }
+                  },
                 }}
-                trigger={['click']}
+                trigger={["click"]}
                 getPopupContainer={(triggerNode) => triggerNode.parentNode}
               >
                 <div className="flex items-center cursor-pointer hover-lift">
-                  <Avatar style={{ backgroundColor: '#8B5CF6' }}>AD</Avatar>
+                  <Avatar style={{ backgroundColor: "#8B5CF6" }}>AD</Avatar>
                   <span className="text-white ml-2">Admin</span>
                 </div>
               </Dropdown>
             </Space>
           </div>
         </Header>
-        
-        <Content className="bg-black">
-          {children}
-        </Content>
+
+        <Content className="bg-black">{children}</Content>
       </Layout>
     </Layout>
   );

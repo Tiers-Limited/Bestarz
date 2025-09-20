@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
-import { Form, Input, Button, Card, Typography, Upload, Select, Row, Col, InputNumber, Space, Tag } from 'antd';
-import { Camera, MapPin, Phone, Mail, Globe, Copy, Check, Edit, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Form, Input, Button, Card, Typography, Upload, Select, Row, Col, InputNumber, Space, Tag, message, Spin, Image } from 'antd';
+import { Camera, MapPin, Phone, Mail, Globe, Copy, Check, Edit, Trash2, X } from 'lucide-react';
 import ProviderLayout from '../../components/ProviderLayout';
+import { useProvider } from '../../context/ProviderContext';
+import { useAuth } from '../../context/AuthContext';
+import cloudinaryService from '../../services/CloudinaryService';
 
 const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -10,9 +13,41 @@ const { Option } = Select;
 const ProviderProfile = () => {
   const [form] = Form.useForm();
   const [copied, setCopied] = useState(false);
-
+  const [uploadingProfile, setUploadingProfile] = useState(false);
+  const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
+  const [profileImageUrl, setProfileImageUrl] = useState('');
+  const [portfolioImages, setPortfolioImages] = useState([]);
   
-  const publicUrl = 'https://bestarz.com/provider/dj-master/book';
+  const { profileData, loading, fetchProfileData, updateProfile } = useProvider();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    fetchProfileData();
+  }, []);
+
+  useEffect(() => {
+    if (profileData) {
+      // Set form values when profile data is loaded
+      form.setFieldsValue({
+        businessName: profileData.businessName || '',
+        category: profileData.category || '',
+        description: profileData.description || '',
+        services: profileData.services || [],
+        basePrice: profileData.basePrice || 0,
+        location: profileData.location || '',
+        phone: profileData.user?.phone || '',
+        email: profileData.user?.email || '',
+        website: profileData.website || '',
+        availability: profileData.availability || []
+      });
+      
+      // Set uploaded images
+      setProfileImageUrl(profileData.profileImage || '');
+      setPortfolioImages(profileData.portfolio || []);
+    }
+  }, [profileData, form]);
+
+  const publicUrl = `${import.meta.env.VITE_FRONTEND_URL}/provider/${profileData?.slug}`;
 
   const categories = [
     'DJ & Music', 'Photography', 'Catering', 'Event Planning', 
@@ -25,82 +60,141 @@ const ProviderProfile = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const onFinish = (values) => {
-    console.log('Profile values:', values);
+  // Handle profile image upload
+  const handleProfileImageUpload = async (file) => {
+    try {
+      setUploadingProfile(true);
+      
+      // Validate file type and size
+      const isValidType = file.type.startsWith('image/');
+      if (!isValidType) {
+        message.error('Please upload a valid image file!');
+        return false;
+      }
+
+      const isValidSize = file.size / 1024 / 1024 < 5; // 5MB limit
+      if (!isValidSize) {
+        message.error('Image must be smaller than 5MB!');
+        return false;
+      }
+
+      const result = await cloudinaryService.uploadFile(file, 'image');
+      setProfileImageUrl(result.url);
+      message.success('Profile image uploaded successfully!');
+      
+      return false; // Prevent default upload behavior
+    } catch (error) {
+      console.error('Profile image upload error:', error);
+      message.error(`Upload failed: ${error.message}`);
+      return false;
+    } finally {
+      setUploadingProfile(false);
+    }
   };
 
-  const rateCardColumns = [
-    {
-      title: 'Service Type',
-      dataIndex: 'service',
-      key: 'service',
-      render: (text) => <span className="text-white font-semibold">{text}</span>
-    },
-    {
-      title: 'Base Price',
-      dataIndex: 'basePrice',
-      key: 'basePrice',
-      render: (price) => <span className="text-green-400 font-bold">${price}</span>
-    },
-    {
-      title: 'Duration',
-      dataIndex: 'duration',
-      key: 'duration',
-      render: (duration) => <span className="text-gray-300">{duration}</span>
-    },
-    {
-      title: 'Includes',
-      dataIndex: 'includes',
-      key: 'includes',
-      render: (includes) => (
-        <div>
-          {includes.slice(0, 2).map((item, index) => (
-            <Tag key={index} color="blue" className="mb-1 text-xs">
-              {item}
-            </Tag>
-          ))}
-          {includes.length > 2 && (
-            <Tag color="default" className="text-xs">
-              +{includes.length - 2} more
-            </Tag>
-          )}
-        </div>
-      )
-    },
-    {
-      title: 'Add-ons',
-      dataIndex: 'addOns',
-      key: 'addOns',
-      render: (addOns) => (
-        <div>
-          {addOns.slice(0, 2).map((addon, index) => (
-            <div key={index} className="text-xs text-gray-400">
-              {addon.name}: +${addon.price}
-            </div>
-          ))}
-          {addOns.length > 2 && (
-            <div className="text-xs text-gray-500">
-              +{addOns.length - 2} more add-ons
-            </div>
-          )}
-        </div>
-      )
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      render: (_, record) => (
-        <Space size="small">
-          <Button size="small" icon={<Edit size={14} />} className="hover-lift">
-            Edit
-          </Button>
-          <Button size="small" danger icon={<Trash2 size={14} />}>
-            Delete
-          </Button>
-        </Space>
-      )
+  // Handle portfolio images upload
+  const handlePortfolioUpload = async (file) => {
+    try {
+      setUploadingPortfolio(true);
+      
+      // Validate file type and size
+      const isValidType = file.type.startsWith('image/');
+      if (!isValidType) {
+        message.error('Please upload a valid image file!');
+        return false;
+      }
+
+      const isValidSize = file.size / 1024 / 1024 < 10; // 10MB limit for portfolio
+      if (!isValidSize) {
+        message.error('Image must be smaller than 10MB!');
+        return false;
+      }
+
+      // Check portfolio limit
+      if (portfolioImages.length >= 10) {
+        message.error('Maximum 10 portfolio images allowed!');
+        return false;
+      }
+
+      const result = await cloudinaryService.uploadFile(file, 'image');
+      const newImage = {
+        url: result.url,
+        public_id: result.public_id,
+        original_filename: result.original_filename
+      };
+      
+      setPortfolioImages(prev => [...prev, newImage]);
+      message.success('Portfolio image uploaded successfully!');
+      
+      return false; // Prevent default upload behavior
+    } catch (error) {
+      console.error('Portfolio upload error:', error);
+      message.error(`Upload failed: ${error.message}`);
+      return false;
+    } finally {
+      setUploadingPortfolio(false);
     }
-  ];
+  };
+
+  // Remove portfolio image
+  const removePortfolioImage = async (index, publicId) => {
+    try {
+      if (publicId) {
+        await cloudinaryService.deleteFile(publicId);
+      }
+      setPortfolioImages(prev => prev.filter((_, i) => i !== index));
+      message.success('Image removed successfully!');
+    } catch (error) {
+      console.error('Error removing image:', error);
+      message.error('Failed to remove image');
+    }
+  };
+
+  // Remove profile image
+  const removeProfileImage = async () => {
+    try {
+      if (profileData?.profileImage) {
+        // Extract public_id from URL if needed
+        const publicId = profileImageUrl.split('/').pop().split('.')[0];
+        await cloudinaryService.deleteFile(publicId);
+      }
+      setProfileImageUrl('');
+      message.success('Profile image removed successfully!');
+    } catch (error) {
+      console.error('Error removing profile image:', error);
+      message.error('Failed to remove profile image');
+    }
+  };
+
+  const onFinish = async (values) => {
+    try {
+      // Include uploaded images in the form data
+      const formDataWithImages = {
+        ...values,
+        profileImage: profileImageUrl,
+        portfolio: portfolioImages
+      };
+
+      const result = await updateProfile(formDataWithImages);
+      if (result.success) {
+        message.success('Profile updated successfully!');
+      } else {
+        message.error(result.error);
+      }
+    } catch (error) {
+      message.error('Failed to update profile');
+    }
+  };
+
+  if (loading && !profileData) {
+    return (
+      <ProviderLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <Spin size="large" />
+        </div>
+      </ProviderLayout>
+    );
+  }
 
   return (
     <ProviderLayout>
@@ -135,22 +229,10 @@ const ProviderProfile = () => {
           </div>
         </Card>
 
-      
-
         <Form
           form={form}
           layout="vertical"
           onFinish={onFinish}
-          initialValues={{
-            businessName: 'DJ Master',
-            category: 'DJ & Music',
-            description: 'Professional DJ services for weddings, corporate events, and private parties.',
-            basePrice: 500,
-            location: 'New York, NY',
-            phone: '+1 (555) 123-4567',
-            email: 'djmaster@example.com',
-            website: 'www.djmaster.com'
-          }}
         >
           <Row gutter={[24, 24]}>
             {/* Basic Information */}
@@ -230,7 +312,9 @@ const ProviderProfile = () => {
                   <Input 
                     size="large" 
                     prefix={<Phone size={16} className="text-gray-400" />}
-                    placeholder="+1 (555) 123-4567" 
+                    placeholder="+1 (555) 123-4567"
+                    disabled
+                    value={user?.phone}
                   />
                 </Form.Item>
 
@@ -245,7 +329,9 @@ const ProviderProfile = () => {
                   <Input 
                     size="large" 
                     prefix={<Mail size={16} className="text-gray-400" />}
-                    placeholder="business@example.com" 
+                    placeholder="business@example.com"
+                    disabled
+                    value={user?.email}
                   />
                 </Form.Item>
 
@@ -260,19 +346,50 @@ const ProviderProfile = () => {
                   />
                 </Form.Item>
 
+                {/* Profile Image Upload */}
                 <Form.Item
-                  name="profileImage"
                   label={<span className="text-white">Profile Image</span>}
                 >
-                  <Upload.Dragger className="bg-gray-800 border-gray-600 hover:border-blue-400">
-                    <p className="ant-upload-drag-icon">
-                      <Camera size={32} className="text-gray-400 mx-auto" />
-                    </p>
-                    <p className="ant-upload-text text-white">Upload your business logo or photo</p>
-                    <p className="ant-upload-hint text-gray-400">
-                      Drag & drop or click to browse
-                    </p>
-                  </Upload.Dragger>
+                  {profileImageUrl ? (
+                    <div className="relative inline-block">
+                      <Image
+                        width={150}
+                        height={150}
+                        src={profileImageUrl}
+                        alt="Profile"
+                        className="rounded-lg object-cover"
+                      />
+                      <Button
+                        type="text"
+                        
+                        icon={<X size={16} />}
+                        onClick={removeProfileImage}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                        size="small"
+                      />
+                    </div>
+                  ) : (
+                    <Upload.Dragger 
+                      className="bg-gray-800 border-gray-600 hover:border-blue-400"
+                      beforeUpload={handleProfileImageUpload}
+                      showUploadList={false}
+                      accept="image/*"
+                    >
+                      <p className="ant-upload-drag-icon">
+                        {uploadingProfile ? (
+                          <Spin size="large" />
+                        ) : (
+                          <Camera size={32} className="text-gray-400 mx-auto" />
+                        )}
+                      </p>
+                      <p className="ant-upload-text text-white">
+                        {uploadingProfile ? 'Uploading...' : 'Upload your business logo or photo'}
+                      </p>
+                      <p className="ant-upload-hint text-gray-400">
+                        Drag & drop or click to browse (max 5MB)
+                      </p>
+                    </Upload.Dragger>
+                  )}
                 </Form.Item>
               </Card>
             </Col>
@@ -285,12 +402,12 @@ const ProviderProfile = () => {
                     <Form.Item
                       name="services"
                       label={<span className="text-white">Services Offered</span>}
+                      rules={[{ required: true, message: 'Please add at least one service!' }]}
                     >
                       <Select
                         mode="tags"
                         size="large"
                         placeholder="Add your services"
-                        defaultValue={['Wedding DJ', 'Corporate Events', 'Private Parties']}
                         getPopupContainer={(triggerNode) => triggerNode.parentNode}
                       />
                     </Form.Item>
@@ -299,12 +416,12 @@ const ProviderProfile = () => {
                     <Form.Item
                       name="availability"
                       label={<span className="text-white">Availability</span>}
+                      rules={[{ required: true, message: 'Please select available days!' }]}
                     >
                       <Select
                         mode="multiple"
                         size="large"
                         placeholder="Select available days"
-                        defaultValue={['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']}
                         getPopupContainer={(triggerNode) => triggerNode.parentNode}
                       >
                         {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
@@ -315,23 +432,59 @@ const ProviderProfile = () => {
                   </Col>
                 </Row>
 
+                {/* Portfolio Images */}
                 <Form.Item
-                  name="portfolio"
-                  label={<span className="text-white">Portfolio Images</span>}
+                  label={<span className="text-white">Portfolio Images ({portfolioImages.length}/10)</span>}
                 >
-                  <Upload.Dragger 
-                    multiple 
-                    className="bg-gray-800 border-gray-600 hover:border-blue-400"
-                    accept="image/*"
-                  >
-                    <p className="ant-upload-drag-icon">
-                      <Camera size={32} className="text-gray-400 mx-auto" />
-                    </p>
-                    <p className="ant-upload-text text-white">Upload portfolio images</p>
-                    <p className="ant-upload-hint text-gray-400">
-                      Show off your best work (max 10 images)
-                    </p>
-                  </Upload.Dragger>
+                  {/* Display existing portfolio images */}
+                  {portfolioImages.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                      {portfolioImages.map((image, index) => (
+                        <div key={index} className="relative">
+                          <Image
+                            width={150}
+                            height={150}
+                            src={image.url || image}
+                            alt={`Portfolio ${index + 1}`}
+                            className="rounded-lg object-cover"
+                          />
+                          <Button
+                            type="text"
+                            
+                            icon={<X size={16} />}
+                            onClick={() => removePortfolioImage(index, image.public_id)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                            size="small"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Upload new portfolio images */}
+                  {portfolioImages.length < 10 && (
+                    <Upload.Dragger 
+                      className="bg-gray-800 border-gray-600 hover:border-blue-400"
+                      beforeUpload={handlePortfolioUpload}
+                      showUploadList={false}
+                      accept="image/*"
+                      disabled={uploadingPortfolio}
+                    >
+                      <p className="ant-upload-drag-icon">
+                        {uploadingPortfolio ? (
+                          <Spin size="large" />
+                        ) : (
+                          <Camera size={32} className="text-gray-400 mx-auto" />
+                        )}
+                      </p>
+                      <p className="ant-upload-text text-white">
+                        {uploadingPortfolio ? 'Uploading...' : 'Upload portfolio images'}
+                      </p>
+                      <p className="ant-upload-hint text-gray-400">
+                        Show off your best work (max 10 images, 10MB each)
+                      </p>
+                    </Upload.Dragger>
+                  )}
                 </Form.Item>
               </Card>
             </Col>
@@ -339,13 +492,22 @@ const ProviderProfile = () => {
 
           <div className="mt-8 text-center">
             <Space size="large">
-              <Button size="large" className="hover-lift">
-                Cancel
+              <Button 
+                size="large" 
+                className="hover-lift"
+                onClick={() => {
+                  form.resetFields();
+                  setProfileImageUrl('');
+                  setPortfolioImages([]);
+                }}
+              >
+                Reset
               </Button>
               <Button 
                 type="primary" 
                 htmlType="submit" 
                 size="large" 
+                loading={loading}
                 className="glow-button px-8"
               >
                 Save Profile
@@ -353,8 +515,6 @@ const ProviderProfile = () => {
             </Space>
           </div>
         </Form>
-
-    
       </div>
     </ProviderLayout>
   );

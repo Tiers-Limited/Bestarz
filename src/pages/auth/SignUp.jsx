@@ -1,22 +1,26 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, Typography, Space, Divider, Select, Steps, Row, Col } from 'antd';
+import { Form, Input, Button, Card, Typography, Space, Divider, Select, Steps, Row, Col, message } from 'antd';
 import { Mail, Lock, User, ArrowLeft, Building } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const { Title, Paragraph, Link } = Typography;
 const { Option } = Select;
 
 const SignUp = () => {
   const navigate = useNavigate();
+  const { signUp, loading, getRoleDashboard } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [userType, setUserType] = useState('');
 
-  const onFinish = (values) => {
-    console.log('Signup values:', values);
-    if (values.userType === 'provider') {
-      navigate('/provider/subscription');
+  const onFinish = async (values) => {
+    const result = await signUp(values);
+    
+    if (result.success) {
+      message.success('Account created successfully!');
+      navigate('/signin');
     } else {
-      navigate('/client/booking');
+      message.error(result.error);
     }
   };
 
@@ -160,6 +164,7 @@ const SignUp = () => {
               htmlType="submit" 
               size="large" 
               block
+              loading={loading}
               className="h-12 text-lg font-medium"
             >
               Create Account
@@ -185,7 +190,7 @@ const SignUp = () => {
         <Card className="glass-card" style={{ border: '1px solid rgba(59, 130, 246, 0.2)' }}>
           <div className="text-center mb-8">
             <div className="bestarz-logo text-3xl mb-4">
-              Best<span className="text-green-400">★</span>rz
+              Best<span className="bestarz-star">★</span>rz
             </div>
             <Title level={3} className="text-white mb-2">Join Bestarz</Title>
             <Paragraph className="text-gray-400">Create your account to get started</Paragraph>

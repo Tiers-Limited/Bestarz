@@ -17,12 +17,18 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { getInitials } from "../utils/helper";
 
 const { Sider, Content, Header } = Layout;
 
 const ProviderLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const { user, signOut } = useAuth();
+
+  console.log(user, "user");
 
   const menuItems = [
     {
@@ -63,9 +69,9 @@ const ProviderLayout = ({ children }) => {
     },
 
     {
-      key: '/provider/messages',
+      key: "/provider/messages",
       icon: <MessageCircle size={18} />,
-      label: 'Messages',
+      label: "Messages",
     },
     {
       key: "/provider/docs",
@@ -128,12 +134,11 @@ const ProviderLayout = ({ children }) => {
           bottom: 0,
         }}
       >
-  <div className="p-6">
-  <div className="bestarz-logo text-2xl text-center mb-8">
-    Best<span className="bestarz-star">★</span>rz
-  </div>
-</div>
-
+        <div className="p-6">
+          <div className="bestarz-logo text-2xl text-center mb-8">
+            Best<span className="bestarz-star">★</span>rz
+          </div>
+        </div>
 
         <Menu
           theme="dark"
@@ -169,8 +174,8 @@ const ProviderLayout = ({ children }) => {
                 type="text"
                 icon={<HelpCircle size={16} />}
                 className="text-gray-300 hover:text-white glow-button"
-                onClick={()=>{
-                    navigate("/provider/docs")
+                onClick={() => {
+                  navigate("/provider/docs");
                 }}
               >
                 Help
@@ -179,7 +184,7 @@ const ProviderLayout = ({ children }) => {
                 type="text"
                 icon={<Bell size={16} />}
                 className="text-gray-300 hover:text-white"
-                onClick={()=>navigate('/provider/messages')}
+                onClick={() => navigate("/provider/messages")}
               >
                 3
               </Button>
@@ -188,16 +193,13 @@ const ProviderLayout = ({ children }) => {
                   items: userMenuItems,
                   onClick: ({ key }) => {
                     if (key === "logout") {
+                      signOut();
                       navigate("/");
-                    }
-                    else if (key === "notifications") {
+                    } else if (key === "notifications") {
                       navigate("/provider/messages");
-                    }
-                   else if (key === "help") {
+                    } else if (key === "help") {
                       navigate("/provider/docs");
-                    }
-                  
-                    else if (key === "profile") {
+                    } else if (key === "profile") {
                       navigate("/provider/profile");
                     }
                   },
@@ -206,8 +208,21 @@ const ProviderLayout = ({ children }) => {
                 getPopupContainer={(triggerNode) => triggerNode.parentNode}
               >
                 <div className="flex items-center cursor-pointer hover-lift">
-                  <Avatar style={{ backgroundColor: "#3B82F6" }}>DM</Avatar>
-                  <span className="text-white ml-2">DJ Master</span>
+                  <Avatar
+                    src={user?.profileImage || null}
+                    style={{
+                      backgroundColor: user?.profileImage
+                        ? "transparent"
+                        : "#3B82F6",
+                    }}
+                  >
+                    {!user?.profileImage &&
+                      getInitials(user?.firstName, user?.lastName)}
+                  </Avatar>
+
+                  <span className="text-white ml-2">
+                    {user?.firstName} {user?.lastName}
+                  </span>
                 </div>
               </Dropdown>
             </Space>
