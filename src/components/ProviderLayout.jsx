@@ -5,7 +5,6 @@ import {
   User,
   Calendar,
   DollarSign,
-  Settings,
   Star,
   LogOut,
   Bell,
@@ -78,11 +77,7 @@ const ProviderLayout = ({ children }) => {
       icon: <FileText size={18} />,
       label: "Help & Docs",
     },
-    {
-      key: "/provider/settings",
-      icon: <Settings size={18} />,
-      label: "Settings",
-    },
+
   ];
 
   const userMenuItems = [
@@ -91,11 +86,7 @@ const ProviderLayout = ({ children }) => {
       label: "Profile Settings",
       icon: <User size={16} />,
     },
-    {
-      key: "notifications",
-      label: "Notifications",
-      icon: <Bell size={16} />,
-    },
+ 
     {
       key: "help",
       label: "Help Center",
@@ -164,7 +155,7 @@ const ProviderLayout = ({ children }) => {
                 type="text"
                 icon={<ExternalLink size={16} />}
                 onClick={() =>
-                  window.open("/provider/dj-master/book", "_blank")
+                  window.open(`/provider/${user?.slug}`, "_blank")
                 }
                 className="text-gray-300 hover:text-white"
               >

@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Form, Input, Button, Card, Typography, Space, Divider, Checkbox, message } from 'antd';
 import { Mail, Lock, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const { Title, Paragraph, Link } = Typography;
 
 const SignIn = () => {
   const navigate = useNavigate();
+
   const { signIn, loading, getRoleDashboard } = useAuth();
 
   const onFinish = async (values) => {
@@ -22,6 +23,23 @@ const SignIn = () => {
       message.error(result.error);
     }
   };
+
+  const location = useLocation();
+
+  const hasShown = useRef(false);
+  
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const status = queryParams.get("status");
+  
+    if (status === "verified" && !hasShown.current) {
+      message.success("Your email has been verified successfully!");
+      hasShown.current = true;
+    }
+  }, [location]);
+  
+  
+  
   
 
   return (
@@ -78,8 +96,7 @@ const SignIn = () => {
 
             <Form.Item>
               <div className="flex justify-between items-center">
-                <Checkbox className="text-gray-400">Remember me</Checkbox>
-                <Link className="text-blue-400 hover:text-blue-300">
+                <Link onClick={() => navigate('/forgot-password')} className="text-blue-400 hover:text-blue-300">
                   Forgot password?
                 </Link>
               </div>

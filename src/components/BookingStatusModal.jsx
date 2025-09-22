@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, Form, Input, Select, InputNumber, Button, message } from 'antd';
-import { useProvider } from '../context/ProviderContext';
+import { useProvider } from '../context/provider/ProviderContext';
 
 const { TextArea } = Input;
 const { Option } = Select;

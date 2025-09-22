@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
-import { useAuth } from './AuthContext';
+import { useAuth } from '../AuthContext';
+import { EarningsProvider } from './EarningsContext';
 
 const ProviderContext = createContext();
 
@@ -16,6 +17,15 @@ export const ProviderProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
   const [profileData, setProfileData] = useState(null);
+  const [bookingsData, setBookingsData] = useState({
+    bookings: [],
+    pagination: {
+      page: 1,
+      limit: 10,
+      total: 0,
+      pages: 1
+    }
+  });
 
   const baseUrl = import.meta.env.VITE_BASE_URL;
 
@@ -46,6 +56,70 @@ export const ProviderProvider = ({ children }) => {
     }
   };
 
+  const fetchBookings = async (params = {}) => {
+    try {
+      setLoading(true);
+      
+      const {
+        page = 1,
+        limit = 10,
+        status = null,
+        startDate = null,
+        endDate = null
+      } = params;
+
+      let queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString()
+      });
+
+      // Add optional filters
+      if (status && status !== 'all') {
+        queryParams.append('status', status);
+      }
+
+      if (startDate) {
+        queryParams.append('startDate', startDate);
+      }
+
+      if (endDate) {
+        queryParams.append('endDate', endDate);
+      }
+
+      const response = await fetch(`${baseUrl}/providers/bookings?${queryParams}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        const bookingsResult = {
+          bookings: data.bookings || [],
+          pagination: data.pagination || {
+            page: 1,
+            limit: 10,
+            total: 0,
+            pages: 1
+          }
+        };
+        
+        setBookingsData(bookingsResult);
+        return { success: true, data: bookingsResult };
+      } else {
+        return { success: false, error: data.message || 'Failed to fetch bookings' };
+      }
+    } catch (error) {
+      console.error('Bookings fetch error:', error);
+      return { success: false, error: 'Network error. Please try again.' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const updateBookingStatus = async (bookingId, status, notes = '', amount = null) => {
     try {
       setLoading(true);
@@ -68,6 +142,8 @@ export const ProviderProvider = ({ children }) => {
       if (response.ok) {
         // Refresh dashboard data after status update
         await fetchDashboardData();
+        // Optionally refresh bookings data
+        await fetchBookings();
         return { success: true, data };
       } else {
         return { success: false, error: data.message || 'Failed to update booking status' };
@@ -150,16 +226,21 @@ export const ProviderProvider = ({ children }) => {
   const value = {
     dashboardData,
     profileData,
+    bookingsData,
     loading,
     fetchDashboardData,
     fetchProfileData,
+    fetchBookings,
     updateProfile,
     updateBookingStatus,
   };
 
   return (
+    <EarningsProvider >
     <ProviderContext.Provider value={value}>
       {children}
     </ProviderContext.Provider>
+    </EarningsProvider >
+
   );
 };

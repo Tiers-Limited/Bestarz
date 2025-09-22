@@ -4,7 +4,7 @@ import { Calendar, DollarSign, Users, Star, Settings, Bell, ExternalLink, Messag
 import ProviderLayout from '../../components/ProviderLayout';
 import BookingStatusModal from '../../components/BookingStatusModal';
 import { useNavigate } from 'react-router-dom';
-import { useProvider } from '../../context/ProviderContext';
+import { useProvider } from '../../context/provider/ProviderContext';
 import { useAuth } from '../../context/AuthContext';
 
 const { Title, Paragraph } = Typography;
@@ -293,14 +293,14 @@ const ProviderDashboard = () => {
             <Button 
               icon={<Bell size={16} />} 
               className="border-gray-600 hover:border-blue-400 hover:text-blue-400"
-              onClick={() => navigate('/provider/notifications')}
+              onClick={() => navigate('/provider/messages')}
             >
               Notifications
             </Button>
             <Button 
               type="primary" 
               icon={<ExternalLink size={16} />}
-              onClick={() => window.open(`/provider/${user?.id}/book`, '_blank')}
+              onClick={() => window.open(`/provider/${user?.slug}`, '_blank')}
               className="glow-button"
             >
               View Public Page
@@ -317,7 +317,6 @@ const ProviderDashboard = () => {
                 value={stats.thisMonthRevenue || 0}
                 precision={0}
                 valueStyle={{ color: '#22C55E' }}
-                prefix={<DollarSign size={20} />}
                 formatter={(value) => formatCurrency(value)}
               />
             </Card>
@@ -391,7 +390,7 @@ const ProviderDashboard = () => {
                   icon={<Users size={16} />}
                   className="hover-lift"
                 >
-                  Manage Customers
+                  View Customers
                 </Button>
                 <Button 
                   block 

@@ -1,5 +1,5 @@
 // ProviderRateCards.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   Typography,
@@ -14,35 +14,92 @@ import {
   Input,
   InputNumber,
   Select,
+  Popconfirm,
+  Spin,
 } from "antd";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import ProviderLayout from "../../components/ProviderLayout";
+import { useServiceRate } from "../../context/provider/ServiceRateContext";
 
 const { Title, Paragraph } = Typography;
 
 const ProviderRateCards = () => {
+  const {
+    rateCards,
+    loading,
+    fetchRateCards,
+    createRateCard,
+    updateRateCard,
+    deleteRateCard,
+  } = useServiceRate();
+
   const [rateCardVisible, setRateCardVisible] = useState(false);
-  const [rateCards, setRateCards] = useState([
-    {
-      key: "1",
-      service: "Wedding DJ",
-      basePrice: 1200,
-      duration: "6 hours",
-      includes: ["Sound system", "Microphones", "Basic lighting"],
-      addOns: [
-        { name: "Extra hour", price: 150 },
-        { name: "Premium lighting", price: 300 },
-      ],
-    },
-    {
-      key: "2",
-      service: "Corporate Event",
-      basePrice: 800,
-      duration: "4 hours",
-      includes: ["Sound system", "Background music"],
-      addOns: [{ name: "Extra hour", price: 100 }],
-    },
-  ]);
+  const [editingRateCard, setEditingRateCard] = useState(null);
+  const [form] = Form.useForm();
+
+  // Load rate cards on component mount
+  useEffect(() => {
+    fetchRateCards();
+  }, []);
+
+  // Handle form submission
+  const handleSubmit = async (values) => {
+    try {
+      const rateCardData = {
+        service: values.service,
+        basePrice: values.basePrice,
+        duration: values.duration,
+        includes: values.includes || [],
+      };
+
+      let result;
+      if (editingRateCard) {
+        // Update existing rate card
+        result = await updateRateCard(editingRateCard.id, rateCardData);
+      } else {
+        // Create new rate card
+        result = await createRateCard(rateCardData);
+      }
+
+      if (result.success) {
+        handleModalClose();
+      }
+    } catch (error) {
+      console.error('Error submitting rate card:', error);
+    }
+  };
+
+  // Handle edit button click
+  const handleEdit = (rateCard) => {
+    setEditingRateCard(rateCard);
+    form.setFieldsValue({
+      service: rateCard.service,
+      basePrice: rateCard.basePrice,
+      duration: rateCard.duration,
+      includes: rateCard.includes,
+    });
+    setRateCardVisible(true);
+  };
+
+  // Handle delete
+  const handleDelete = async (rateCardId) => {
+    await deleteRateCard(rateCardId);
+  };
+
+  // Close modal and reset form
+  const handleModalClose = () => {
+    setRateCardVisible(false);
+    setEditingRateCard(null);
+    form.resetFields();
+  };
+
+  // Format currency
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
+  };
 
   const rateCardColumns = [
     {
@@ -56,7 +113,7 @@ const ProviderRateCards = () => {
       dataIndex: "basePrice",
       key: "basePrice",
       render: (price) => (
-        <span className="text-green-400 font-bold">${price}</span>
+        <span className="text-green-400 font-bold">{formatCurrency(price)}</span>
       ),
     },
     {
@@ -87,14 +144,26 @@ const ProviderRateCards = () => {
     {
       title: "Actions",
       key: "actions",
-      render: () => (
+      render: (_, record) => (
         <Space size="small">
-          <Button size="small" icon={<Edit size={14} />}>
+          <Button 
+            size="small" 
+            icon={<Edit size={14} />}
+            onClick={() => handleEdit(record)}
+          >
             Edit
           </Button>
-          <Button size="small" danger icon={<Trash2 size={14} />}>
-            Delete
-          </Button>
+          <Popconfirm
+            title="Delete Rate Card"
+            description="Are you sure you want to delete this rate card?"
+            onConfirm={() => handleDelete(record.id)}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Button size="small" danger icon={<Trash2 size={14} />}>
+              Delete
+            </Button>
+          </Popconfirm>
         </Space>
       ),
     },
@@ -119,60 +188,115 @@ const ProviderRateCards = () => {
               icon={<Plus size={16} />}
               onClick={() => setRateCardVisible(true)}
               className="glow-button"
+              loading={loading}
             >
               Add Rate Card
             </Button>
           }
         >
-          <Table
-            dataSource={rateCards}
-            columns={rateCardColumns}
-            pagination={false}
-            scroll={{ x: 800 }}
-          />
+          <Spin spinning={loading}>
+            <Table
+              dataSource={rateCards}
+              columns={rateCardColumns}
+              pagination={false}
+              scroll={{ x: 800 }}
+              rowKey="_id"
+              locale={{
+                emptyText: 'No rate cards found. Create your first rate card to get started!'
+              }}
+            />
+          </Spin>
         </Card>
 
-        {/* Modal for Creating Rate Card */}
+        {/* Modal for Creating/Editing Rate Card */}
         <Modal
-          title="Create Rate Card"
+          title={editingRateCard ? "Edit Rate Card" : "Create Rate Card"}
           open={rateCardVisible}
-          onCancel={() => setRateCardVisible(false)}
+          onCancel={handleModalClose}
           footer={null}
           width={600}
         >
-          <Form layout="vertical">
-            <Form.Item name="service" label="Service Type" required>
-              <Input size="large" placeholder="e.g., Wedding DJ" />
+          <Form 
+            form={form}
+            layout="vertical" 
+            onFinish={handleSubmit}
+            autoComplete="off"
+          >
+            <Form.Item 
+              name="service" 
+              label="Service Type" 
+              rules={[
+                { required: true, message: 'Please enter the service type' }
+              ]}
+            >
+              <Input 
+                size="large" 
+                placeholder="e.g., Wedding DJ, Corporate Catering" 
+              />
             </Form.Item>
+
             <Row gutter={[16, 16]}>
               <Col xs={24} md={12}>
-                <Form.Item name="basePrice" label="Base Price" required>
+                <Form.Item 
+                  name="basePrice" 
+                  label="Base Price" 
+                  rules={[
+                    { required: true, message: 'Please enter the base price' },
+                    { type: 'number', min: 0, message: 'Price must be greater than 0' }
+                  ]}
+                >
                   <InputNumber
                     size="large"
                     style={{ width: "100%" }}
                     prefix="$"
                     placeholder="Base price"
+                    min={0}
+                    step={0.01}
                   />
                 </Form.Item>
               </Col>
               <Col xs={24} md={12}>
-                <Form.Item name="duration" label="Duration" required>
-                  <Input size="large" placeholder="e.g., 6 hours" />
+                <Form.Item 
+                  name="duration" 
+                  label="Duration" 
+                  rules={[
+                    { required: true, message: 'Please enter the duration' }
+                  ]}
+                >
+                  <Input 
+                    size="large" 
+                    placeholder="e.g., 6 hours, 4-8 hours" 
+                  />
                 </Form.Item>
               </Col>
             </Row>
-            <Form.Item name="includes" label="What's Included">
+
+            <Form.Item 
+              name="includes" 
+              label="What's Included"
+              tooltip="Add items that are included in the base price"
+            >
               <Select
                 mode="tags"
                 size="large"
-                placeholder="Add included items"
+                placeholder="Add included items (press Enter to add each item)"
+                style={{ width: '100%' }}
+                tokenSeparators={[',']}
               />
             </Form.Item>
+
             <div className="text-center mt-6">
               <Space>
-                <Button onClick={() => setRateCardVisible(false)}>Cancel</Button>
-                <Button type="primary" className="glow-button">
-                  Create Rate Card
+                <Button onClick={handleModalClose}>
+                  Cancel
+                </Button>
+                <Button 
+                  type="primary" 
+                  htmlType="submit"
+                  className="glow-button"
+                  loading={loading}
+                >
+                  {editingRateCard ? 'Update Rate Card' : 'Create Rate Card'}
                 </Button>
               </Space>
             </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Card, Typography, Upload, Select, Row, Col, InputNumber, Space, Tag, message, Spin, Image } from 'antd';
 import { Camera, MapPin, Phone, Mail, Globe, Copy, Check, Edit, Trash2, X } from 'lucide-react';
 import ProviderLayout from '../../components/ProviderLayout';
-import { useProvider } from '../../context/ProviderContext';
+import { useProvider } from '../../context/provider/ProviderContext';
 import { useAuth } from '../../context/AuthContext';
 import cloudinaryService from '../../services/CloudinaryService';
 

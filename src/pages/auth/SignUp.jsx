@@ -15,12 +15,14 @@ const SignUp = () => {
 
   const onFinish = async (values) => {
     const result = await signUp(values);
+
+    console.log(result,"resultresult")
     
     if (result.success) {
-      message.success('Account created successfully!');
+      message.success(result?.message);
       navigate('/signin');
     } else {
-      message.error(result.error);
+      message.error(result?.error);
     }
   };
 

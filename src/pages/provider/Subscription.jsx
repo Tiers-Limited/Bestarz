@@ -100,7 +100,6 @@ const ProviderSubscription= () => {
                 </Paragraph>
               </div>
               <Space>
-                <Button>Manage Billing</Button>
                 <Button type="primary">Upgrade Plan</Button>
               </Space>
             </div>
@@ -160,35 +159,7 @@ const ProviderSubscription= () => {
           ))}
         </Row>
 
-        {/* Billing Information */}
-        <Card title="Billing Information">
-          <Row gutter={[24, 24]}>
-            <Col xs={24} md={12}>
-              <Space direction="vertical" size="middle" className="w-full">
-                <div>
-                  <Paragraph className="text-gray-400 mb-1">Payment Method</Paragraph>
-                  <div className="flex items-center">
-                    <div className="w-8 h-6 bg-blue-600 rounded mr-3 flex items-center justify-center text-xs text-white font-bold">
-                      VISA
-                    </div>
-                    <span className="text-white">•••• 4242</span>
-                  </div>
-                </div>
-                <div>
-                  <Paragraph className="text-gray-400 mb-1">Next Billing Date</Paragraph>
-                  <span className="text-white">February 15, 2025</span>
-                </div>
-              </Space>
-            </Col>
-            <Col xs={24} md={12}>
-              <Space direction="vertical" size="middle" className="w-full">
-                <Button block>Update Payment Method</Button>
-                <Button block>Download Invoices</Button>
-                <Button danger block>Cancel Subscription</Button>
-              </Space>
-            </Col>
-          </Row>
-        </Card>
+
       </div>
     </div>
 

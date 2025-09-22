@@ -75,12 +75,14 @@ export const AuthProvider = ({ children }) => {
       if (response.ok) {
         setToken(data.token);
         setUser(data.user);
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        return { success: true, user: data.user };
+        if (data.token) localStorage.setItem('token', data.token);
+        if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
+      
+        return { success: true, user: data.user, message: data.message };
       } else {
         return { success: false, error: data.message || 'Sign up failed' };
       }
+      
     } catch (error) {
       console.error('Sign up error:', error);
       return { success: false, error: 'Network error. Please try again.' };
@@ -95,6 +97,61 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   };
+
+
+
+  const forgotPassword = async (email) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${baseUrl}/auth/forgot-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        return { success: true, message: data.message || "Reset link sent to your email" };
+      } else {
+        return { success: false, error: data.message || "Failed to send reset link" };
+      }
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      return { success: false, error: "Network error. Please try again." };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+const resetPassword = async ({ id, token, newPassword }) => {
+  try {
+    setLoading(true);
+    const response = await fetch(`${baseUrl}/auth/reset-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id, token, newPassword }), // send id
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      return { success: true, message: data.message || "Password reset successfully" };
+    } else {
+      return { success: false, error: data.message || "Failed to reset password" };
+    }
+  } catch (error) {
+    console.error("Reset password error:", error);
+    return { success: false, error: "Network error. Please try again." };
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const getRoleDashboard = (role) => {
     switch (role) {
@@ -116,6 +173,8 @@ export const AuthProvider = ({ children }) => {
     signIn,
     signUp,
     signOut,
+    forgotPassword,   
+    resetPassword,    
     getRoleDashboard,
     isAuthenticated: !!token && !!user,
   };

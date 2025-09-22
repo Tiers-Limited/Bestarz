@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, Typography, Button, Row, Col, Rate, Tag, Form, Input, DatePicker, TimePicker, InputNumber, Space, Avatar, Divider, Image } from 'antd';
 import { MapPin, Phone, Mail, Globe, Calendar, Clock, DollarSign, Star, Check } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -40,9 +41,12 @@ const PublicProviderPage = () => {
             <div className="bestarz-logo">
               Best<span className="bestarz-star">★</span>rz
             </div>
+
+            <Link to="/signup">
             <Button type="primary">
               Join Bestarz
             </Button>
+            </Link>
           </div>
         </div>
       </header>

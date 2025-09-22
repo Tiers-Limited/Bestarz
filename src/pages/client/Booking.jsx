@@ -518,7 +518,7 @@ const ClientBooking = () => {
                 Sign In
               </Button>
               <Button type="primary" onClick={() => navigate('/signup')} className="glow-button">
-                Join as Provider
+                Join as Client
               </Button>
             </Space>
           </div>

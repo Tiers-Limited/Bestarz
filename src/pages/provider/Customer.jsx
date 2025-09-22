@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Card,
   Typography,
@@ -13,6 +13,8 @@ import {
   Modal,
   Form,
   Rate,
+  message,
+  Spin,
 } from "antd";
 import {
   Search,
@@ -24,121 +26,148 @@ import {
   Star,
   Plus,
   Eye,
+  MapPin,
+  Users,
+  Clock,
+  Download,
 } from "lucide-react";
+import * as XLSX from 'xlsx';
 import ProviderLayout from "../../components/ProviderLayout";
+import { useCustomer } from "../../context/provider/CustomerContext";
 
 const { Title, Paragraph } = Typography;
 
 const ProviderCustomers = () => {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [noteModalVisible, setNoteModalVisible] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [activeTab, setActiveTab] = useState("all");
+  
+  const {
+    customersData,
+    loading,
+    fetchCustomers,
+    getTransformedCustomers,
+    getCustomersByStatus,
+    getCustomerStats,
+  } = useCustomer();
 
-  const customers = [
-    {
-      key: "1",
-      name: "Sarah Johnson",
-      email: "sarah.johnson@email.com",
-      phone: "+1 (555) 234-5678",
-      totalBookings: 3,
-      totalSpent: 3200,
-      lastBooking: "2025-01-15",
-      status: "active",
-      rating: 5,
-      joinDate: "2024-08-15",
-      timeline: [
-        {
-          date: "2025-01-15",
-          event: "Wedding DJ Service",
-          amount: "$1,200",
-          status: "completed",
-          notes: "Amazing service, very professional!",
-        },
-        {
-          date: "2024-12-10",
-          event: "Anniversary Party",
-          amount: "$900",
-          status: "completed",
-          notes: "Great music selection, guests loved it",
-        },
-        {
-          date: "2024-08-20",
-          event: "Birthday Party",
-          amount: "$650",
-          status: "completed",
-          notes: "First booking, exceeded expectations",
-        },
-      ],
-      notes: [
-        {
-          date: "2025-01-16",
-          note: "Client mentioned they have another wedding coming up in June",
-          type: "business",
-        },
-        {
-          date: "2025-01-10",
-          note: "Prefers classic rock and 80s music for events",
-          type: "preference",
-        },
-      ],
-    },
-    {
-      key: "2",
-      name: "Mike Chen",
-      email: "mike.chen@company.com",
-      phone: "+1 (555) 987-6543",
-      totalBookings: 2,
-      totalSpent: 1600,
-      lastBooking: "2025-01-18",
-      status: "active",
-      rating: 4.5,
-      joinDate: "2024-11-20",
-      timeline: [
-        {
-          date: "2025-01-18",
-          event: "Corporate Event",
-          amount: "$800",
-          status: "pending",
-          notes: "Looking forward to professional background music",
-        },
-        {
-          date: "2024-12-05",
-          event: "Office Holiday Party",
-          amount: "$800",
-          status: "completed",
-          notes: "Great job on the holiday playlist",
-        },
-      ],
-      notes: [
-        {
-          date: "2024-12-06",
-          note: "Works for tech company, books annual events",
-          type: "business",
-        },
-      ],
-    },
-    {
-      key: "3",
-      name: "Emily Davis",
-      email: "emily.davis@email.com",
-      phone: "+1 (555) 345-6789",
-      totalBookings: 1,
-      totalSpent: 600,
-      lastBooking: "2025-01-22",
-      status: "new",
-      rating: null,
-      joinDate: "2025-01-20",
-      timeline: [
-        {
-          date: "2025-01-22",
-          event: "Birthday Party",
-          amount: "$600",
-          status: "confirmed",
-          notes: "Looking for pop and hip-hop music",
-        },
-      ],
-      notes: [],
-    },
-  ];
+  // Fetch customers on component mount
+  useEffect(() => {
+    fetchCustomers({ page: currentPage, limit: pageSize });
+  }, []);
+
+  // Filtered customers based on search term
+  const filteredCustomers = useMemo(() => {
+    const allCustomers = getTransformedCustomers();
+    if (!searchTerm.trim()) return allCustomers;
+
+    return allCustomers.filter((customer) => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        customer.name?.toLowerCase().includes(searchLower) ||
+        customer.email?.toLowerCase().includes(searchLower) ||
+        customer.phone?.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [getTransformedCustomers(), searchTerm]);
+
+  // Get filtered customers by status and search
+  const getFilteredCustomersByStatus = (status) => {
+    const statusCustomers = getCustomersByStatus(status);
+    if (!searchTerm.trim()) return statusCustomers;
+
+    const searchLower = searchTerm.toLowerCase();
+    return statusCustomers.filter((customer) =>
+      customer.name?.toLowerCase().includes(searchLower) ||
+      customer.email?.toLowerCase().includes(searchLower) ||
+      customer.phone?.toLowerCase().includes(searchLower)
+    );
+  };
+
+  // Handle search
+  const handleSearch = (value) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
+  // Handle pagination
+  const handleTableChange = (pagination) => {
+    setCurrentPage(pagination.current);
+    setPageSize(pagination.pageSize);
+  };
+
+  // Handle view customer details
+  const handleViewCustomer = (customer) => {
+    setSelectedCustomer(customer);
+  };
+
+  // Export customers to Excel
+  const handleExportList = () => {
+    try {
+      let dataToExport = [];
+      
+      // Get current tab's data
+      switch (activeTab) {
+        case "active":
+          dataToExport = getFilteredCustomersByStatus("active");
+          break;
+        case "new":
+          dataToExport = getFilteredCustomersByStatus("new");
+          break;
+        default:
+          dataToExport = filteredCustomers;
+      }
+
+      if (dataToExport.length === 0) {
+        message.warning("No customers to export");
+        return;
+      }
+
+      // Prepare data for export
+      const exportData = dataToExport.map((customer) => ({
+        Name: customer.name,
+        Email: customer.email,
+        Phone: customer.phone,
+        "Total Bookings": customer.totalBookings,
+        "Total Spent": customer.totalSpent,
+        "Last Booking": customer.lastBooking 
+          ? new Date(customer.lastBooking).toLocaleDateString()
+          : "No bookings yet",
+        Status: customer.status,
+        "Join Date": customer.joinDate 
+          ? new Date(customer.joinDate).toLocaleDateString()
+          : "",
+      }));
+
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(exportData);
+
+      // Auto-size columns
+      const colWidths = Object.keys(exportData[0] || {}).map(key => ({
+        wch: Math.max(key.length, 15)
+      }));
+      ws['!cols'] = colWidths;
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, "Customers");
+
+      // Generate filename with current date
+      const filename = `customers_${activeTab}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      // Write file
+      XLSX.writeFile(wb, filename);
+      
+      message.success(`Exported ${dataToExport.length} customers successfully!`);
+    } catch (error) {
+      console.error("Export error:", error);
+      message.error("Failed to export customers list");
+    }
+  };
+
+  const stats = getCustomerStats();
 
   const columns = [
     {
@@ -146,7 +175,10 @@ const ProviderCustomers = () => {
       key: "customer",
       render: (_, record) => (
         <div className="flex items-center">
-          <Avatar style={{ backgroundColor: "#3B82F6", marginRight: 12 }}>
+          <Avatar 
+            src={record.profileImage}
+            style={{ backgroundColor: "#3B82F6", marginRight: 12 }}
+          >
             {record.name
               .split(" ")
               .map((n) => n[0])
@@ -166,7 +198,7 @@ const ProviderCustomers = () => {
         <div>
           <div className="text-gray-300 text-sm">{record.phone}</div>
           <div className="text-gray-400 text-xs">
-            Customer since {new Date(record.joinDate).toLocaleDateString()}
+            {record.joinDate && `Customer since ${new Date(record.joinDate).toLocaleDateString()}`}
           </div>
         </div>
       ),
@@ -194,22 +226,22 @@ const ProviderCustomers = () => {
       ),
     },
     {
-      title: "Rating",
-      dataIndex: "rating",
-      key: "rating",
-      render: (rating) => (
+      title: "Last Booking",
+      dataIndex: "lastBooking",
+      key: "lastBooking",
+      render: (date) => (
         <div className="text-center">
-          {rating ? (
+          {date ? (
             <>
-              <Rate
-                disabled
-                defaultValue={rating}
-                className="rating-glow text-sm"
-              />
-              <div className="text-yellow-400 text-xs">{rating}/5</div>
+              <div className="text-white text-sm">
+                {new Date(date).toLocaleDateString()}
+              </div>
+              <div className="text-gray-400 text-xs">
+                {Math.floor((new Date() - new Date(date)) / (1000 * 60 * 60 * 24))} days ago
+              </div>
             </>
           ) : (
-            <div className="text-gray-400 text-sm">No rating yet</div>
+            <div className="text-gray-400 text-sm">No bookings yet</div>
           )}
         </div>
       ),
@@ -236,7 +268,7 @@ const ProviderCustomers = () => {
           <Button
             size="small"
             icon={<Eye size={14} />}
-            onClick={() => setSelectedCustomer(record)}
+            onClick={() => handleViewCustomer(record)}
             className="hover-lift"
           >
             View
@@ -256,38 +288,56 @@ const ProviderCustomers = () => {
   const tabItems = [
     {
       key: "all",
-      label: `All Customers (${customers.length})`,
+      label: `All Customers (${filteredCustomers.length})`,
       children: (
         <Table
-          dataSource={customers}
+          dataSource={filteredCustomers}
           columns={columns}
-          pagination={{ pageSize: 10 }}
+          pagination={{
+            current: currentPage,
+            pageSize: pageSize,
+            total: filteredCustomers.length,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} customers`,
+          }}
+          onChange={handleTableChange}
+          loading={loading}
           scroll={{ x: 800 }}
         />
       ),
     },
     {
       key: "active",
-      label: `Active (${
-        customers.filter((c) => c.status === "active").length
-      })`,
+      label: `Active (${getFilteredCustomersByStatus('active').length})`,
       children: (
         <Table
-          dataSource={customers.filter((c) => c.status === "active")}
+          dataSource={getFilteredCustomersByStatus('active')}
           columns={columns}
-          pagination={{ pageSize: 10 }}
+          pagination={{ 
+            pageSize: 10,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} active customers`,
+          }}
+          loading={loading}
           scroll={{ x: 800 }}
         />
       ),
     },
     {
       key: "new",
-      label: `New (${customers.filter((c) => c.status === "new").length})`,
+      label: `New (${getFilteredCustomersByStatus('new').length})`,
       children: (
         <Table
-          dataSource={customers.filter((c) => c.status === "new")}
+          dataSource={getFilteredCustomersByStatus('new')}
           columns={columns}
-          pagination={{ pageSize: 10 }}
+          pagination={{ 
+            pageSize: 10,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} new customers`,
+          }}
+          loading={loading}
           scroll={{ x: 800 }}
         />
       ),
@@ -307,35 +357,71 @@ const ProviderCustomers = () => {
               lasting connections
             </Paragraph>
           </div>
-          <Space>
-            <Button
-              icon={<Plus size={16} />}
-              className="border-gray-600 hover:border-blue-400 hover:text-blue-400"
-            >
-              Add Customer
-            </Button>
-          </Space>
+        </div>
+
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+          <Card className="glow-border text-center">
+            <div className="text-2xl font-bold text-blue-400">{stats.total}</div>
+            <div className="text-gray-400">Total Customers</div>
+          </Card>
+          <Card className="glow-border text-center">
+            <div className="text-2xl font-bold text-green-400">{stats.active}</div>
+            <div className="text-gray-400">Active Customers</div>
+          </Card>
+          <Card className="glow-border text-center">
+            <div className="text-2xl font-bold text-yellow-400">${stats.totalRevenue}</div>
+            <div className="text-gray-400">Total Revenue</div>
+          </Card>
+          <Card className="glow-border text-center">
+            <div className="text-2xl font-bold text-purple-400">${stats.averageSpent}</div>
+            <div className="text-gray-400">Avg. per Customer</div>
+          </Card>
         </div>
 
         {/* Search and Filters */}
         <Card className="mb-6 glow-border">
           <div className="flex items-center justify-between">
-            <Input
+            <Input.Search
               size="large"
               prefix={<Search size={16} />}
               placeholder="Search customers by name, email, or phone..."
               className="max-w-md"
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+              onSearch={handleSearch}
+              allowClear
             />
             <Space>
-              <Button className="hover-lift">Export List</Button>
-              
+              <Button 
+                className="hover-lift" 
+                icon={<Download size={16} />}
+                onClick={handleExportList}
+                disabled={filteredCustomers.length === 0}
+              >
+                Export List
+              </Button>
             </Space>
           </div>
+          {searchTerm && (
+            <div className="mt-3">
+              <Tag color="blue" closable onClose={() => handleSearch("")}>
+                Searching: "{searchTerm}"
+              </Tag>
+              <span className="text-gray-400 ml-2">
+                {filteredCustomers.length} result{filteredCustomers.length !== 1 ? 's' : ''} found
+              </span>
+            </div>
+          )}
         </Card>
 
         {/* Customer List */}
         <Card title="Customer Database" className="glow-border">
-          <Tabs items={tabItems} />
+          <Tabs 
+            items={tabItems} 
+            onChange={setActiveTab}
+            activeKey={activeTab}
+          />
         </Card>
 
         {/* Customer Detail Modal */}
@@ -348,13 +434,14 @@ const ProviderCustomers = () => {
           open={!!selectedCustomer}
           onCancel={() => setSelectedCustomer(null)}
           footer={null}
-          width={800}
+          width={900}
         >
           {selectedCustomer && (
             <div>
               <div className="flex items-center mb-6">
                 <Avatar
                   size={64}
+                  src={selectedCustomer.profileImage}
                   style={{ backgroundColor: "#3B82F6", marginRight: 16 }}
                 >
                   {selectedCustomer.name
@@ -377,23 +464,20 @@ const ProviderCustomers = () => {
                     </span>
                   </Space>
                   <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-4">
-                      <div className="trust-badge flex items-center gap-1">
-                        <DollarSign size={14} />
-                        <span>${selectedCustomer.totalSpent} total</span>
-                      </div>
-                      <div className="trust-badge flex items-center gap-1">
-                        <Calendar size={14} />
-                        <span>{selectedCustomer.totalBookings} bookings</span>
-                      </div>
+                    <div className="trust-badge flex items-center gap-1">
+                      <DollarSign size={14} />
+                      <span>{selectedCustomer.totalSpent} total</span>
                     </div>
-
-                    {selectedCustomer.rating && (
-                      <div className="trust-badge">
-                        <Star size={14} className="mr-1" />
-                        {selectedCustomer.rating}/5 rating
-                      </div>
-                    )}
+                    <div className="trust-badge flex items-center gap-1">
+                      <Calendar size={14} />
+                      <span>{selectedCustomer.totalBookings} bookings</span>
+                    </div>
+                    <Tag color={
+                      selectedCustomer.status === 'active' ? 'green' :
+                      selectedCustomer.status === 'new' ? 'blue' : 'gray'
+                    }>
+                      {selectedCustomer.status}
+                    </Tag>
                   </div>
                 </div>
               </div>
@@ -403,7 +487,7 @@ const ProviderCustomers = () => {
                   {
                     key: "timeline",
                     label: "Booking History",
-                    children: (
+                    children: selectedCustomer.timeline?.length > 0 ? (
                       <Timeline
                         items={selectedCustomer.timeline.map((item, index) => ({
                           dot:
@@ -411,8 +495,10 @@ const ProviderCustomers = () => {
                               <div className="w-3 h-3 bg-green-400 rounded-full"></div>
                             ) : item.status === "pending" ? (
                               <div className="w-3 h-3 bg-orange-400 rounded-full"></div>
-                            ) : (
+                            ) : item.status === "confirmed" ? (
                               <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+                            ) : (
+                              <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
                             ),
                           children: (
                             <div key={index}>
@@ -422,7 +508,27 @@ const ProviderCustomers = () => {
                                     {item.event}
                                   </Title>
                                   <div className="text-gray-400 text-sm mb-2">
-                                    {item.date}
+                                    {item.date} {item.eventTime && `at ${item.eventTime}`}
+                                  </div>
+                                  {item.location && (
+                                    <div className="text-gray-400 text-xs flex items-center mb-1">
+                                      <MapPin size={12} className="mr-1" />
+                                      {item.location.address}, {item.location.city}
+                                    </div>
+                                  )}
+                                  <div className="flex items-center space-x-4 text-xs text-gray-400">
+                                    {item.guests && (
+                                      <span className="flex items-center">
+                                        <Users size={12} className="mr-1" />
+                                        {item.guests} guests
+                                      </span>
+                                    )}
+                                    {item.duration && (
+                                      <span className="flex items-center">
+                                        <Clock size={12} className="mr-1" />
+                                        {item.duration}
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                                 <div className="text-right">
@@ -435,11 +541,23 @@ const ProviderCustomers = () => {
                                         ? "green"
                                         : item.status === "pending"
                                         ? "orange"
-                                        : "blue"
+                                        : item.status === "confirmed"
+                                        ? "blue"
+                                        : "default"
                                     }
                                   >
                                     {item.status}
                                   </Tag>
+                                  {item.paymentStatus && (
+                                    <div className="mt-1">
+                                      <Tag
+                                        size="small"
+                                        color={item.paymentStatus === "paid" ? "green" : "orange"}
+                                      >
+                                        {item.paymentStatus}
+                                      </Tag>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                               {item.notes && (
@@ -451,68 +569,9 @@ const ProviderCustomers = () => {
                           ),
                         }))}
                       />
-                    ),
-                  },
-                  {
-                    key: "notes",
-                    label: "Notes & Preferences",
-                    children: (
-                      <div>
-                        <div className="flex justify-between items-center mb-4">
-                          <Title level={5} className="text-white">
-                            Customer Notes
-                          </Title>
-                          <Button
-                            type="primary"
-                            icon={<Plus size={16} />}
-                            onClick={() => setNoteModalVisible(true)}
-                            className="glow-button"
-                          >
-                            Add Note
-                          </Button>
-                        </div>
-
-                        {selectedCustomer.notes.length > 0 ? (
-                          <div className="space-y-4">
-                            {selectedCustomer.notes.map((note, index) => (
-                              <Card
-                                key={index}
-                                size="small"
-                                className="bg-gray-800 border-gray-600"
-                              >
-                                <div className="flex justify-between items-start">
-                                  <div className="flex-1">
-                                    <Paragraph className="text-gray-300 mb-1">
-                                      {note.note}
-                                    </Paragraph>
-                                    <div className="flex items-center space-x-2">
-                                      <span className="text-gray-500 text-xs">
-                                        {note.date}
-                                      </span>
-                                      <Tag
-                                        color={
-                                          note.type === "business"
-                                            ? "blue"
-                                            : "purple"
-                                        }
-                                        size="small"
-                                      >
-                                        {note.type}
-                                      </Tag>
-                                    </div>
-                                  </div>
-                                </div>
-                              </Card>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-8">
-                            <Paragraph className="text-gray-400">
-                              No notes yet. Add notes to track customer
-                              preferences and important information.
-                            </Paragraph>
-                          </div>
-                        )}
+                    ) : (
+                      <div className="text-center py-8 text-gray-400">
+                        No booking history available
                       </div>
                     ),
                   },
@@ -520,40 +579,6 @@ const ProviderCustomers = () => {
               />
             </div>
           )}
-        </Modal>
-
-        {/* Add Note Modal */}
-        <Modal
-          title="Add Customer Note"
-          open={noteModalVisible}
-          onCancel={() => setNoteModalVisible(false)}
-          footer={null}
-        >
-          <Form layout="vertical">
-            <Form.Item name="note" label="Note" required>
-              <Input
-                rows={4}
-                placeholder="Enter customer preferences, special requirements, or important information..."
-              />
-            </Form.Item>
-            <Form.Item name="type" label="Note Type" required>
-              <Space>
-                <Button>Business</Button>
-                <Button>Preference</Button>
-                <Button>Personal</Button>
-              </Space>
-            </Form.Item>
-            <div className="text-center">
-              <Space>
-                <Button onClick={() => setNoteModalVisible(false)}>
-                  Cancel
-                </Button>
-                <Button type="primary" className="glow-button">
-                  Save Note
-                </Button>
-              </Space>
-            </div>
-          </Form>
         </Modal>
       </div>
     </ProviderLayout>
