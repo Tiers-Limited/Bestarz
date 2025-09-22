@@ -1,5 +1,7 @@
-import { Router } from 'express';
-import {
+const express = require('express');
+const router = express.Router();
+
+const {
     getPlatformStats,
     getAllUsers,
     getAllProviders,
@@ -11,10 +13,9 @@ import {
     getUserDetails,
     getPlatformSettings,
     updatePlatformSettings
-} from '../controllers/admin.controller.js';
-import { auth } from '../middleware/auth.js';
+} = require('../controllers/admin.controller.js');
 
-const router = Router();
+const { auth } = require('../middleware/auth.js');
 
 // All admin routes require admin role
 router.use(auth('admin'));
@@ -42,14 +43,8 @@ router.get('/payments', getAllPayments);
 // Analytics
 router.get('/analytics', getAnalytics);
 
-
 // Platform Settings
-
-
 router.get('/platform-settings', getPlatformSettings);
 router.put('/platform-settings', updatePlatformSettings);
 
-
-
-
-export default router;
+module.exports = router;

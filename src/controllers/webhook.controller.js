@@ -1,12 +1,11 @@
 // controllers/webhook.controller.js
-import User from '../models/User.js';
-import Payment from '../models/Payment.js';
-import Booking from '../models/Booking.js';
-import Stripe from 'stripe';
-
+const User = require('../models/User.js');
+const Payment = require('../models/Payment.js');
+const Booking = require('../models/Booking.js');
+const Stripe = require('stripe');
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-export const handleStripeWebhook = async (req, res) => {
+const handleStripeWebhook = async (req, res) => {
   try {
     const sig = req.headers['stripe-signature'];
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -210,3 +209,5 @@ async function handlePaymentIntentFailed(paymentIntent) {
   }
 }
 
+
+module.exports = { handleStripeWebhook };

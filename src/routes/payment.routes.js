@@ -1,16 +1,17 @@
-import { Router } from 'express';
-import { 
-	createPayment, 
-	getMyPayments, 
-	getPayment, 
-	updatePaymentStatus, 
+const express = require('express');
+const router = express.Router();
+
+const {
+	createPayment,
+	getMyPayments,
+	getPayment,
+	updatePaymentStatus,
 	getPaymentStats,
 	createRefund,
 	confirmPayment,
-} from '../controllers/payment.controller.js';
-import { auth } from '../middleware/auth.js';
+} = require('../controllers/payment.controller.js');
 
-const router = Router();
+const { auth } = require('../middleware/auth.js');
 
 router.post('/', auth(['client', 'admin']), createPayment);
 router.post('/confirm', confirmPayment); // No auth needed for webhook confirmation
@@ -20,4 +21,4 @@ router.get('/:id', auth(), getPayment);
 router.patch('/:id/status', auth(['admin', 'provider']), updatePaymentStatus);
 router.post('/:id/refund', auth(['admin', 'provider']), createRefund);
 
-export default router;
+module.exports = router;

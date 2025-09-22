@@ -1,14 +1,14 @@
-import Stripe from 'stripe';
+const Stripe = require('stripe');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-export const createPaymentLink = async (booking, clientEmail) => {
+const createPaymentLink = async (booking, clientEmail) => {
 	try {
 		// Extract only the necessary client information and ensure it's within character limits
 		const clientId = booking.client._id ? booking.client._id.toString() : booking.client.toString();
 		const providerId = booking.provider._id ? booking.provider._id.toString() : booking.provider.toString();
 		const bookingId = booking._id.toString();
-		
+
 		// Create metadata with only essential information (keeping well under 500 chars per value)
 		const metadata = {
 			bookingId: bookingId,
@@ -50,7 +50,7 @@ export const createPaymentLink = async (booking, clientEmail) => {
 	}
 };
 
-export const retrieveSession = async (sessionId) => {
+const retrieveSession = async (sessionId) => {
 	try {
 		const session = await stripe.checkout.sessions.retrieve(sessionId);
 		return session;
@@ -60,7 +60,7 @@ export const retrieveSession = async (sessionId) => {
 	}
 };
 
-export const createStripeRefund = async (paymentIntentId, amount) => {
+const createStripeRefund = async (paymentIntentId, amount) => {
 	try {
 		const refund = await stripe.refunds.create({
 			payment_intent: paymentIntentId,
@@ -73,7 +73,7 @@ export const createStripeRefund = async (paymentIntentId, amount) => {
 	}
 };
 
-export const createPaymentIntent = async (amount, currency = 'usd', metadata = {}) => {
+const createPaymentIntent = async (amount, currency = 'usd', metadata = {}) => {
 	try {
 		// Validate metadata to ensure each value is under 500 characters
 		const validatedMetadata = {};
@@ -98,4 +98,11 @@ export const createPaymentIntent = async (amount, currency = 'usd', metadata = {
 		console.error('Stripe payment intent error:', error);
 		throw new Error('Failed to create payment intent');
 	}
+};
+
+module.exports = {
+	createPaymentLink,
+	retrieveSession,
+	createStripeRefund,
+	createPaymentIntent
 };

@@ -1,10 +1,9 @@
-// routes/webhook.routes.js
-import express from 'express';
-import { handleStripeWebhook } from '../controllers/webhook.controller.js';
+const express = require('express');
 const router = express.Router();
+
+const { handleStripeWebhook } = require('../controllers/webhook.controller.js');
+
 // Single webhook endpoint for all Stripe events
 router.post('/stripe', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
-
-export default router;
-
+module.exports = router;

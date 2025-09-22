@@ -1,12 +1,8 @@
-import express from 'express';
-import { sendSupportRequest } from '../controllers/support.controller.js';
-
-
+const express = require('express');
 const router = express.Router();
 
+const { sendSupportRequest } = require('../controllers/support.controller.js');
 
-router.post("/", sendSupportRequest);
+router.post('/', sendSupportRequest);
 
-
-
-export default router;
+module.exports = router;

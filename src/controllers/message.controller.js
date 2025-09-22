@@ -1,9 +1,9 @@
-import Message from '../models/Message.js';
-import Conversation from '../models/Conversation.js';
-import User from '../models/User.js';
-import Booking from '../models/Booking.js';
+const Message = require('../models/Message.js');
+const Conversation = require('../models/Conversation.js');
+const User = require('../models/User.js');
+const Booking = require('../models/Booking.js');
 
-export const getConversations = async (req, res) => {
+ const getConversations = async (req, res) => {
 	try {
 		const userId = req.user.id;
 		const { page = 1, limit = 20 } = req.query;
@@ -40,7 +40,7 @@ export const getConversations = async (req, res) => {
 	}
 };
 
-export const getConversation = async (req, res) => {
+ const getConversation = async (req, res) => {
 	try {
 		const { id } = req.params;
 		const userId = req.user.id;
@@ -65,7 +65,7 @@ export const getConversation = async (req, res) => {
 	}
 };
 
-export const getMessages = async (req, res) => {
+ const getMessages = async (req, res) => {
 	try {
 		const { conversationId } = req.params;
 		const { page = 1, limit = 50 } = req.query;
@@ -115,7 +115,7 @@ export const getMessages = async (req, res) => {
 	}
 };
 
-export const sendMessage = async (req, res) => {
+ const sendMessage = async (req, res) => {
 	try {
 		const { conversationId } = req.params;
 		const { content, messageType = 'text', attachments = [] } = req.body;
@@ -160,7 +160,7 @@ export const sendMessage = async (req, res) => {
 	}
 };
 
-export const createConversation = async (req, res) => {
+ const createConversation = async (req, res) => {
 	try {
 		const { participantId, bookingId, title } = req.body;
 		const userId = req.user.id;
@@ -203,7 +203,7 @@ export const createConversation = async (req, res) => {
 	}
 };
 
-export const markAsRead = async (req, res) => {
+ const markAsRead = async (req, res) => {
 	try {
 		const { conversationId } = req.params;
 		const userId = req.user.id;
@@ -240,7 +240,7 @@ export const markAsRead = async (req, res) => {
 	}
 };
 
-export const getUnreadCount = async (req, res) => {
+ const getUnreadCount = async (req, res) => {
 	try {
 		const userId = req.user.id;
 		
@@ -259,4 +259,13 @@ export const getUnreadCount = async (req, res) => {
 	} catch (err) {
 		return res.status(500).json({ message: err.message });
 	}
+};
+module.exports = {
+    getConversations,
+    getConversation,
+    getMessages,
+    sendMessage,
+    createConversation,
+    markAsRead,
+    getUnreadCount
 };

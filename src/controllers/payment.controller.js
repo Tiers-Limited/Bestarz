@@ -1,9 +1,9 @@
-import Payment from '../models/Payment.js';
-import Booking from '../models/Booking.js';
-import Provider from '../models/Provider.js';
-import { createPaymentLink, retrieveSession, createStripeRefund } from '../services/stripe.service.js';
+const Payment = require('../models/Payment.js');
+const Booking = require('../models/Booking.js');
+const Provider = require('../models/Provider.js');
+const { createPaymentLink, retrieveSession, createStripeRefund } = require('../services/stripe.service.js');
 
-export const createPayment = async (req, res) => {
+ const createPayment = async (req, res) => {
 	try {
 		const { bookingId, amount, paymentMethod = 'stripe' } = req.body;
 		const userId = req.user.id;
@@ -60,7 +60,7 @@ export const createPayment = async (req, res) => {
 	}
 };
 
-export const getMyPayments = async (req, res) => {
+ const getMyPayments = async (req, res) => {
 	try {
 		const userId = req.user.id;
 		const { status, page = 1, limit = 20 } = req.query;
@@ -104,7 +104,7 @@ export const getMyPayments = async (req, res) => {
 	}
 };
 
-export const getPayment = async (req, res) => {
+ const getPayment = async (req, res) => {
 	try {
 		const { id } = req.params;
 		const payment = await Payment.findById(id)
@@ -130,7 +130,7 @@ export const getPayment = async (req, res) => {
 	}
 };
 
-export const updatePaymentStatus = async (req, res) => {
+ const updatePaymentStatus = async (req, res) => {
 	try {
 		const { id } = req.params;
 		const { status, transactionId, stripePaymentIntentId } = req.body;
@@ -166,7 +166,7 @@ export const updatePaymentStatus = async (req, res) => {
 	}
 };
 
-export const getPaymentStats = async (req, res) => {
+ const getPaymentStats = async (req, res) => {
 	try {
 		const userId = req.user.id;
 		let filter = {};
@@ -214,7 +214,7 @@ export const getPaymentStats = async (req, res) => {
 	}
 };
 
-export const createRefund = async (req, res) => {
+ const createRefund = async (req, res) => {
 	try {
 		const { id } = req.params;
 		const { amount, reason } = req.body;
@@ -257,7 +257,7 @@ export const createRefund = async (req, res) => {
 	}
 };
 
-export const confirmPayment = async (req, res) => {
+ const confirmPayment = async (req, res) => {
 	try {
 		const { sessionId } = req.body;
 		
@@ -297,3 +297,14 @@ export const confirmPayment = async (req, res) => {
 };
 
 
+
+
+module.exports = {
+	createPayment,
+	getMyPayments,
+	getPayment,
+	updatePaymentStatus,
+	getPaymentStats,
+	createRefund,
+	confirmPayment
+  };

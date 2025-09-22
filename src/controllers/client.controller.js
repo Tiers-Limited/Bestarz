@@ -1,10 +1,11 @@
-import User from '../models/User.js';
-import Booking from '../models/Booking.js';
-import Payment from '../models/Payment.js';
-import Provider from '../models/Provider.js';
+const User = require('../models/User.js');
+const Booking = require('../models/Booking.js');
+const Payment = require('../models/Payment.js');
+const Provider = require('../models/Provider.js');
+
 
 // Get client dashboard stats
-export const getClientDashboard = async (req, res) => {
+ const getClientDashboard = async (req, res) => {
 	try {
 		const userId = req.user.id;
 		
@@ -97,7 +98,7 @@ export const getClientDashboard = async (req, res) => {
 	}
 };
 // Get client profile
-export const getClientProfile = async (req, res) => {
+ const getClientProfile = async (req, res) => {
 	try {
 		const userId = req.user.id;
 		const user = await User.findById(userId).select('-passwordHash -refreshToken');
@@ -108,7 +109,7 @@ export const getClientProfile = async (req, res) => {
 	}
 };
 // Update client profile
-export const updateClientProfile = async (req, res) => {
+ const updateClientProfile = async (req, res) => {
 	try {
 		const userId = req.user.id;
 		const update = req.body;
@@ -131,7 +132,7 @@ export const updateClientProfile = async (req, res) => {
 };
 
 // Search providers
-export const searchProviders = async (req, res) => {
+ const searchProviders = async (req, res) => {
     try {
         const { 
             q, 
@@ -225,3 +226,11 @@ export const searchProviders = async (req, res) => {
     }
 };
 
+
+
+module.exports = {
+    getClientDashboard,
+    getClientProfile,
+    updateClientProfile,
+    searchProviders
+};

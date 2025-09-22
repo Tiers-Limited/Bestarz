@@ -1,11 +1,9 @@
-// controllers/subscription.controller.js
-import User from '../models/User.js';
-import Stripe from 'stripe';
-
+const User = require('../models/User.js');
+const Stripe = require('stripe');
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // ✅ Create subscription with raw amount
-export const createSubscription = async (req, res) => {
+ const createSubscription = async (req, res) => {
   try {
     const { plan, amount } = req.body; 
 
@@ -60,7 +58,7 @@ export const createSubscription = async (req, res) => {
 };
 
 
-export const cancelSubscription = async (req, res) => {
+ const cancelSubscription = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user || !user.stripeSubscriptionId) {
@@ -82,7 +80,7 @@ export const cancelSubscription = async (req, res) => {
 };
 
 
-export const updateSubscription = async (req, res) => {
+ const updateSubscription = async (req, res) => {
   try {
     const { plan, amount } = req.body; // new plan and amount
 
@@ -125,3 +123,10 @@ export const updateSubscription = async (req, res) => {
 };
 
 
+
+
+module.exports = {
+  createSubscription,
+  cancelSubscription,
+  updateSubscription
+};

@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const platformSettingsSchema = new mongoose.Schema({
   platformName: {
@@ -14,4 +14,4 @@ const platformSettingsSchema = new mongoose.Schema({
   timestamps: true
 });
 
-export default mongoose.model('PlatformSettings', platformSettingsSchema);
+module.exports = mongoose.model('PlatformSettings', platformSettingsSchema);

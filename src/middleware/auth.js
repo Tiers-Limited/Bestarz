@@ -1,6 +1,6 @@
-import jwt from 'jsonwebtoken';
+const jwt = require('jsonwebtoken');
 
-export const auth = (roles = []) => {
+ const auth = (roles = []) => {
 	const allowedRoles = Array.isArray(roles) ? roles : [roles];
 	return (req, res, next) => {
 		const header = req.headers.authorization || '';
@@ -18,3 +18,11 @@ export const auth = (roles = []) => {
 		}
 	};
 };
+
+
+module.exports = { auth };
+
+
+
+
+

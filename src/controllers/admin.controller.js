@@ -1,21 +1,20 @@
-import User from '../models/User.js';
-import Provider from '../models/Provider.js';
-import Booking from '../models/Booking.js';
-import Payment from '../models/Payment.js';
-import { createAuditLog } from '../services/auditlog.service.js';
-import PlatformSettings from '../models/PlatformSettings.js';
-
+const User = require('../models/User.js');
+const Provider = require('../models/Provider.js');
+const Booking = require('../models/Booking.js');
+const Payment = require('../models/Payment.js');
+const { createAuditLog } = require('../services/auditlog.service.js');
+const PlatformSettings = require('../models/PlatformSettings.js');
 
 
 // Platform Statistics
-export const getPlatformStats = async (req, res) => {
+const getPlatformStats = async (req, res) => {
     try {
         const now = new Date();
 
         // Current month start & end
         const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const endOfCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        
+
         // Previous month start & end
         const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const endOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
@@ -104,10 +103,10 @@ export const getPlatformStats = async (req, res) => {
 
 
 // Get all users (clients and providers) with filtering
-export const getAllUsers = async (req, res) => {
+const getAllUsers = async (req, res) => {
     try {
         const { role, status, search, page = 1, limit = 20 } = req.query;
-        
+
         const filter = {};
         if (role) filter.role = role;
         if (status) filter.isActive = status === 'active';
@@ -143,10 +142,10 @@ export const getAllUsers = async (req, res) => {
 };
 
 // Get all providers with admin controls
-export const getAllProviders = async (req, res) => {
+const getAllProviders = async (req, res) => {
     try {
         const { status, category, search, page = 1, limit = 20 } = req.query;
-        
+
         const filter = {};
         if (status) filter.isActive = status === 'active';
         if (category) filter.serviceCategory = category;
@@ -183,10 +182,10 @@ export const getAllProviders = async (req, res) => {
 };
 
 // Get all clients
-export const getAllClients = async (req, res) => {
+const getAllClients = async (req, res) => {
     try {
         const { status, search, page = 1, limit = 20 } = req.query;
-        
+
         const filter = { role: 'client' };
         if (status) filter.isActive = status === 'active';
         if (search) {
@@ -221,7 +220,7 @@ export const getAllClients = async (req, res) => {
 };
 
 // Update user status (block/disable/restore)
-export const updateUserStatus = async (req, res) => {
+const updateUserStatus = async (req, res) => {
     try {
         const { userId } = req.params;
         const { action, reason } = req.body;
@@ -276,10 +275,10 @@ export const updateUserStatus = async (req, res) => {
 };
 
 // Get all bookings with admin view
-export const getAllBookings = async (req, res) => {
+const getAllBookings = async (req, res) => {
     try {
         const { status, provider, client, page = 1, limit = 20 } = req.query;
-        
+
         const filter = {};
         if (status) filter.status = status;
         if (provider) filter.provider = provider;
@@ -311,10 +310,10 @@ export const getAllBookings = async (req, res) => {
 };
 
 // Get all payments with admin view
-export const getAllPayments = async (req, res) => {
+const getAllPayments = async (req, res) => {
     try {
         const { status, provider, client, page = 1, limit = 20 } = req.query;
-        
+
         const filter = {};
         if (status) filter.status = status;
         if (provider) filter.provider = provider;
@@ -347,7 +346,7 @@ export const getAllPayments = async (req, res) => {
 };
 
 // Get analytics data
-export const getAnalytics = async (req, res) => {
+const getAnalytics = async (req, res) => {
     try {
         const { period = '30' } = req.query;
         const startDate = new Date();
@@ -438,24 +437,24 @@ export const getAnalytics = async (req, res) => {
 };
 
 // Get user details for admin view
-export const getUserDetails = async (req, res) => {
+const getUserDetails = async (req, res) => {
     try {
         const { userId } = req.params;
-        
+
         const user = await User.findById(userId).select('-password');
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
         let additionalData = {};
-        
+
         if (user.role === 'provider') {
             const provider = await Provider.findOne({ user: userId });
             const bookings = await Booking.find({ provider: provider?._id })
                 .populate('client', 'firstName lastName email')
                 .sort({ createdAt: -1 })
                 .limit(10);
-            
+
             additionalData = { provider, recentBookings: bookings };
         } else if (user.role === 'client') {
             const bookings = await Booking.find({ client: userId })
@@ -463,7 +462,7 @@ export const getUserDetails = async (req, res) => {
                 .populate('provider.user', 'firstName lastName')
                 .sort({ createdAt: -1 })
                 .limit(10);
-            
+
             additionalData = { recentBookings: bookings };
         }
 
@@ -480,10 +479,10 @@ export const getUserDetails = async (req, res) => {
 };
 
 // Get audit logs
-export const getAuditLogs = async (req, res) => {
+const getAuditLogs = async (req, res) => {
     try {
         const { userId, status, page = 1, limit = 50 } = req.query;
-        
+
         const filter = {};
         if (userId) filter.user = userId;
         if (status) filter.status = status;
@@ -512,10 +511,10 @@ export const getAuditLogs = async (req, res) => {
 };
 
 
-export const getPlatformSettings = async (req, res) => {
+const getPlatformSettings = async (req, res) => {
     try {
         let settings = await PlatformSettings.findOne();
-        
+
         // Create default settings if none exist
         if (!settings) {
             settings = await PlatformSettings.create({
@@ -523,7 +522,7 @@ export const getPlatformSettings = async (req, res) => {
                 supportEmail: 'support@example.com'
             });
         }
-        
+
         return res.json({ settings });
     } catch (err) {
         return res.status(500).json({ message: err.message });
@@ -531,12 +530,12 @@ export const getPlatformSettings = async (req, res) => {
 };
 
 // Update platform settings
-export const updatePlatformSettings = async (req, res) => {
+const updatePlatformSettings = async (req, res) => {
     try {
         const { platformName, supportEmail } = req.body;
-        
+
         let settings = await PlatformSettings.findOne();
-        
+
         if (!settings) {
             // Create new settings if none exist
             settings = await PlatformSettings.create({
@@ -549,10 +548,10 @@ export const updatePlatformSettings = async (req, res) => {
             if (supportEmail) settings.supportEmail = supportEmail;
             await settings.save();
         }
-        
+
         // Log the admin action
         await createAuditLog(`Platform settings updated - Name: ${platformName || 'unchanged'}, Email: ${supportEmail || 'unchanged'}`, req.user.id, 'normal');
-        
+
         return res.json({
             message: 'Platform settings updated successfully',
             settings
@@ -560,4 +559,21 @@ export const updatePlatformSettings = async (req, res) => {
     } catch (err) {
         return res.status(500).json({ message: err.message });
     }
+};
+
+
+
+module.exports = {
+    getPlatformStats,
+    getAllUsers,
+    getAllProviders,
+    getAllClients,
+    updateUserStatus,
+    getAllBookings,
+    getAllPayments,
+    getAnalytics,
+    getUserDetails,
+    getAuditLogs,
+    getPlatformSettings,
+    updatePlatformSettings
 };

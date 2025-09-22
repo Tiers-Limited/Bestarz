@@ -1,16 +1,16 @@
-// routes/subscription.routes.js
-import express from 'express';
-import {
+const express = require('express');
+const router = express.Router();
+
+const {
   createSubscription,
   cancelSubscription,
   updateSubscription
-} from '../controllers/subscription.controller.js';
-import { auth } from '../middleware/auth.js';
+} = require('../controllers/subscription.controller.js');
 
-const router = express.Router();
-router.post('/create',auth('provider'), createSubscription);
-router.post('/update',auth('provider'), updateSubscription);
-router.post('/cancel',auth('provider'), cancelSubscription);
+const { auth } = require('../middleware/auth.js');
 
+router.post('/create', auth('provider'), createSubscription);
+router.post('/update', auth('provider'), updateSubscription);
+router.post('/cancel', auth('provider'), cancelSubscription);
 
-export default router;
+module.exports = router;

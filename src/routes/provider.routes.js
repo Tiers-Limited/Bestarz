@@ -1,5 +1,7 @@
-import express from 'express';
-import { 
+const express = require('express');
+const router = express.Router();
+
+const {
   getProviderDashboard,
   getMyProviderProfile,
   updateProviderProfile,
@@ -14,12 +16,11 @@ import {
   getProviderSettings,
   updateProviderSettings,
   getProviderBySlug
-} from '../controllers/provider.controller.js';
-import { getBooking } from '../controllers/booking.controller.js';
-// import { getPayment } from '../controllers/payment.controller.js';
-import { auth } from '../middleware/auth.js';
+} = require('../controllers/provider.controller.js');
 
-const router = express.Router();
+const { getBooking } = require('../controllers/booking.controller.js');
+// const { getPayment } = require('../controllers/payment.controller.js');
+const { auth } = require('../middleware/auth.js');
 
 router.use(auth('provider'));
 
@@ -42,7 +43,6 @@ router.get('/customers', getProviderCustomers);
 router.get('/earnings', getProviderEarnings);
 // router.get('/payments/:id', getPayment);
 
-
 // Rate Cards
 router.get('/rate-cards', getProviderRateCards);
 router.post('/rate-cards', createRateCard);
@@ -53,8 +53,7 @@ router.delete('/rate-cards/:id', deleteRateCard);
 router.get('/settings', getProviderSettings);
 router.put('/settings', updateProviderSettings);
 
-
 // Public provider booking page
 router.get('/provider/:slug', getProviderBySlug);
 
-export default router;
+module.exports = router;

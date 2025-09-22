@@ -1,6 +1,5 @@
 // utils/emailTemplates.js
 
-// Reusable logo snippet
 const bestarzLogo = `
   <div style="text-align: center; margin-bottom: 20px;">
     <h1 style="font-size: 28px; font-weight: 700; background: linear-gradient(90deg, #ffffff, #d2d2d2); 
@@ -13,7 +12,7 @@ const bestarzLogo = `
 `;
 
 // Customer Support Email Template
-export const customerSupportTemplate = (customerName, customerEmail, message) => `
+const customerSupportTemplate = (customerName, customerEmail, message) => `
   <div style="font-family: Arial, sans-serif; background: #f9f9f9; padding: 20px;">
     ${bestarzLogo}
 
@@ -39,3 +38,5 @@ export const customerSupportTemplate = (customerName, customerEmail, message) =>
     </div>
   </div>
 `;
+
+module.exports = customerSupportTemplate;

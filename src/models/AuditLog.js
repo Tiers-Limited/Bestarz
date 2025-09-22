@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const auditLogSchema = new mongoose.Schema({
   action: {
@@ -28,4 +28,4 @@ auditLogSchema.index({ user: 1, timestamp: -1 });
 auditLogSchema.index({ status: 1, timestamp: -1 });
 auditLogSchema.index({ timestamp: -1 });
 
-export default mongoose.model('AuditLog', auditLogSchema);
+module.exports = mongoose.model('AuditLog', auditLogSchema);

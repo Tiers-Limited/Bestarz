@@ -1,8 +1,8 @@
 // controllers/supportController.js
-import { transporter } from "../config/nodemailer.js";
-import { customerSupportTemplate } from "../templates/customerSupportTemplate.js";
+const { transporter } = require('../config/nodemailer.js');
+const { customerSupportTemplate } = require('../templates/customerSupportTemplate.js');
 
-export const sendSupportRequest = async (req, res) => {
+const sendSupportRequest = async (req, res) => {
   try {
     const { name, email, message } = req.body;
 
@@ -14,7 +14,7 @@ export const sendSupportRequest = async (req, res) => {
 
     await transporter.sendMail({
       from: `"Best★rz Support" <${process.env.EMAIL}>`,
-      to: process.env.SUPPORT_RECEIVER || process.env.EMAIL, // Support inbox
+      to: process.env.SUPPORT_RECEIVER || process.env.EMAIL,
       subject: "New Customer Support Request",
       html: htmlContent,
     });
@@ -25,3 +25,5 @@ export const sendSupportRequest = async (req, res) => {
     return res.status(500).json({ message: "Error sending support request", error: err.message });
   }
 };
+
+module.exports = { sendSupportRequest };

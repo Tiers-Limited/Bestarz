@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const rateCardSchema = new mongoose.Schema({
   id: {
@@ -120,4 +120,6 @@ providerSchema.pre('save', async function(next) {
   next();
 });
 
-export default mongoose.model('Provider', providerSchema);
+module.exports = mongoose.model('Provider', providerSchema);
+
+

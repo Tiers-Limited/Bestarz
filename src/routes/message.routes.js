@@ -1,16 +1,17 @@
-import { Router } from 'express';
-import { 
-	getConversations, 
-	getConversation, 
-	getMessages, 
-	sendMessage, 
-	createConversation, 
-	markAsRead, 
-	getUnreadCount 
-} from '../controllers/message.controller.js';
-import { auth } from '../middleware/auth.js';
+const express = require('express');
+const router = express.Router();
 
-const router = Router();
+const {
+	getConversations,
+	getConversation,
+	getMessages,
+	sendMessage,
+	createConversation,
+	markAsRead,
+	getUnreadCount
+} = require('../controllers/message.controller.js');
+
+const { auth } = require('../middleware/auth.js');
 
 router.get('/conversations', auth(), getConversations);
 router.get('/conversations/:id', auth(), getConversation);
@@ -20,4 +21,4 @@ router.post('/conversations/:conversationId/messages', auth(), sendMessage);
 router.get('/unread-count', auth(), getUnreadCount);
 router.patch('/conversations/:conversationId/read', auth(), markAsRead);
 
-export default router;
+module.exports = router;

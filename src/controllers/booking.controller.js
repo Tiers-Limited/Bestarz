@@ -1,13 +1,13 @@
-import Booking from '../models/Booking.js';
-import Provider from '../models/Provider.js';
-import { transporter } from "../config/nodemailer.js";
-import { bookingEmailTemplate } from '../templates/bookingTemplate.js';
+const Booking = require('../models/Booking.js');
+const Provider = require('../models/Provider.js');
+const { transporter } = require("../config/nodemailer.js");
+const { bookingEmailTemplate } = require('../templates/bookingTemplate.js');
 
-export const createBooking = async (req, res) => {
+const createBooking = async (req, res) => {
 	try {
 		const clientId = req.user.id;
 
-		console.log(clientId,"clientId")
+		console.log(clientId, "clientId")
 		const {
 			providerId,
 			serviceCategory,
@@ -51,7 +51,7 @@ export const createBooking = async (req, res) => {
 		]);
 
 
-		console.log(booking,"booking")
+		console.log(booking, "booking")
 
 		const mailOptions = {
 			from: process.env.EMAIL,
@@ -68,7 +68,7 @@ export const createBooking = async (req, res) => {
 	}
 };
 
-export const listMyBookings = async (req, res) => {
+const listMyBookings = async (req, res) => {
 	try {
 		const role = req.user.role;
 		const { status, page = 1, limit = 20 } = req.query;
@@ -129,7 +129,7 @@ export const listMyBookings = async (req, res) => {
 	}
 };
 
-export const updateBookingStatus = async (req, res) => {
+const updateBookingStatus = async (req, res) => {
 	try {
 		const { id } = req.params;
 		const { status, notes, amount } = req.body;
@@ -161,7 +161,7 @@ export const updateBookingStatus = async (req, res) => {
 	}
 };
 
-export const getBooking = async (req, res) => {
+const getBooking = async (req, res) => {
 	try {
 		const { id } = req.params;
 		const booking = await Booking.findById(id)
@@ -186,7 +186,7 @@ export const getBooking = async (req, res) => {
 	}
 };
 
-export const getBookingStats = async (req, res) => {
+const getBookingStats = async (req, res) => {
 	try {
 		const role = req.user.role;
 		let filter = {};
@@ -219,4 +219,13 @@ export const getBookingStats = async (req, res) => {
 	} catch (err) {
 		return res.status(500).json({ message: err.message });
 	}
+};
+
+
+module.exports = {
+	createBooking,
+	listMyBookings,
+	updateBookingStatus,
+	getBooking,
+	getBookingStats
 };
