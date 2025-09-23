@@ -6,8 +6,8 @@ const { createAuditLog } = require('../services/auditlog.service.js');
 const crypto = require("crypto");
 
 const { transporter } = require("../config/nodemailer.js");
-const { verificationEmailTemplate } = require('../templates/verificationEmailTemplate.js');
-const { resetPasswordEmailTemplate } = require('../templates/resetPasswordEmailTemplate.js');
+const  verificationEmailTemplate  = require('../templates/verificationEmailTemplate.js');
+const  resetPasswordEmailTemplate  = require('../templates/resetPasswordEmailTemplate.js');
 
 
 const signToken = (user) => {

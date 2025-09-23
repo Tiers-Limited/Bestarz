@@ -1,6 +1,6 @@
 // controllers/supportController.js
 const { transporter } = require('../config/nodemailer.js');
-const { customerSupportTemplate } = require('../templates/customerSupportTemplate.js');
+const  customerSupportTemplate  = require('../templates/customerSupportTemplate.js');
 
 const sendSupportRequest = async (req, res) => {
   try {

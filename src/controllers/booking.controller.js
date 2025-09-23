@@ -1,7 +1,7 @@
 const Booking = require('../models/Booking.js');
 const Provider = require('../models/Provider.js');
 const { transporter } = require("../config/nodemailer.js");
-const { bookingEmailTemplate } = require('../templates/bookingTemplate.js');
+const bookingEmailTemplate  = require('../templates/bookingTemplate.js');
 
 const createBooking = async (req, res) => {
 	try {
