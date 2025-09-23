@@ -132,99 +132,105 @@ const Provider = require('../models/Provider.js');
 };
 
 // Search providers
- const searchProviders = async (req, res) => {
-    try {
-        const { 
-            q, 
-            category, 
-            location, 
-            minPrice, 
-            maxPrice, 
-            rating,
-            page = 1, 
-            limit = 12,
-            sortBy = 'rating' 
-        } = req.query;
-        
-        // Remove isActive from provider; filter via populate.match
-        let filter = {};
-        
-        // Text search
-        if (q) {
-            filter.$or = [
-                { businessName: { $regex: q, $options: 'i' } },
-                { description: { $regex: q, $options: 'i' } },
-                { services: { $elemMatch: { $regex: q, $options: 'i' } } }
-            ];
-        }
-        
-        // Category filter
-        if (category) filter.category = category;
-        
-        // Location filter
-        if (location) {
-            filter['location.city'] = { $regex: location, $options: 'i' };
-        }
-        
-        // Price range filter
-        if (minPrice || maxPrice) {
-            filter.basePrice = {};
-            if (minPrice) filter.basePrice.$gte = Number(minPrice);
-            if (maxPrice) filter.basePrice.$lte = Number(maxPrice);
-        }
-        
-        // Rating filter
-        if (rating) filter.rating = { $gte: Number(rating) };
-        
-        // Sort options
-        let sortOptions = {};
-        switch (sortBy) {
-            case 'price_low':
-                sortOptions = { basePrice: 1 };
-                break;
-            case 'price_high':
-                sortOptions = { basePrice: -1 };
-                break;
-            case 'rating':
-                sortOptions = { rating: -1, reviews: -1 };
-                break;
-            case 'newest':
-                sortOptions = { createdAt: -1 };
-                break;
-            default:
-                sortOptions = { rating: -1 };
-        }
-
-        // Populate user and filter by user.isActive
-        const providers = await Provider.find(filter)
-            .populate({
-                path: 'user',
-                select: 'firstName lastName profileImage isActive',
-                match: { isActive: true } // Only active users
-            })
-            .select('businessName category description basePrice location rating reviews portfolio slug')
-            .sort(sortOptions)
-            .skip((Number(page) - 1) * Number(limit))
-            .limit(Number(limit));
-
-        // Remove providers with inactive users
-        const activeProviders = providers.filter(p => p.user);
-
-        const total = activeProviders.length;
-
-        return res.json({
-            providers: activeProviders,
-            pagination: {
-                page: Number(page),
-                limit: Number(limit),
-                total,
-                pages: Math.ceil(total / Number(limit))
-            }
-        });
-    } catch (err) {
-        return res.status(500).json({ message: err.message });
-    }
-};
+const searchProviders = async (req, res) => {
+	try {
+	  const { 
+		q, 
+		category, 
+		location, 
+		minPrice, 
+		maxPrice, 
+		rating,
+		page = 1, 
+		limit = 12,
+		sortBy = 'rating' 
+	  } = req.query;
+  
+	  let filter = {};
+  
+	  // Text search (businessName, description, services)
+	  if (q) {
+		const regex = new RegExp(q, 'i');
+		filter.$or = [
+		  { businessName: regex },
+		  { description: regex },
+		  { services: { $in: [regex] } } 
+		];
+	  }
+	  
+	  // Category filter (case-insensitive)
+	  if (category) {
+		filter.category = new RegExp(`^${category}$`, 'i');
+	  }
+  
+	  // Location filter (case-insensitive, partial match)
+	  if (location) {
+		const locRegex = new RegExp(location, 'i');
+		filter.location = locRegex;
+	  }
+  
+	  // Price range filter
+	  if (minPrice || maxPrice) {
+		filter.basePrice = {};
+		if (minPrice) filter.basePrice.$gte = Number(minPrice);
+		if (maxPrice) filter.basePrice.$lte = Number(maxPrice);
+	  }
+  
+	  // Rating filter
+	  if (rating) filter.rating = { $gte: Number(rating) };
+  
+	  // Sort options
+	  let sortOptions = {};
+	  switch (sortBy.toLowerCase()) {
+		case 'price_low':
+		  sortOptions = { basePrice: 1 };
+		  break;
+		case 'price_high':
+		  sortOptions = { basePrice: -1 };
+		  break;
+		case 'rating':
+		  sortOptions = { rating: -1, reviews: -1 };
+		  break;
+		case 'newest':
+		  sortOptions = { createdAt: -1 };
+		  break;
+		default:
+		  sortOptions = { rating: -1 };
+	  }
+  
+	  // Fetch providers with user info, only active users
+	  const providers = await Provider.find(filter)
+		.populate({
+		  path: 'user',
+		  select: 'firstName lastName profileImage isActive',
+		  match: { isActive: true }
+		})
+		.select('businessName category description basePrice location rating reviews portfolio slug')
+		.sort(sortOptions)
+		.skip((Number(page) - 1) * Number(limit))
+		.limit(Number(limit));
+  
+	  // Only keep providers with active users
+	  const activeProviders = providers.filter(p => p.user);
+  
+	  const total = activeProviders.length;
+  
+	  return res.json({
+		providers: activeProviders,
+		pagination: {
+		  page: Number(page),
+		  limit: Number(limit),
+		  total,
+		  pages: Math.ceil(total / Number(limit))
+		}
+	  });
+  
+	} catch (err) {
+	  console.error(err);
+	  return res.status(500).json({ message: err.message });
+	}
+  };
+  
 
 
 

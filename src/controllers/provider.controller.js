@@ -79,7 +79,7 @@ const getMyProviderProfile = async (req, res) => {
 	try {
 		const userId = req.user.id;
 		const provider = await Provider.findOne({ user: userId })
-			.populate('user', 'firstName lastName profileImage email phone');
+			.populate('user');
 		if (!provider) return res.status(404).json({ message: 'Provider profile not found' });
 		return res.json({ provider });
 	} catch (err) {

@@ -22,38 +22,36 @@ const { getBooking } = require('../controllers/booking.controller.js');
 // const { getPayment } = require('../controllers/payment.controller.js');
 const { auth } = require('../middleware/auth.js');
 
-router.use(auth('provider'));
-
-// Dashboard
-router.get('/dashboard', getProviderDashboard);
+// --- Protected routes ---
+router.get('/dashboard', auth('provider'), getProviderDashboard);
 
 // Profile Management
-router.get('/profile', getMyProviderProfile);
-router.put('/profile', updateProviderProfile);
+router.get('/profile', auth('provider'), getMyProviderProfile);
+router.put('/profile', auth('provider'), updateProviderProfile);
 
 // Booking Management
-router.get('/bookings', getProviderBookings);
-router.get('/bookings/:id', getBooking);
-router.patch('/bookings/:id/status', updateBookingStatus);
+router.get('/bookings', auth('provider'), getProviderBookings);
+router.get('/bookings/:id', auth('provider'), getBooking);
+router.patch('/bookings/:id/status', auth('provider'), updateBookingStatus);
 
 // Customer Management
-router.get('/customers', getProviderCustomers);
+router.get('/customers', auth('provider'), getProviderCustomers);
 
 // Earnings
-router.get('/earnings', getProviderEarnings);
-// router.get('/payments/:id', getPayment);
+router.get('/earnings', auth('provider'), getProviderEarnings);
+// router.get('/payments/:id', auth('provider'), getPayment);
 
 // Rate Cards
-router.get('/rate-cards', getProviderRateCards);
-router.post('/rate-cards', createRateCard);
-router.put('/rate-cards/:id', updateRateCard);
-router.delete('/rate-cards/:id', deleteRateCard);
+router.get('/rate-cards', auth('provider'), getProviderRateCards);
+router.post('/rate-cards', auth('provider'), createRateCard);
+router.put('/rate-cards/:id', auth('provider'), updateRateCard);
+router.delete('/rate-cards/:id', auth('provider'), deleteRateCard);
 
 // Settings
-router.get('/settings', getProviderSettings);
-router.put('/settings', updateProviderSettings);
+router.get('/settings', auth('provider'), getProviderSettings);
+router.put('/settings', auth('provider'), updateProviderSettings);
 
-// Public provider booking page
+// --- Public route ---
 router.get('/provider/:slug', getProviderBySlug);
 
 module.exports = router;
