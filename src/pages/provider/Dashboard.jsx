@@ -160,7 +160,7 @@ const ProviderDashboard = () => {
                       </Tag>
                       <span className="text-green-400 font-bold">
                         {booking.amount ? formatCurrency(booking.amount) : 
-                         `${formatCurrency(booking.budgetMin)} - ${formatCurrency(booking.budgetMax)}`}
+                         `${formatCurrency(booking.budget)}`}
                       </span>
                     </div>
                   </div>

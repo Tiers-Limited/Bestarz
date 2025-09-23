@@ -9,10 +9,12 @@ import {
   Bell,
   HelpCircle,
   FileText,
-  MessageCircle
+  MessageCircle,
+  Book
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getInitials } from "../utils/helper";
 
 const { Sider, Content, Header } = Layout;
 
@@ -39,6 +41,12 @@ const ClientLayout = ({ children }) => {
       key: '/client/payments',
       icon: <DollarSign size={18} />,
       label: 'Payments',
+    },
+
+    {
+      key: '/client/booking',
+      icon: <Book size={18} />,
+      label: 'Create Booking',
     },
 
     {
@@ -170,8 +178,21 @@ const ClientLayout = ({ children }) => {
                 getPopupContainer={(triggerNode) => triggerNode.parentNode}
               >
                 <div className="flex items-center cursor-pointer hover-lift">
-                  <Avatar style={{ backgroundColor: '#8B5CF6' }}>CL</Avatar>
-                  <span className="text-white ml-2">Client</span>
+                <Avatar
+                    src={user?.profileImage || null}
+                    style={{
+                      backgroundColor: user?.profileImage
+                        ? "transparent"
+                        : "#3B82F6",
+                    }}
+                  >
+                    {!user?.profileImage &&
+                      getInitials(user?.firstName, user?.lastName)}
+                  </Avatar>
+
+                  <span className="text-white ml-2">
+                    {user?.firstName} {user?.lastName}
+                  </span>
                 </div>
               </Dropdown>
             </Space>

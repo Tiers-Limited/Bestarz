@@ -104,7 +104,7 @@ const BookingStatusModal = ({
           </Select>
         </Form.Item>
 
-        {(selectedStatus === 'confirmed' || selectedStatus === 'completed') && (
+        {/* {(selectedStatus === 'confirmed' || selectedStatus === 'completed') && (
           <Form.Item
             name="amount"
             label="Final Amount"
@@ -121,7 +121,7 @@ const BookingStatusModal = ({
               placeholder="Enter final booking amount"
             />
           </Form.Item>
-        )}
+        )} */}
 
         <Form.Item
           name="notes"

@@ -45,6 +45,10 @@ import { ServiceRateProvider } from "./context/provider/ServiceRateContext";
 import { CustomerProvider } from "./context/provider/CustomerContext";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
+import Success from "./pages/Success";
+import Cancel from "./pages/Cancel";
+import { ClientProvider } from "./context/client/ClientContext";
+import { BookingProvider } from "./context/booking/BookingContext";
 
 const App = () => {
   return (
@@ -65,257 +69,270 @@ const App = () => {
       }}
     >
       <AuthProvider>
-        <ProviderProvider>
-          <CustomerProvider>
-            <ServiceRateProvider>
-              <Router>
-                <div className="App">
-                  <Routes>
-                    {/* Public routes */}
-                    <Route path="/" element={<LandingPage />} />
-                    <Route path="/signin" element={<SignIn />} />
-                    <Route path="/signup" element={<SignUp />} />
-                    <Route path="/forgot-password" element={<ForgotPassword />} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
-                    <Route
-                      path="/provider/:slug"
-                      element={<PublicProviderPage />}
-                    />
+        <ClientProvider>
 
-                    {/* Client routes */}
-                    <Route
-                      path="/client/booking"
-                      element={
-                          <ClientBooking />
-                      }
-                    />
-                    <Route
-                      path="/client/dashboard"
-                      element={
-                        <ProtectedRoute allowedRoles={["client"]}>
-                          <ClientDashboard />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/client/providers"
-                      element={
-                        <ProtectedRoute allowedRoles={["client"]}>
-                          <ClientProviders />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/client/payments"
-                      element={
-                        <ProtectedRoute allowedRoles={["client"]}>
-                          <ClientPayments />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/client/docs"
-                      element={
-                        <ProtectedRoute allowedRoles={["client"]}>
-                          <ClientDocumentation />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/client/settings"
-                      element={
-                        <ProtectedRoute allowedRoles={["client"]}>
-                          <ClientProfileSettings />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/client/messages"
-                      element={
-                        <ProtectedRoute allowedRoles={["client"]}>
-                          <ClientMessages />
-                        </ProtectedRoute>
-                      }
-                    />
+          <BookingProvider>
+          <ProviderProvider>
+            <CustomerProvider>
+              <ServiceRateProvider>
+                <Router>
+                  <div className="App">
+                    <Routes>
+                      {/* Public routes */}
+                      <Route path="/" element={<LandingPage />} />
+                      <Route path="/signin" element={<SignIn />} />
+                      <Route path="/signup" element={<SignUp />} />
+                      <Route
+                        path="/forgot-password"
+                        element={<ForgotPassword />}
+                      />
+                      <Route
+                        path="/reset-password"
+                        element={<ResetPassword />}
+                      />
+                      <Route path="/success" element={<Success />} />
+                      <Route path="/cancel" element={<Cancel />} />
 
-                    {/* Provider routes */}
-                    <Route
-                      path="/provider/dashboard"
-                      element={
-                        <ProtectedRoute allowedRoles={["provider"]}>
-                          <ProviderDashboard />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/provider/profile"
-                      element={
-                        <ProtectedRoute allowedRoles={["provider"]}>
-                          <ProviderProfile />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/provider/subscription"
-                      element={
-                        <ProtectedRoute allowedRoles={["provider"]}>
-                          <ProviderSubscription />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/provider/customers"
-                      element={
-                        <ProtectedRoute allowedRoles={["provider"]}>
-                          <ProviderCustomers />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/provider/docs"
-                      element={
-                        <ProtectedRoute allowedRoles={["provider"]}>
-                          <ProviderHelpandDocs />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/provider/earnings"
-                      element={
-                        <ProtectedRoute allowedRoles={["provider"]}>
-                          <ProviderEarnings />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/provider/notifications"
-                      element={
-                        <ProtectedRoute allowedRoles={["provider"]}>
-                          <ProviderNotifications />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/provider/bookings"
-                      element={
-                        <ProtectedRoute allowedRoles={["provider"]}>
-                          <ProviderBookings />
-                        </ProtectedRoute>
-                      }
-                    />
+                      <Route
+                        path="/provider/:slug"
+                        element={<PublicProviderPage />}
+                      />
 
-                    <Route
-                      path="/provider/services-rates"
-                      element={
-                        <ProtectedRoute allowedRoles={["provider"]}>
-                          <ProviderRateCards />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/provider/messages"
-                      element={
-                        <ProtectedRoute allowedRoles={["provider"]}>
-                          <ProviderMessages />
-                        </ProtectedRoute>
-                      }
-                    />
+                      {/* Client routes */}
+                      <Route
+                        path="/client/booking"
+                        element={<ClientBooking />}
+                      />
+                      <Route
+                        path="/client/dashboard"
+                        element={
+                          <ProtectedRoute allowedRoles={["client"]}>
+                            <ClientDashboard />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/client/providers"
+                        element={
+                          <ProtectedRoute allowedRoles={["client"]}>
+                            <ClientProviders />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/client/payments"
+                        element={
+                          <ProtectedRoute allowedRoles={["client"]}>
+                            <ClientPayments />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/client/docs"
+                        element={
+                          <ProtectedRoute allowedRoles={["client"]}>
+                            <ClientDocumentation />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/client/settings"
+                        element={
+                          <ProtectedRoute allowedRoles={["client"]}>
+                            <ClientProfileSettings />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/client/messages"
+                        element={
+                          <ProtectedRoute allowedRoles={["client"]}>
+                            <ClientMessages />
+                          </ProtectedRoute>
+                        }
+                      />
 
-                    {/* Admin routes */}
-                    <Route
-                      path="/admin/dashboard"
-                      element={
-                        <ProtectedRoute allowedRoles={["admin"]}>
-                          <AdminDashboard />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/admin/clients"
-                      element={
-                        <ProtectedRoute allowedRoles={["admin"]}>
-                          <AdminClients />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/admin/providers"
-                      element={
-                        <ProtectedRoute allowedRoles={["admin"]}>
-                          <AdminProviders />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/admin/security"
-                      element={
-                        <ProtectedRoute allowedRoles={["admin"]}>
-                          <AdminSecurity />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/admin/analytics"
-                      element={
-                        <ProtectedRoute allowedRoles={["admin"]}>
-                          <AdminAnalytics />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/admin/profile"
-                      element={
-                        <ProtectedRoute allowedRoles={["admin"]}>
-                          <AdminProfileSettings />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/admin/messages"
-                      element={
-                        <ProtectedRoute allowedRoles={["admin"]}>
-                          <AdminMessages />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/admin/notifications"
-                      element={
-                        <ProtectedRoute allowedRoles={["admin"]}>
-                          <AdminNotifications />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/admin/payments"
-                      element={
-                        <ProtectedRoute allowedRoles={["admin"]}>
-                          <AdminPayments />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/admin/docs"
-                      element={
-                        <ProtectedRoute allowedRoles={["admin"]}>
-                          <AdminDocumentation />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/admin/platform-settings"
-                      element={
-                        <ProtectedRoute allowedRoles={["admin"]}>
-                          <AdminPlatformSettings />
-                        </ProtectedRoute>
-                      }
-                    />
-                  </Routes>
-                </div>
-              </Router>
-            </ServiceRateProvider>
-          </CustomerProvider>
-        </ProviderProvider>
+                      {/* Provider routes */}
+                      <Route
+                        path="/provider/dashboard"
+                        element={
+                          <ProtectedRoute allowedRoles={["provider"]}>
+                            <ProviderDashboard />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/provider/profile"
+                        element={
+                          <ProtectedRoute allowedRoles={["provider"]}>
+                            <ProviderProfile />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/provider/subscription"
+                        element={
+                          <ProtectedRoute allowedRoles={["provider"]}>
+                            <ProviderSubscription />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/provider/customers"
+                        element={
+                          <ProtectedRoute allowedRoles={["provider"]}>
+                            <ProviderCustomers />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/provider/docs"
+                        element={
+                          <ProtectedRoute allowedRoles={["provider"]}>
+                            <ProviderHelpandDocs />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/provider/earnings"
+                        element={
+                          <ProtectedRoute allowedRoles={["provider"]}>
+                            <ProviderEarnings />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/provider/notifications"
+                        element={
+                          <ProtectedRoute allowedRoles={["provider"]}>
+                            <ProviderNotifications />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/provider/bookings"
+                        element={
+                          <ProtectedRoute allowedRoles={["provider"]}>
+                            <ProviderBookings />
+                          </ProtectedRoute>
+                        }
+                      />
+
+                      <Route
+                        path="/provider/services-rates"
+                        element={
+                          <ProtectedRoute allowedRoles={["provider"]}>
+                            <ProviderRateCards />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/provider/messages"
+                        element={
+                          <ProtectedRoute allowedRoles={["provider"]}>
+                            <ProviderMessages />
+                          </ProtectedRoute>
+                        }
+                      />
+
+                      {/* Admin routes */}
+                      <Route
+                        path="/admin/dashboard"
+                        element={
+                          <ProtectedRoute allowedRoles={["admin"]}>
+                            <AdminDashboard />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/clients"
+                        element={
+                          <ProtectedRoute allowedRoles={["admin"]}>
+                            <AdminClients />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/providers"
+                        element={
+                          <ProtectedRoute allowedRoles={["admin"]}>
+                            <AdminProviders />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/security"
+                        element={
+                          <ProtectedRoute allowedRoles={["admin"]}>
+                            <AdminSecurity />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/analytics"
+                        element={
+                          <ProtectedRoute allowedRoles={["admin"]}>
+                            <AdminAnalytics />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/profile"
+                        element={
+                          <ProtectedRoute allowedRoles={["admin"]}>
+                            <AdminProfileSettings />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/messages"
+                        element={
+                          <ProtectedRoute allowedRoles={["admin"]}>
+                            <AdminMessages />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/notifications"
+                        element={
+                          <ProtectedRoute allowedRoles={["admin"]}>
+                            <AdminNotifications />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/payments"
+                        element={
+                          <ProtectedRoute allowedRoles={["admin"]}>
+                            <AdminPayments />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/docs"
+                        element={
+                          <ProtectedRoute allowedRoles={["admin"]}>
+                            <AdminDocumentation />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/platform-settings"
+                        element={
+                          <ProtectedRoute allowedRoles={["admin"]}>
+                            <AdminPlatformSettings />
+                          </ProtectedRoute>
+                        }
+                      />
+                    </Routes>
+                  </div>
+                </Router>
+              </ServiceRateProvider>
+            </CustomerProvider>
+          </ProviderProvider>
+
+          </BookingProvider>
+        </ClientProvider>
       </AuthProvider>
     </ConfigProvider>
   );

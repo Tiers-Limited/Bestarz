@@ -1,13 +1,14 @@
-import React, { createContext, useContext, useState } from 'react';
-import { useAuth } from '../AuthContext';
-import { EarningsProvider } from './EarningsContext';
+import React, { createContext, useContext, useState } from "react";
+import { useAuth } from "../AuthContext";
+import { EarningsProvider } from "./EarningsContext";
+import { SubscriptionProvider } from "./SubscriptionContext";
 
 const ProviderContext = createContext();
 
 export const useProvider = () => {
   const context = useContext(ProviderContext);
   if (!context) {
-    throw new Error('useProvider must be used within a ProviderProvider');
+    throw new Error("useProvider must be used within a ProviderProvider");
   }
   return context;
 };
@@ -23,8 +24,8 @@ export const ProviderProvider = ({ children }) => {
       page: 1,
       limit: 10,
       total: 0,
-      pages: 1
-    }
+      pages: 1,
+    },
   });
 
   const baseUrl = import.meta.env.VITE_BASE_URL;
@@ -33,10 +34,10 @@ export const ProviderProvider = ({ children }) => {
     try {
       setLoading(true);
       const response = await fetch(`${baseUrl}/providers/dashboard`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
       });
 
@@ -46,11 +47,14 @@ export const ProviderProvider = ({ children }) => {
         setDashboardData(data);
         return { success: true, data };
       } else {
-        return { success: false, error: data.message || 'Failed to fetch dashboard data' };
+        return {
+          success: false,
+          error: data.message || "Failed to fetch dashboard data",
+        };
       }
     } catch (error) {
-      console.error('Dashboard fetch error:', error);
-      return { success: false, error: 'Network error. Please try again.' };
+      console.error("Dashboard fetch error:", error);
+      return { success: false, error: "Network error. Please try again." };
     } finally {
       setLoading(false);
     }
@@ -59,40 +63,43 @@ export const ProviderProvider = ({ children }) => {
   const fetchBookings = async (params = {}) => {
     try {
       setLoading(true);
-      
+
       const {
         page = 1,
         limit = 10,
         status = null,
         startDate = null,
-        endDate = null
+        endDate = null,
       } = params;
 
       let queryParams = new URLSearchParams({
         page: page.toString(),
-        limit: limit.toString()
+        limit: limit.toString(),
       });
 
       // Add optional filters
-      if (status && status !== 'all') {
-        queryParams.append('status', status);
+      if (status && status !== "all") {
+        queryParams.append("status", status);
       }
 
       if (startDate) {
-        queryParams.append('startDate', startDate);
+        queryParams.append("startDate", startDate);
       }
 
       if (endDate) {
-        queryParams.append('endDate', endDate);
+        queryParams.append("endDate", endDate);
       }
 
-      const response = await fetch(`${baseUrl}/providers/bookings?${queryParams}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(
+        `${baseUrl}/providers/bookings?${queryParams}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       const data = await response.json();
 
@@ -103,24 +110,32 @@ export const ProviderProvider = ({ children }) => {
             page: 1,
             limit: 10,
             total: 0,
-            pages: 1
-          }
+            pages: 1,
+          },
         };
-        
+
         setBookingsData(bookingsResult);
         return { success: true, data: bookingsResult };
       } else {
-        return { success: false, error: data.message || 'Failed to fetch bookings' };
+        return {
+          success: false,
+          error: data.message || "Failed to fetch bookings",
+        };
       }
     } catch (error) {
-      console.error('Bookings fetch error:', error);
-      return { success: false, error: 'Network error. Please try again.' };
+      console.error("Bookings fetch error:", error);
+      return { success: false, error: "Network error. Please try again." };
     } finally {
       setLoading(false);
     }
   };
 
-  const updateBookingStatus = async (bookingId, status, notes = '', amount = null) => {
+  const updateBookingStatus = async (
+    bookingId,
+    status,
+    notes = "",
+    amount = null
+  ) => {
     try {
       setLoading(true);
       const payload = { status, notes };
@@ -128,14 +143,17 @@ export const ProviderProvider = ({ children }) => {
         payload.amount = amount;
       }
 
-      const response = await fetch(`${baseUrl}/providers/bookings/${bookingId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        `${baseUrl}/providers/bookings/${bookingId}/status`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       const data = await response.json();
 
@@ -146,11 +164,14 @@ export const ProviderProvider = ({ children }) => {
         await fetchBookings();
         return { success: true, data };
       } else {
-        return { success: false, error: data.message || 'Failed to update booking status' };
+        return {
+          success: false,
+          error: data.message || "Failed to update booking status",
+        };
       }
     } catch (error) {
-      console.error('Booking status update error:', error);
-      return { success: false, error: 'Network error. Please try again.' };
+      console.error("Booking status update error:", error);
+      return { success: false, error: "Network error. Please try again." };
     } finally {
       setLoading(false);
     }
@@ -160,10 +181,10 @@ export const ProviderProvider = ({ children }) => {
     try {
       setLoading(true);
       const response = await fetch(`${baseUrl}/providers/profile`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
       });
 
@@ -173,36 +194,71 @@ export const ProviderProvider = ({ children }) => {
         setProfileData(data.provider);
         return { success: true, data: data.provider };
       } else {
-        return { success: false, error: data.message || 'Failed to fetch profile data' };
+        return {
+          success: false,
+          error: data.message || "Failed to fetch profile data",
+        };
       }
     } catch (error) {
-      console.error('Profile fetch error:', error);
-      return { success: false, error: 'Network error. Please try again.' };
+      console.error("Profile fetch error:", error);
+      return { success: false, error: "Network error. Please try again." };
     } finally {
       setLoading(false);
     }
   };
 
+
+  const fetchProviderBySlug = async (slug) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${baseUrl}/providers/provider/${slug}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+  
+      const data = await response.json();
+  
+      if (response.ok) {
+        return { success: true, data: data.provider };
+      } else {
+        return {
+          success: false,
+          error: data.message || "Failed to fetch provider",
+        };
+      }
+    } catch (error) {
+      console.error("Fetch provider error:", error);
+      return { success: false, error: "Network error. Please try again." };
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+
   const updateProfile = async (profileData) => {
     try {
       setLoading(true);
-      
+
       // Prepare the data for API submission
       const apiData = {
         ...profileData,
         // Ensure portfolio is an array of URLs for the API
-        portfolio: profileData.portfolio ? profileData.portfolio.map(img => 
-          typeof img === 'string' ? img : img.url
-        ) : []
+        portfolio: profileData.portfolio
+          ? profileData.portfolio.map((img) =>
+              typeof img === "string" ? img : img.url
+            )
+          : [],
       };
 
-      console.log('Sending profile data to API:', apiData);
+      console.log("Sending profile data to API:", apiData);
 
       const response = await fetch(`${baseUrl}/providers/profile`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(apiData),
       });
@@ -213,11 +269,14 @@ export const ProviderProvider = ({ children }) => {
         setProfileData(data.provider);
         return { success: true, data: data.provider };
       } else {
-        return { success: false, error: data.message || 'Failed to update profile' };
+        return {
+          success: false,
+          error: data.message || "Failed to update profile",
+        };
       }
     } catch (error) {
-      console.error('Profile update error:', error);
-      return { success: false, error: 'Network error. Please try again.' };
+      console.error("Profile update error:", error);
+      return { success: false, error: "Network error. Please try again." };
     } finally {
       setLoading(false);
     }
@@ -233,14 +292,16 @@ export const ProviderProvider = ({ children }) => {
     fetchBookings,
     updateProfile,
     updateBookingStatus,
+    fetchProviderBySlug
   };
 
   return (
-    <EarningsProvider >
-    <ProviderContext.Provider value={value}>
-      {children}
-    </ProviderContext.Provider>
-    </EarningsProvider >
-
+    <SubscriptionProvider>
+      <EarningsProvider>
+        <ProviderContext.Provider value={value}>
+          {children}
+        </ProviderContext.Provider>
+      </EarningsProvider>
+    </SubscriptionProvider>
   );
 };
