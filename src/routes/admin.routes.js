@@ -12,7 +12,8 @@ const {
     getAnalytics,
     getUserDetails,
     getPlatformSettings,
-    updatePlatformSettings
+    updatePlatformSettings,
+    getAuditLogs
 } = require('../controllers/admin.controller.js');
 
 const { auth } = require('../middleware/auth.js');
@@ -42,6 +43,13 @@ router.get('/payments', getAllPayments);
 
 // Analytics
 router.get('/analytics', getAnalytics);
+
+
+// Audit Logs 
+
+
+router.get('/audit-logs', getAuditLogs);
+
 
 // Platform Settings
 router.get('/platform-settings', getPlatformSettings);

@@ -159,6 +159,7 @@ async function generateUniqueSlug(Provider, baseName) {
 				email: user.email,
 				isActive: user.isActive,
 				profileImage: user.profileImage,
+				phone:user.phone,
 				...(providerData ? { slug: providerData.slug } : {}), // add slug only if provider
 			},
 		});

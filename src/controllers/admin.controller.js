@@ -4,6 +4,7 @@ const Booking = require('../models/Booking.js');
 const Payment = require('../models/Payment.js');
 const { createAuditLog } = require('../services/auditlog.service.js');
 const PlatformSettings = require('../models/PlatformSettings.js');
+const AuditLog = require('../models/AuditLog.js');
 
 
 // Platform Statistics
@@ -146,40 +147,69 @@ const getAllProviders = async (req, res) => {
     try {
         const { status, category, search, page = 1, limit = 20 } = req.query;
 
-        const filter = {};
-        if (status) filter.isActive = status === 'active';
-        if (category) filter.serviceCategory = category;
+        const userFilter = {};
+        if (status) userFilter.isActive = status === "active";
         if (search) {
-            filter.$or = [
-                { businessName: { $regex: search, $options: 'i' } },
-                { 'user.firstName': { $regex: search, $options: 'i' } },
-                { 'user.lastName': { $regex: search, $options: 'i' } },
-                { 'user.email': { $regex: search, $options: 'i' } }
+            userFilter.$or = [
+                { firstName: { $regex: search, $options: "i" } },
+                { lastName: { $regex: search, $options: "i" } },
+                { email: { $regex: search, $options: "i" } },
             ];
         }
 
+        // Find matching users
+        const users = await User.find(userFilter).select("_id firstName lastName email isActive");
+        const userIds = users.map((u) => u._id);
+
+        // Provider filter
+        const providerFilter = {};
+        if (category) providerFilter.serviceCategory = category;
+        if (userIds.length > 0) {
+            providerFilter.user = { $in: userIds };
+        } else if (search || status) {
+            // No users matched → return empty
+            return res.json({
+                providers: [],
+                pagination: {
+                    page: Number(page),
+                    limit: Number(limit),
+                    total: 0,
+                    pages: 0,
+                },
+            });
+        }
+
         const skip = (Number(page) - 1) * Number(limit);
-        const providers = await Provider.find(filter)
-            .populate('user', 'firstName lastName email phone profileImage lastLogin')
+
+        // Fetch providers and populate user
+        const providers = await Provider.find(providerFilter)
+            .populate("user")
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(Number(limit));
 
-        const total = await Provider.countDocuments(filter);
+        const total = await Provider.countDocuments(providerFilter);
+
+        // Merge user + provider details
+        const merged = providers.map((provider) => ({
+            ...provider.toObject(),
+            user: provider.user, // already populated
+        }));
 
         return res.json({
-            providers,
+            providers: merged,
             pagination: {
                 page: Number(page),
                 limit: Number(limit),
                 total,
-                pages: Math.ceil(total / Number(limit))
-            }
+                pages: Math.ceil(total / Number(limit)),
+            },
         });
     } catch (err) {
         return res.status(500).json({ message: err.message });
     }
 };
+
 
 // Get all clients
 const getAllClients = async (req, res) => {
@@ -320,16 +350,27 @@ const getAllPayments = async (req, res) => {
         if (client) filter.client = client;
 
         const skip = (Number(page) - 1) * Number(limit);
+
         const payments = await Payment.find(filter)
-            .populate('client', 'firstName lastName email')
-            .populate('provider', 'businessName user')
-            .populate('provider.user', 'firstName lastName')
-            .populate('booking', 'serviceCategory eventDate')
+            .populate("client", "firstName lastName email")
+            .populate("provider", "businessName user")
+            .populate("provider.user", "firstName lastName")
+            .populate("booking", "serviceCategory eventDate")
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(Number(limit));
 
         const total = await Payment.countDocuments(filter);
+
+        // --- NEW: Stats aggregation ---
+        const statsAgg = await Payment.aggregate([
+            { $group: { _id: "$status", count: { $sum: 1 }, totalAmount: { $sum: "$amount" } } }
+        ]);
+
+        const stats = statsAgg.reduce((acc, s) => {
+            acc[s._id] = { count: s.count, totalAmount: s.totalAmount };
+            return acc;
+        }, {});
 
         return res.json({
             payments,
@@ -337,13 +378,15 @@ const getAllPayments = async (req, res) => {
                 page: Number(page),
                 limit: Number(limit),
                 total,
-                pages: Math.ceil(total / Number(limit))
-            }
+                pages: Math.ceil(total / Number(limit)),
+            },
+            stats, // 👈 include stats in response
         });
     } catch (err) {
         return res.status(500).json({ message: err.message });
     }
 };
+
 
 // Get analytics data
 const getAnalytics = async (req, res) => {
