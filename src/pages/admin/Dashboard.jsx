@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Layout,
   Card,
@@ -13,9 +13,8 @@ import {
   Avatar,
   Modal,
   message,
-  Drawer,
-  List,
-  Timeline,
+  Spin,
+  Divider,
 } from "antd";
 import {
   DollarSign,
@@ -31,225 +30,147 @@ import {
   AlertTriangle,
   HelpCircle,
 } from "lucide-react";
+
 import AdminLayout from "../../components/AdminLayout";
 import { useNavigate } from "react-router-dom";
+import { useAdmin } from "../../context/admin/AdminContext";
 
 const { Title, Paragraph } = Typography;
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
+  const {
+    loading,
+    stats,
+    providers,
+    bookings,
+    payments,
+    fetchStats,
+    fetchProviders,
+    fetchBookings,
+    fetchPayments,
+  } = useAdmin();
+
   const [selectedProvider, setSelectedProvider] = useState(null);
 
-  const navigate=useNavigate();
+  useEffect(() => {
+    // Fetch all necessary data when component mounts
+    const fetchDashboardData = async () => {
+      try {
+        await Promise.all([
+          fetchStats(),
+          fetchProviders({ limit: 5, page: 1 }), // Get recent providers
+          fetchBookings({ limit: 5, page: 1 }), // Get recent bookings
+          fetchPayments({ limit: 5, page: 1 }), // Get recent payments
+        ]);
+      } catch (error) {
+        message.error("Failed to load dashboard data");
+      }
+    };
 
-  const platformStats = [
-    { title: "Total Revenue", value: 125680, prefix: "$", color: "#22C55E" },
-    { title: "Active Providers", value: 1247, color: "#3B82F6" },
-    { title: "Total Bookings", value: 5832, color: "#F59E0B" },
-    { title: "Growth Rate", value: 23.5, suffix: "%", color: "#8B5CF6" },
-  ];
+    fetchDashboardData();
+  }, []);
 
-  const [recentProviders, setRecentProviders] = useState([
-    {
-      key: "1",
-      name: "DJ Master",
-      email: "djmaster@example.com",
-      category: "DJ & Music",
-      joinDate: "2025-01-10",
-      status: "active",
-      subscription: "Professional",
-      lastActive: "2 hours ago",
-    },
-    {
-      key: "2",
-      name: "Elite Catering",
-      email: "info@elitecatering.com",
-      category: "Catering",
-      joinDate: "2025-01-08",
-      status: "pending",
-      subscription: "Starter",
-      lastActive: "1 day ago",
-    },
-    {
-      key: "3",
-      name: "Perfect Photos",
-      email: "contact@perfectphotos.com",
-      category: "Photography",
-      joinDate: "2025-01-05",
-      status: "disabled",
-      subscription: "Enterprise",
-      lastActive: "3 days ago",
-    },
-  ]);
+  // Format platform stats from API data
+  const getPlatformStats = () => {
+    if (!stats) {
+      return [
+        { title: "Total Revenue", value: 0, prefix: "$", color: "#22C55E" },
+        { title: "Active Providers", value: 0, color: "#3B82F6" },
+        { title: "Total Bookings", value: 0, color: "#F59E0B" },
+        { title: "Growth Rate", value: 0, suffix: "%", color: "#8B5CF6" },
+      ];
+    }
 
-  const auditLogs = [
-    {
-      id: 1,
-      action: "Account Disabled",
-      target: "Perfect Photos",
-      reason: "Customer complaint - unprofessional behavior",
-      admin: "Admin",
-      timestamp: "2025-01-08 14:30",
-      type: "disable",
-    },
-    {
-      id: 2,
-      action: "Account Restored",
-      target: "Sound Waves DJ",
-      reason: "Issue resolved after provider training",
-      admin: "Admin",
-      timestamp: "2025-01-07 09:15",
-      type: "restore",
-    },
-    {
-      id: 3,
-      action: "Account Blocked",
-      target: "Fake Photography Co",
-      reason: "Security threat - fraudulent documents",
-      admin: "Admin",
-      timestamp: "2025-01-06 16:45",
-      type: "block",
-    },
-  ];
-
-  const handleBlockAccount = (provider) => {
-    Modal.confirm({
-      title: `Block ${provider.name}?`,
-      content: `This will immediately block ${provider.name} from accessing their account and receiving new bookings. This action is for security threats.`,
-      okText: "Block Account",
-      okType: "danger",
-      onOk() {
-        const updatedProviders = recentProviders.map((p) =>
-          p.key === provider.key ? { ...p, status: "blocked" } : p
-        );
-        setRecentProviders(updatedProviders);
-        message.success(`${provider.name} has been blocked`);
-
-        // Add to audit log
-        const newLog = {
-          id: Date.now(),
-          action: "Account Blocked",
-          target: provider.name,
-          reason: "Manual block by admin",
-          admin: "Admin",
-          timestamp: new Date().toLocaleString(),
-          type: "block",
-        };
-        auditLogs.unshift(newLog);
+    return [
+      {
+        title: "Total Revenue",
+        value: stats.totalRevenue || 0,
+        prefix: "$",
+        color: "#22C55E",
       },
-    });
+      {
+        title: "Active Providers",
+        value: stats.activeProviders || 0,
+        color: "#3B82F6",
+      },
+      {
+        title: "Total Bookings",
+        value: stats.totalBookings || 0,
+        color: "#F59E0B",
+      },
+      {
+        title: "Growth Rate",
+        value: stats.growthRate || 0,
+        suffix: "%",
+        color: "#8B5CF6",
+      },
+    ];
   };
 
-  const handleDisableAccount = (provider) => {
-    Modal.confirm({
-      title: <span className="text-white">{`Disable ${provider.name}?`}</span>,
-      content: (
-        <span className="text-white">{`This will disable ${provider.name}'s account for customer service or policy violations. They can potentially be restored later.`}</span>
-      ),
-      okText: "Disable Account",
-      okType: "danger",
-      onOk() {
-        const updatedProviders = recentProviders.map((p) =>
-          p.key === provider.key ? { ...p, status: "disabled" } : p
-        );
-        setRecentProviders(updatedProviders);
-        message.success(`${provider.name} has been disabled`);
+  // Format providers data for table
+  const getFormattedProviders = () => {
+    if (!providers || !Array.isArray(providers)) return [];
 
-        // Add to audit log
-        const newLog = {
-          id: Date.now(),
-          action: "Account Disabled",
-          target: provider.name,
-          reason: "Customer service action",
-          admin: "Admin",
-          timestamp: new Date().toLocaleString(),
-          type: "disable",
-        };
-        auditLogs.unshift(newLog);
-      },
-    });
+    return providers.map((provider, index) => ({
+      key: provider._id || index,
+      name:
+        provider.businessName ||
+        provider.user?.firstName + " " + provider.user?.lastName,
+      email: provider.user?.email || "No email",
+      category: provider.category || "Uncategorized",
+      joinDate: new Date(provider.createdAt).toLocaleDateString() || "Unknown",
+      status: getProviderStatus(provider),
+      subscription: provider?.user?.subscriptionPlan,
+      lastActive: provider.user?.lastLogin
+        ? new Date(provider.user.lastLogin).toLocaleDateString()
+        : "Unknown",
+      provider: provider, // Store full provider object for actions
+    }));
   };
 
-  const handleRestoreAccount = (provider) => {
-    Modal.confirm({
-      title: <span className="text-white">{`Restore ${provider.name}?`}</span>,
-      content: (
-        <span className="text-white">{`This will restore ${provider.name}'s account and allow them to receive bookings again.`}</span>
-      ),
-      okText: "Restore Account",
-      onOk() {
-        const updatedProviders = recentProviders.map((p) =>
-          p.key === provider.key ? { ...p, status: "active" } : p
-        );
-        setRecentProviders(updatedProviders);
-        message.success(`${provider.name} has been restored`);
-
-        // Add to audit log
-        const newLog = {
-          id: Date.now(),
-          action: "Account Restored",
-          target: provider.name,
-          reason: "Issue resolved",
-          admin: "Admin",
-          timestamp: new Date().toLocaleString(),
-          type: "restore",
-        };
-        auditLogs.unshift(newLog);
-      },
-    });
+  const getProviderStatus = (provider) => {
+    if (!provider.isActive) return "disabled";
+    if (!provider.isVerified) return "pending";
+    return "active";
   };
 
-  const getActionButtons = (provider) => {
-    if (provider.status === "active") {
+  const getActionButtons = (record) => {
+    const provider = record.provider;
+
+    if (record.status === "active") {
       return (
         <Space>
-          <Button size="small" icon={<Eye size={14} />}>
-            View
-          </Button>
-          <Button size="small" onClick={() => handleDisableAccount(provider)}>
-            Disable
-          </Button>
           <Button
             size="small"
-            danger
-            onClick={() => handleBlockAccount(provider)}
+            icon={<Eye size={14} />}
+            onClick={() => navigate(`/admin/providers/${provider._id}`)}
           >
-            Block
+            View
           </Button>
         </Space>
       );
-    } else if (
-      provider.status === "disabled" ||
-      provider.status === "blocked"
-    ) {
+    } else if (record.status === "disabled" || record.status === "blocked") {
       return (
         <Space>
-          <Button size="small" icon={<Eye size={14} />}>
-            View
-          </Button>
           <Button
             size="small"
-            type="primary"
-            onClick={() => handleRestoreAccount(provider)}
+            icon={<Eye size={14} />}
+            onClick={() => navigate(`/admin/providers/${provider._id}`)}
           >
-            Restore
+            View
           </Button>
         </Space>
       );
     } else {
       return (
         <Space>
-          <Button size="small" icon={<Eye size={14} />}>
-            View
-          </Button>
-          <Button size="small" type="primary">
-            Approve
-          </Button>
           <Button
             size="small"
-            danger
-            onClick={() => handleDisableAccount(provider)}
+            icon={<Eye size={14} />}
+            onClick={() => navigate(`/admin/providers/${provider._id}`)}
           >
-            Reject
+            View
           </Button>
         </Space>
       );
@@ -320,12 +241,20 @@ const AdminDashboard = () => {
       key: "subscription",
       render: (sub) => <span className="text-gray-300">{sub}</span>,
     },
-    {
-      title: "Action",
-      key: "action",
-      render: (_, record) => getActionButtons(record),
-    },
   ];
+
+  const platformStats = getPlatformStats();
+  const formattedProviders = getFormattedProviders();
+
+  if (loading && !stats) {
+    return (
+      <AdminLayout>
+        <div className="min-h-screen bg-black flex items-center justify-center">
+          <Spin size="large" />
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -358,8 +287,8 @@ const AdminDashboard = () => {
               <Button
                 icon={<Bell size={16} />}
                 className="border-gray-600 hover-lift"
-                onClick={()=>{
-                  navigate('/admin/notifications')
+                onClick={() => {
+                  navigate("/admin/notifications");
                 }}
               >
                 Notifications
@@ -368,15 +297,14 @@ const AdminDashboard = () => {
                 type="primary"
                 icon={<Settings size={16} />}
                 className="glow-button"
-                onClick={()=>{
-                  navigate('/admin/platform-settings')
+                onClick={() => {
+                  navigate("/admin/platform-settings");
                 }}
               >
                 Platform Settings
               </Button>
             </Space>
           </div>
-
           {/* Platform Stats */}
           <Row gutter={[24, 24]} className="mb-8">
             {platformStats.map((stat, index) => (
@@ -388,51 +316,38 @@ const AdminDashboard = () => {
                     prefix={stat.prefix}
                     suffix={stat.suffix}
                     valueStyle={{ color: stat.color }}
+                    loading={loading}
                   />
                 </Card>
               </Col>
             ))}
           </Row>
-
           <Row gutter={[24, 24]}>
             {/* Recent Providers with Enhanced Controls */}
             <Col xs={24} lg={16}>
               <Card
                 title="Provider Account Management"
                 className="glow-border"
-                extra={<Button type="link">View All Providers</Button>}
+                extra={
+                  <Button
+                    type="link"
+                    onClick={() => navigate("/admin/providers")}
+                  >
+                    View All Providers
+                  </Button>
+                }
               >
                 <Table
-                  dataSource={recentProviders}
+                  dataSource={formattedProviders}
                   columns={columns}
                   pagination={false}
                   className="bg-transparent"
                   scroll={{ x: 800 }}
+                  loading={loading}
+                  locale={{
+                    emptyText: loading ? "Loading..." : "No providers found",
+                  }}
                 />
-
-                {/* <div className="mt-4 p-4 bg-gray-900 rounded-lg">
-                  <Title level={5} className="text-white mb-2">
-                    Account Status Legend
-                  </Title>
-                  <Space wrap>
-                    <Tag color="green" className="flex items-center gap-1">
-                      <CheckCircle size={14} />
-                      <span>Active - Full access</span>
-                    </Tag>
-                    <Tag color="orange" className="flex items-center gap-1">
-                      <AlertTriangle size={14} />
-                      <span>Pending - Awaiting approval</span>
-                    </Tag>
-                    <Tag color="red" className="flex items-center gap-1">
-                      <Ban size={14} />
-                      <span>Disabled - Customer service action</span>
-                    </Tag>
-                    <Tag color="volcano" className="flex items-center gap-1">
-                      <Shield size={14} />
-                      <span>Blocked - Security threat</span>
-                    </Tag>
-                  </Space>
-                </div> */}
               </Card>
             </Col>
 
@@ -445,30 +360,30 @@ const AdminDashboard = () => {
                     size="large"
                     icon={<Users size={16} />}
                     className="hover-lift"
-                    onClick={()=>{
-                      navigate('/admin/providers')
+                    onClick={() => {
+                      navigate("/admin/providers");
                     }}
                   >
-                    Manage Providers
+                    Manage Providers ({stats?.activeProviders || 0})
                   </Button>
                   <Button
                     block
                     size="large"
                     icon={<DollarSign size={16} />}
                     className="hover-lift"
-                    onClick={()=>{
-                      navigate('/admin/payments')
+                    onClick={() => {
+                      navigate("/admin/payments");
                     }}
                   >
-                    Payment Reports
+                    Payment Reports (${stats?.totalRevenue || 0})
                   </Button>
                   <Button
                     block
                     size="large"
                     icon={<TrendingUp size={16} />}
                     className="hover-lift"
-                    onClick={()=>{
-                      navigate('/admin/analytics')
+                    onClick={() => {
+                      navigate("/admin/analytics");
                     }}
                   >
                     Analytics
@@ -478,13 +393,12 @@ const AdminDashboard = () => {
                     size="large"
                     icon={<Settings size={16} />}
                     className="hover-lift"
-                    onClick={()=>{
-                      navigate('/admin/platform-settings')
+                    onClick={() => {
+                      navigate("/admin/platform-settings");
                     }}
                   >
                     Platform Settings
                   </Button>
-                
                   <Button
                     block
                     size="large"
@@ -498,9 +412,99 @@ const AdminDashboard = () => {
               </Card>
             </Col>
           </Row>
-        </div>
+          {/* Recent Activity Section */}
+          {stats?.recentBookings && stats.recentBookings.length > 0 && (
+            <Row gutter={[24, 24]} className="mt-8">
+              <Col xs={24}>
+                <Card
+                  title={
+                    <Title level={4} className="text-white">
+                      Recent Activity
+                    </Title>
+                  }
+                  className="bg-gray-800 border-gray-700 shadow-lg"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Recent Bookings */}
+                    <div>
+                      <Title level={5} className="text-white mb-4">
+                        Recent Bookings
+                      </Title>
+                      {stats.recentBookings
+                        .slice(0, 3)
+                        .map((booking, index) => (
+                          <div
+                            key={index}
+                            className="mb-4 p-4 bg-gray-900 rounded-lg hover:bg-gray-800 transition-all duration-300 shadow-sm"
+                          >
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-white font-semibold text-md">
+                                {booking.client.firstName}{" "}
+                                {booking.client.lastName}
+                              </span>
+                              <Tag
+                                color="blue"
+                                className="uppercase text-xs font-medium"
+                              >
+                                {booking.serviceCategory}
+                              </Tag>
+                            </div>
+                            <div className="text-gray-400 text-sm mb-1">
+                              Amount:{" "}
+                              <span className="text-green-400 font-medium">
+                                ${booking.amount}
+                              </span>
+                            </div>
+                            <div className="text-gray-500 text-xs">
+                              {new Date(booking.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
 
-    
+                    {/* Recent Payments */}
+                    <div>
+                      <Title level={5} className="text-white mb-4">
+                        Recent Payments
+                      </Title>
+                      {stats.recentPayments
+                        ?.slice(0, 3)
+                        .map((payment, index) => (
+                          <div
+                            key={index}
+                            className="mb-4 p-4 bg-gray-900 rounded-lg hover:bg-gray-800 transition-all duration-300 shadow-sm"
+                          >
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-white font-semibold text-md">
+                                ${payment.amount}
+                              </span>
+                              <Tag
+                                color={
+                                  payment.status === "Completed"
+                                    ? "green"
+                                    : "red"
+                                }
+                                className="uppercase text-xs font-medium"
+                              >
+                                {payment.status}
+                              </Tag>
+                            </div>
+                            <div className="text-gray-400 text-sm mb-1">
+                              {payment.client.firstName}{" "}
+                              {payment.client.lastName}
+                            </div>
+                            <div className="text-gray-500 text-xs">
+                              {new Date(payment.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </Card>
+              </Col>
+            </Row>
+          )}
+        </div>
       </div>
     </AdminLayout>
   );

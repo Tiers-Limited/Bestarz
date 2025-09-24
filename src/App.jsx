@@ -49,6 +49,7 @@ import Success from "./pages/Success";
 import Cancel from "./pages/Cancel";
 import { ClientProvider } from "./context/client/ClientContext";
 import { BookingProvider } from "./context/booking/BookingContext";
+import { AdminProvider } from "./context/admin/AdminContext";
 
 const App = () => {
   return (
@@ -69,6 +70,8 @@ const App = () => {
       }}
     >
       <AuthProvider>
+
+        <AdminProvider>
         <ClientProvider>
 
           <BookingProvider>
@@ -333,6 +336,7 @@ const App = () => {
 
           </BookingProvider>
         </ClientProvider>
+        </AdminProvider>
       </AuthProvider>
     </ConfigProvider>
   );

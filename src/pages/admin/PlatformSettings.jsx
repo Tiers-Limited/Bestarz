@@ -1,16 +1,30 @@
-import React, { useState } from "react";
-import { Card, Typography, Form, Input, Switch, Button, Divider } from "antd";
+import React, { useEffect } from "react";
+import { Card, Typography, Form, Input, Button, Divider } from "antd";
 import { Settings } from "lucide-react";
 import AdminLayout from "../../components/AdminLayout";
+import { usePlatform } from "../../context/admin/PlatformContext";
 
 const { Title, Paragraph } = Typography;
 
 const AdminPlatformSettings = () => {
   const [form] = Form.useForm();
-  const [emailNotifications, setEmailNotifications] = useState(true);
+  const { platformSettings, updatePlatformSettings } = usePlatform();
+
+  useEffect(() => {
+    if (platformSettings) {
+      form.setFieldsValue({
+        name: platformSettings?.settings?.platformName,
+        email: platformSettings?.settings?.supportEmail,
+      });
+    }
+  }, [platformSettings]);
 
   const handleSave = (values) => {
-    console.log("Saved settings:", values);
+    const payload = {
+      platformName: values.name,
+      supportEmail: values.email,
+    };
+    updatePlatformSettings(payload);
   };
 
   return (
@@ -26,21 +40,14 @@ const AdminPlatformSettings = () => {
         <Card className="glow-border">
           <Form form={form} layout="vertical" onFinish={handleSave}>
             <Form.Item label="Platform Name" name="name">
-              <Input placeholder="Bestarz Platform" />
+              <Input placeholder="My Event Platform" />
             </Form.Item>
 
             <Form.Item label="Support Email" name="email">
-              <Input placeholder="support@bestarz.com" />
+              <Input placeholder="support@myplatform.com" />
             </Form.Item>
 
             <Divider />
-
-            <Form.Item label="Email Notifications">
-              <Switch
-                checked={emailNotifications}
-                onChange={setEmailNotifications}
-              />
-            </Form.Item>
 
             <Form.Item>
               <Button type="primary" htmlType="submit">

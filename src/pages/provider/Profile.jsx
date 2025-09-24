@@ -313,7 +313,7 @@ const ProviderProfile = () => {
                     size="large" 
                     prefix={<Phone size={16} className="text-gray-400" />}
                     placeholder="+1 (555) 123-4567"
-                    disabled
+                    
                     value={user?.phone}
                   />
                 </Form.Item>
