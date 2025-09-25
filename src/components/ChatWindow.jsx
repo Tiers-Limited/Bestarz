@@ -17,7 +17,7 @@ const ChatHeader = ({ title, subtitle, avatarUrl, menuItems }) => {
       </div>
       {menuItems?.length ? (
         <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
-          <button className="text-gray-300 hover:text-white">•••</button>
+          <button className="text-gray-300 hover:text-white p-2">•••</button>
         </Dropdown>
       ) : null}
     </div>
@@ -29,17 +29,27 @@ const ChatWindow = ({
   messages,
   currentUserId,
   onSend,
+  onTypingStart,
+  onTypingStop,
   inputDisabled,
+  loading
 }) => {
   return (
     <div className="flex flex-col h-full">
       <ChatHeader {...header} />
-      <MessageList messages={messages} currentUserId={currentUserId} />
-      <MessageInput onSend={onSend} disabled={inputDisabled} />
+      <MessageList 
+        messages={messages} 
+        currentUserId={currentUserId}
+        loading={loading}
+      />
+      <MessageInput 
+        onSend={onSend} 
+        onTypingStart={onTypingStart}
+        onTypingStop={onTypingStop}
+        disabled={inputDisabled} 
+      />
     </div>
   );
 };
 
 export default ChatWindow;
-
-

@@ -16,6 +16,15 @@ const MessageBubble = ({ message, isOwn }) => {
           }`}
         >
           {message.text}
+          {message.attachments && message.attachments.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {message.attachments.map((attachment, index) => (
+                <div key={index} className="text-xs opacity-75">
+                  📎 {attachment.name || attachment.url}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </Tooltip>
       {isOwn && (

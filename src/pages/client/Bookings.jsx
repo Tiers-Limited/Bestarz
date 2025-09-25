@@ -14,6 +14,7 @@ import {
   Row,
   Col,
   Card,
+  Form,
 } from "antd";
 import {
   Calendar,
@@ -26,18 +27,24 @@ import {
   Mail,
   FileText,
   CreditCard,
+  Star,
 } from "lucide-react";
-import ProviderLayout from "../../components/ProviderLayout";
+import ClientLayout from "../../components/ClientLayout";
 import dayjs from "dayjs";
 import { useProvider } from "../../context/provider/ProviderContext";
 import BookingStatusModal from "../../components/BookingStatusModal";
+import { useBooking } from "../../context/booking/BookingContext";
+import ClientReviewModal from "../../components/ClientReviewModal";
+import { useClient } from "../../context/client/ClientContext";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
-const ProviderBookings = () => {
-  const { fetchBookings, bookingsData, loading } = useProvider();
+const ClientBookings = () => {
+  const { fetchBookings, bookingsData, loading } = useBooking();
+
+  const { createReview } = useClient();
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState("all");
@@ -46,6 +53,7 @@ const ProviderBookings = () => {
   // Modal states
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
 
   const { bookings, pagination } = bookingsData;
 
@@ -60,6 +68,39 @@ const ProviderBookings = () => {
       visible: true,
       booking: booking,
       currentStatus: newStatus,
+    });
+  };
+
+  const [reviewForm] = Form.useForm();
+
+  // Handle review submission
+  const handleReviewSubmit = async (values) => {
+    if (!selectedBooking) return;
+
+    const result = await createReview({
+      bookingId: selectedBooking._id,
+      rating: values.rating,
+      comment: values.comment,
+    });
+
+    if (result.success) {
+      message.success("Review submitted successfully!");
+      setReviewModalVisible(false);
+      setSelectedBooking(null);
+      reviewForm.resetFields();
+      fetchDashboard(); // Refresh data
+    } else {
+      message.error(result.error || "Failed to submit review");
+    }
+  };
+
+  // Open review modal
+  const openReviewModal = (booking) => {
+    setSelectedBooking(booking);
+    setReviewModalVisible(true);
+    reviewForm.setFieldsValue({
+      rating: 5,
+      comment: "",
     });
   };
 
@@ -288,15 +329,6 @@ const ProviderBookings = () => {
             Details
           </Button>
 
-          {/* Status buttons */}
-          {booking.status === "pending" && (
-            <Button
-              type="primary"
-              onClick={() => handleStatusUpdate(booking, "confirmed")}
-            >
-              Confirm
-            </Button>
-          )}
           {booking.status === "confirmed" && (
             <Button
               type="default"
@@ -305,9 +337,15 @@ const ProviderBookings = () => {
               Mark Complete
             </Button>
           )}
-          {booking.status === "cancelled" && (
-            <Button type="dashed" disabled>
-              Cancelled
+
+          {booking.status === "completed" && !booking.hasReview && (
+            <Button
+              size="small"
+              type="primary"
+              icon={<Star size={14} />}
+              onClick={() => openReviewModal(booking)}
+            >
+              Review
             </Button>
           )}
         </div>
@@ -316,7 +354,7 @@ const ProviderBookings = () => {
   ];
 
   return (
-    <ProviderLayout>
+    <ClientLayout>
       <div className="p-6">
         <Title level={2} className="text-white mb-6">
           Bookings
@@ -369,7 +407,7 @@ const ProviderBookings = () => {
           />
 
           {/* Pagination */}
-          {pagination.total > 0 && (
+          {pagination?.total > 0 && (
             <div className="flex justify-center mt-6">
               <Pagination
                 current={pagination.page}
@@ -673,9 +711,20 @@ const ProviderBookings = () => {
             loadBookings({ page: pagination.page, status: statusFilter })
           }
         />
+
+        <ClientReviewModal
+          visible={reviewModalVisible}
+          onClose={() => {
+            setReviewModalVisible(false);
+            setSelectedBooking(null);
+          }}
+          booking={selectedBooking}
+          loading={loading}
+          onSubmit={handleReviewSubmit}
+        />
       </div>
-    </ProviderLayout>
+    </ClientLayout>
   );
 };
 
-export default ProviderBookings;
+export default ClientBookings;

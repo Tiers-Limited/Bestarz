@@ -50,6 +50,13 @@ const ClientLayout = ({ children }) => {
     },
 
     {
+      key: '/client/bookings',
+      icon: <Book size={18} />,
+      label: 'My Bookings',
+    },
+
+
+    {
       key: '/client/messages',
       icon: <MessageCircle size={18} />,
       label: 'Messages',

@@ -14,6 +14,7 @@ export const useBooking = () => {
 export const BookingProvider = ({ children }) => {
   const { token } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [bookingsData, setBookingsData] = useState([]);
 
   const baseUrl = import.meta.env.VITE_BASE_URL;
 
@@ -26,7 +27,7 @@ export const BookingProvider = ({ children }) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }), // optional auth
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         body: JSON.stringify(bookingData),
       });
@@ -49,14 +50,57 @@ export const BookingProvider = ({ children }) => {
     }
   };
 
+  // Get bookings for current user (status, page, limit are dynamic)
+  const fetchBookings = async ({ status, page = 1, limit = 10 }) => {
+    try {
+      setLoading(true);
+
+      const query = new URLSearchParams({
+        ...(status && { status }),
+        page: String(page),
+        limit: String(limit),
+      });
+
+      const response = await fetch(
+        `${baseUrl}/bookings/me?${query.toString()}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setBookingsData({
+          bookings: data.bookings || [],
+          pagination: data.pagination || {},
+        });
+        return { success: true, data };
+      } else {
+        return {
+          success: false,
+          error: data.message || "Failed to fetch bookings",
+        };
+      }
+    } catch (error) {
+      console.error("Fetch bookings error:", error);
+      return { success: false, error: "Network error. Please try again." };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const value = {
     loading,
     createBooking,
+    fetchBookings,
+    bookingsData,
   };
 
   return (
-    <BookingContext.Provider value={value}>
-      {children}
-    </BookingContext.Provider>
+    <BookingContext.Provider value={value}>{children}</BookingContext.Provider>
   );
 };

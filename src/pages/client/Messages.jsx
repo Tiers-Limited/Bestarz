@@ -1,55 +1,25 @@
-import React, { useMemo, useState } from "react";
-import { Input } from "antd";
+import React, { useMemo, useState, useEffect } from "react";
+import { Input, Spin } from "antd";
 import ClientLayout from "../../components/ClientLayout";
 import ConversationList from "../../components/ConversationList";
 import ChatWindow from "../../components/ChatWindow";
-
-const mockConversations = [
-  {
-    id: "ClientMessages",
-    title: "Bestraz ClientMessages",
-    avatarUrl: undefined,
-    lastMessage: "How can we help today?",
-    lastMessageAt: "now",
-    unreadCount: 0,
-  },
-  {
-    id: "prov-123",
-    title: "John's Plumbing",
-    avatarUrl: undefined,
-    lastMessage: "Your booking is confirmed",
-    lastMessageAt: "2h",
-    unreadCount: 2,
-  },
-];
-
-const mockMessagesByConv = {
-  ClientMessages: [
-    {
-      id: "m1",
-      senderId: "agent",
-      senderName: "ClientMessages Agent",
-      text: "Hi! How can we help today?",
-      timestamp: "Just now",
-    },
-  ],
-  "prov-123": [
-    {
-      id: "m2",
-      senderId: "prov-123",
-      senderName: "John",
-      text: "Your booking for Fri 10 AM is confirmed.",
-      timestamp: "2h ago",
-    },
-  ],
-};
+import { useMessage } from "../../context/messages/MessageContext";
+import { useAuth } from "../../context/AuthContext";
 
 const ClientMessages = () => {
-  const currentUserId = "client-user";
+  const { user } = useAuth();
+  const {
+    conversations,
+    activeConversation,
+    messages,
+    loading,
+    sendMessage,
+    setActiveConversation,
+    startTyping,
+    stopTyping
+  } = useMessage();
+  
   const [query, setQuery] = useState("");
-  const [conversations, setConversations] = useState(mockConversations);
-  const [active, setActive] = useState(conversations[0]);
-  const [messagesByConv, setMessagesByConv] = useState(mockMessagesByConv);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -57,35 +27,39 @@ const ClientMessages = () => {
     return conversations.filter((c) => c.title.toLowerCase().includes(q));
   }, [query, conversations]);
 
-  const messages = messagesByConv[active?.id] || [];
-
   const handleSend = (text) => {
-    setMessagesByConv((prev) => ({
-      ...prev,
-      [active.id]: [
-        ...(prev[active.id] || []),
-        {
-          id: `${active.id}-${Date.now()}`,
-          senderId: currentUserId,
-          senderName: "You",
-          text,
-          timestamp: new Date().toLocaleTimeString(),
-        },
-      ],
-    }));
-    setConversations((prev) =>
-      prev.map((c) =>
-        c.id === active.id
-          ? { ...c, lastMessage: text, lastMessageAt: "now", unreadCount: 0 }
-          : c
-      )
-    );
+    if (activeConversation && text.trim()) {
+      sendMessage(activeConversation.id, text);
+    }
   };
+
+  const handleTypingStart = () => {
+    if (activeConversation) {
+      startTyping(activeConversation.id);
+    }
+  };
+
+  const handleTypingStop = () => {
+    if (activeConversation) {
+      stopTyping(activeConversation.id);
+    }
+  };
+
+  if (loading && conversations.length === 0) {
+    return (
+      <ClientLayout>
+        <div className="flex items-center justify-center h-[calc(100vh-120px)]">
+          <Spin size="large" />
+        </div>
+      </ClientLayout>
+    );
+  }
 
   return (
     <ClientLayout>
       <div className="p-4 h-[calc(100vh-120px)]">
         <div className="h-full grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Conversations List */}
           <div className="col-span-1 border border-[#222] rounded-lg overflow-hidden flex flex-col">
             <div className="p-3 border-b border-[#222]">
               <Input.Search
@@ -97,22 +71,37 @@ const ClientMessages = () => {
             </div>
             <ConversationList
               conversations={filtered}
-              activeId={active?.id}
-              onSelect={(c) => setActive(c)}
+              activeId={activeConversation?.id}
+              onSelect={setActiveConversation}
             />
           </div>
 
+          {/* Chat Window */}
           <div className="col-span-1 md:col-span-2 border border-[#222] rounded-lg overflow-hidden">
-            {active ? (
+            {activeConversation ? (
               <ChatWindow
-                header={{ title: active.title, subtitle: "Online", avatarUrl: active.avatarUrl }}
+                header={{ 
+                  title: activeConversation.title, 
+                  subtitle: "Online", 
+                  avatarUrl: activeConversation.avatarUrl 
+                }}
                 messages={messages}
-                currentUserId={currentUserId}
+                currentUserId={user?._id}
                 onSend={handleSend}
+                onTypingStart={handleTypingStart}
+                onTypingStop={handleTypingStop}
+                loading={loading}
               />
             ) : (
               <div className="h-full flex items-center justify-center text-gray-400">
-                Select a conversation
+                {conversations.length === 0 ? (
+                  <div className="text-center">
+                    <p className="text-lg mb-2">No conversations yet</p>
+                    <p className="text-sm">Start a conversation with a provider</p>
+                  </div>
+                ) : (
+                  "Select a conversation"
+                )}
               </div>
             )}
           </div>
@@ -123,5 +112,3 @@ const ClientMessages = () => {
 };
 
 export default ClientMessages;
-
-

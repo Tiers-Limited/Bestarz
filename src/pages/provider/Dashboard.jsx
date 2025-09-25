@@ -13,31 +13,13 @@ const ProviderDashboard = () => {
   const navigate = useNavigate();
   const { dashboardData, loading, fetchDashboardData } = useProvider();
   const { user } = useAuth();
-  const [statusModal, setStatusModal] = useState({
-    visible: false,
-    booking: null,
-    currentStatus: 'pending'
-  });
-
+ 
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
-  const handleStatusUpdate = (booking, newStatus = 'confirmed') => {
-    setStatusModal({
-      visible: true,
-      booking: booking,
-      currentStatus: newStatus
-    });
-  };
+ 
 
-  const handleModalClose = () => {
-    setStatusModal({
-      visible: false,
-      booking: null,
-      currentStatus: 'pending'
-    });
-  };
 
   const handleModalSuccess = () => {
     fetchDashboardData(); 
@@ -118,26 +100,7 @@ const ProviderDashboard = () => {
                 >
                   Message
                 </Button>,
-                booking.status === 'pending' && (
-                  <Button 
-                    key="confirm" 
-                    size="small" 
-                    type="primary"
-                    onClick={() => handleStatusUpdate(booking, 'confirmed')}
-                  >
-                    Confirm
-                  </Button>
-                ),
-                booking.status === 'confirmed' && (
-                  <Button 
-                    key="complete" 
-                    size="small" 
-                    type="default"
-                    onClick={() => handleStatusUpdate(booking, 'completed')}
-                  >
-                    Mark Complete
-                  </Button>
-                )
+              
               ].filter(Boolean)}
               className="hover:bg-gray-800/50 rounded-lg px-4 transition-colors glow-border mb-2"
             >
@@ -416,13 +379,7 @@ const ProviderDashboard = () => {
         </Row>
 
         {/* Booking Status Modal */}
-        <BookingStatusModal
-          visible={statusModal.visible}
-          onClose={handleModalClose}
-          booking={statusModal.booking}
-          currentStatus={statusModal.currentStatus}
-          onSuccess={handleModalSuccess}
-        />
+      
       </div>
     </ProviderLayout>
   );

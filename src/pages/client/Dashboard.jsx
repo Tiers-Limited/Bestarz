@@ -29,7 +29,7 @@ import {
 import ClientLayout from "../../components/ClientLayout";
 import { useNavigate } from "react-router-dom";
 import { useClient } from "../../context/client/ClientContext";
-
+import ClientReviewModal from "../../components/ClientReviewModal";
 
 const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -425,79 +425,16 @@ const ClientDashboard = () => {
         </Modal>
 
         {/* Review Modal */}
-        <Modal
-          title={
-            <span className="flex items-center gap-2">
-              <Star size={20} />
-              Leave a Review
-            </span>
-          }
-          open={reviewModalVisible}
-          onCancel={() => {
+        <ClientReviewModal
+          visible={reviewModalVisible}
+          onClose={() => {
             setReviewModalVisible(false);
             setSelectedBooking(null);
-            reviewForm.resetFields();
           }}
-          footer={null}
-          width={600}
-        >
-          {selectedBooking && (
-            <div className="mb-4 p-4 bg-gray-50 rounded">
-              <h4 className="mb-2">{selectedBooking.eventType}</h4>
-              <p className="text-gray-600">
-                Provider: {selectedBooking.provider?.businessName}
-              </p>
-              <p className="text-gray-600">
-                Date: {new Date(selectedBooking.dateStart).toLocaleDateString()}
-              </p>
-            </div>
-          )}
-
-          <Form
-            form={reviewForm}
-            layout="vertical"
-            onFinish={handleReviewSubmit}
-          >
-            <Form.Item
-              label="Rating"
-              name="rating"
-              rules={[{ required: true, message: "Please select a rating" }]}
-            >
-              <Rate />
-            </Form.Item>
-
-            <Form.Item
-              label="Review Comment"
-              name="comment"
-              rules={[{ required: true, message: "Please write a review" }]}
-            >
-              <TextArea
-                rows={4}
-                placeholder="Share your experience with this provider..."
-              />
-            </Form.Item>
-
-            <div className="flex justify-end gap-2">
-              <Button
-                onClick={() => {
-                  setReviewModalVisible(false);
-                  setSelectedBooking(null);
-                  reviewForm.resetFields();
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={loading}
-                icon={<Star size={16} />}
-              >
-                Submit Review
-              </Button>
-            </div>
-          </Form>
-        </Modal>
+          booking={selectedBooking}
+          loading={loading}
+          onSubmit={handleReviewSubmit}
+        />
       </div>
     </ClientLayout>
   );
