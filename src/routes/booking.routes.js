@@ -15,6 +15,6 @@ router.post('/', auth('client'), createBooking);
 router.get('/me', auth(['client', 'provider']), listMyBookings);
 router.get('/stats', auth(['client', 'provider']), getBookingStats);
 router.get('/:id', auth(), getBooking);
-router.patch('/:id/status', auth('provider'), updateBookingStatus);
+router.patch('/:id/status', auth(), updateBookingStatus);
 
 module.exports = router;

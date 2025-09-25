@@ -1,7 +1,8 @@
 const Booking = require('../models/Booking.js');
 const Provider = require('../models/Provider.js');
 const { transporter } = require("../config/nodemailer.js");
-const bookingEmailTemplate  = require('../templates/bookingTemplate.js');
+const bookingEmailTemplate = require('../templates/bookingTemplate.js');
+const Review = require('../models/Review.js');
 
 const createBooking = async (req, res) => {
 	try {
@@ -78,17 +79,33 @@ const listMyBookings = async (req, res) => {
 
 		if (role === 'client') {
 			filter.client = req.user.id;
+
 			const bookings = await Booking.find(filter)
 				.populate([
-					{ path: 'provider', populate: { path: 'user', select: 'firstName lastName email phone profileImage' } }
+					{ path: 'provider', populate: { path: 'user', select: 'firstName lastName email phone profileImage' } },
+					{ path: 'client', select: 'firstName lastName email phone profileImage' }
 				])
 				.sort({ createdAt: -1 })
 				.skip((Number(page) - 1) * Number(limit))
 				.limit(Number(limit));
 
+			// Fetch all reviews for this client in one query
+			const bookingIds = bookings.map(b => b._id);
+			const reviews = await Review.find({ booking: { $in: bookingIds }, client: req.user.id });
+			const reviewMap = {};
+			reviews.forEach(r => {
+				reviewMap[r.booking.toString()] = r; // store full review object
+			});
+
+			const bookingsWithReviews = bookings.map(booking => ({
+				...booking.toObject(),
+				hasReview: !!reviewMap[booking._id.toString()],
+				review: reviewMap[booking._id.toString()] || null
+			}));
+
 			const total = await Booking.countDocuments(filter);
 			return res.json({
-				bookings,
+				bookings: bookingsWithReviews,
 				pagination: {
 					page: Number(page),
 					limit: Number(limit),
@@ -103,6 +120,7 @@ const listMyBookings = async (req, res) => {
 			if (!provider) return res.json({ bookings: [], pagination: { page: 1, limit: Number(limit), total: 0, pages: 0 } });
 
 			filter.provider = provider._id;
+
 			const bookings = await Booking.find(filter)
 				.populate([
 					{ path: 'client', select: 'firstName lastName email phone profileImage' }
@@ -111,9 +129,23 @@ const listMyBookings = async (req, res) => {
 				.skip((Number(page) - 1) * Number(limit))
 				.limit(Number(limit));
 
+			// Fetch all reviews for this provider in one query
+			const bookingIds = bookings.map(b => b._id);
+			const reviews = await Review.find({ booking: { $in: bookingIds }, provider: provider._id });
+			const reviewMap = {};
+			reviews.forEach(r => {
+				reviewMap[r.booking.toString()] = r;
+			});
+
+			const bookingsWithReviews = bookings.map(booking => ({
+				...booking.toObject(),
+				hasReview: !!reviewMap[booking._id.toString()],
+				review: reviewMap[booking._id.toString()] || null
+			}));
+
 			const total = await Booking.countDocuments(filter);
 			return res.json({
-				bookings,
+				bookings: bookingsWithReviews,
 				pagination: {
 					page: Number(page),
 					limit: Number(limit),
