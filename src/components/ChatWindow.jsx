@@ -34,6 +34,9 @@ const ChatWindow = ({
   inputDisabled,
   loading
 }) => {
+
+
+  console.log(currentUserId,"currentUserId")
   return (
     <div className="flex flex-col h-full">
       <ChatHeader {...header} />

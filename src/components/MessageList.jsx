@@ -2,6 +2,8 @@ import React, { useEffect, useRef } from "react";
 import { Avatar, Tooltip } from "antd";
 
 const MessageBubble = ({ message, isOwn }) => {
+
+  console.log(message,"messagemessage")
   return (
     <div className={`flex items-end gap-2 ${isOwn ? "justify-end" : "justify-start"}`}>
       {!isOwn && (

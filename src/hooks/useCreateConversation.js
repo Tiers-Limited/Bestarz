@@ -1,9 +1,12 @@
 // hooks/useCreateConversation.js
+import { useNavigate } from "react-router-dom";
 import { useMessage } from "../context/messages/MessageContext";
 import { message as antMessage } from "antd";
 
 export const useCreateConversation = () => {
   const { createConversation, setActiveConversation } = useMessage();
+
+  const navigate=useNavigate();
 
   const createAndNavigateToConversation = async (participantId, bookingId = null, title = null) => {
     try {
@@ -11,6 +14,8 @@ export const useCreateConversation = () => {
       if (conversation) {
         setActiveConversation(conversation);
         antMessage.success("Conversation started successfully");
+
+        navigate('/client/messages')
         return conversation;
       }
       return null;

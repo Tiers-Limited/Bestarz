@@ -8,6 +8,8 @@ import { useAuth } from "../../context/AuthContext";
 
 const ClientMessages = () => {
   const { user } = useAuth();
+
+  console.log(user,"useruseruseruserClient")
   const {
     conversations,
     activeConversation,
@@ -15,10 +17,9 @@ const ClientMessages = () => {
     loading,
     sendMessage,
     setActiveConversation,
-    startTyping,
-    stopTyping
   } = useMessage();
   
+
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -33,17 +34,7 @@ const ClientMessages = () => {
     }
   };
 
-  const handleTypingStart = () => {
-    if (activeConversation) {
-      startTyping(activeConversation.id);
-    }
-  };
 
-  const handleTypingStop = () => {
-    if (activeConversation) {
-      stopTyping(activeConversation.id);
-    }
-  };
 
   if (loading && conversations.length === 0) {
     return (
@@ -86,10 +77,9 @@ const ClientMessages = () => {
                   avatarUrl: activeConversation.avatarUrl 
                 }}
                 messages={messages}
-                currentUserId={user?._id}
+                currentUserId={user?.id}
                 onSend={handleSend}
-                onTypingStart={handleTypingStart}
-                onTypingStop={handleTypingStop}
+                
                 loading={loading}
               />
             ) : (

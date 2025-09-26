@@ -36,6 +36,7 @@ import BookingStatusModal from "../../components/BookingStatusModal";
 import { useBooking } from "../../context/booking/BookingContext";
 import ClientReviewModal from "../../components/ClientReviewModal";
 import { useClient } from "../../context/client/ClientContext";
+import { useCreateConversation } from "../../hooks/useCreateConversation";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -45,6 +46,8 @@ const ClientBookings = () => {
   const { fetchBookings, bookingsData, loading } = useBooking();
 
   const { createReview } = useClient();
+
+  const { createAndNavigateToConversation } = useCreateConversation();
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState("all");
@@ -314,42 +317,44 @@ const ClientBookings = () => {
       title: "Actions",
       key: "actions",
       className: "whitespace-nowrap",
-      render: (_, booking) => (
-        <div className="flex gap-2">
-          <Button
-            icon={<MessageCircle size={14} />}
-            disabled={!booking.client}
-            onClick={() =>
-              navigate(`/provider/messages?client=${booking.client._id}`)
-            }
-          >
-            Message
-          </Button>
-          <Button type="primary" onClick={() => showBookingDetails(booking)}>
-            Details
-          </Button>
+      render: (_, booking) => {
 
-          {booking.status === "confirmed" && (
+        console.log(booking,"Booking")
+        return (
+          <div className="flex gap-2">
             <Button
-              type="default"
-              onClick={() => handleStatusUpdate(booking, "completed")}
+              icon={<MessageCircle size={14} />}
+              disabled={!booking.client}
+              onClick={() => createAndNavigateToConversation(booking?.provider?.user?._id)}
             >
-              Mark Complete
+              Message
             </Button>
-          )}
+            <Button type="primary" onClick={() => showBookingDetails(booking)}>
+              Details
+            </Button>
 
-          {booking.status === "completed" && !booking.hasReview && (
-            <Button
-              size="small"
-              type="primary"
-              icon={<Star size={14} />}
-              onClick={() => openReviewModal(booking)}
-            >
-              Review
-            </Button>
-          )}
-        </div>
-      ),
+            {booking.status === "confirmed" && (
+              <Button
+                type="default"
+                onClick={() => handleStatusUpdate(booking, "completed")}
+              >
+                Mark Complete
+              </Button>
+            )}
+
+            {booking.status === "completed" && !booking.hasReview && (
+              <Button
+                size="small"
+                type="primary"
+                icon={<Star size={14} />}
+                onClick={() => openReviewModal(booking)}
+              >
+                Review
+              </Button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 

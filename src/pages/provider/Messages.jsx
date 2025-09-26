@@ -8,6 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 
 const ProviderMessages = () => {
   const { user } = useAuth();
+  console.log(user,"useruseruseruseruser")
   const {
     conversations,
     activeConversation,
@@ -15,8 +16,7 @@ const ProviderMessages = () => {
     loading,
     sendMessage,
     setActiveConversation,
-    startTyping,
-    stopTyping
+   
   } = useMessage();
   
   const [query, setQuery] = useState("");
@@ -33,17 +33,6 @@ const ProviderMessages = () => {
     }
   };
 
-  const handleTypingStart = () => {
-    if (activeConversation) {
-      startTyping(activeConversation.id);
-    }
-  };
-
-  const handleTypingStop = () => {
-    if (activeConversation) {
-      stopTyping(activeConversation.id);
-    }
-  };
 
   if (loading && conversations.length === 0) {
     return (
@@ -86,10 +75,9 @@ const ProviderMessages = () => {
                   avatarUrl: activeConversation.avatarUrl 
                 }}
                 messages={messages}
-                currentUserId={user?._id}
+                currentUserId={user?.id}
                 onSend={handleSend}
-                onTypingStart={handleTypingStart}
-                onTypingStop={handleTypingStop}
+              
                 loading={loading}
               />
             ) : (
