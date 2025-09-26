@@ -12,7 +12,7 @@ const ChatHeader = ({ title, subtitle, avatarUrl, menuItems }) => {
         </Avatar>
         <div className="min-w-0">
           <p className="text-white font-medium truncate">{title}</p>
-          {subtitle && <p className="text-xs text-gray-400 truncate">{subtitle}</p>}
+          {/* {subtitle && <p className="text-xs text-gray-400 truncate">{subtitle}</p>} */}
         </div>
       </div>
       {menuItems?.length ? (

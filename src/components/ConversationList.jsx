@@ -36,7 +36,7 @@ const ConversationList = ({ conversations = [], activeId, onSelect }) => {
               </Avatar>
             </Badge>
             {/* Online status indicator - you can add online status logic here */}
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[#111]"></div>
+            {/* <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[#111]"></div> */}
           </div>
           
           <div className="min-w-0 flex-1">
