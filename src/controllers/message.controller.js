@@ -199,7 +199,7 @@ const sendMessage = async (req, res) => {
 			});
 		}
 
-		// ✅ EMIT SOCKET EVENTS FROM HTTP ROUTE
+		// ✅ EMIT SOCKET EVENTS FROM HTTP ROUT
 		const io = req.io;
 		if (io) {
 			console.log(`🚀 EMITTING new_message via HTTP route to conversation_${conversationId}`);
