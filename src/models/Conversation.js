@@ -8,7 +8,8 @@ const conversationSchema = new mongoose.Schema(
 		lastMessage: { type: mongoose.Schema.Types.ObjectId, ref: 'Message' },
 		lastMessageAt: { type: Date },
 		isActive: { type: Boolean, default: true },
-		unreadCount: { type: Map, of: Number, default: new Map() }
+		unreadCount: { type: Map, of: Number, default: new Map() },
+		createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 	},
 	{ timestamps: true }
 );

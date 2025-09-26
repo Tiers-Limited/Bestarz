@@ -3,42 +3,69 @@ const Conversation = require('../models/Conversation.js');
 const User = require('../models/User.js');
 const Booking = require('../models/Booking.js');
 
- const getConversations = async (req, res) => {
+const getConversations = async (req, res) => {
 	try {
-		const userId = req.user.id;
-		const { page = 1, limit = 20 } = req.query;
-		
-		const conversations = await Conversation.find({
-			participants: userId,
-			isActive: true
-		})
-		.populate([
-			{ path: 'participants', select: 'firstName lastName profileImage' },
-			{ path: 'lastMessage', select: 'content createdAt' },
-			{ path: 'booking', select: 'serviceCategory eventType' }
-		])
-		.sort({ lastMessageAt: -1 })
-		.skip((Number(page) - 1) * Number(limit))
-		.limit(Number(limit));
-		
-		const total = await Conversation.countDocuments({
-			participants: userId,
-			isActive: true
-		});
-		
-		return res.json({
-			conversations,
-			pagination: {
-				page: Number(page),
-				limit: Number(limit),
-				total,
-				pages: Math.ceil(total / Number(limit))
-			}
-		});
+	  const userId = String(req.user.id);
+	  const { page = 1, limit = 20 } = req.query;
+  
+	  const conversations = await Conversation.find({
+		participants: userId,
+		isActive: true,
+		$or: [
+		  { lastMessage: { $exists: true, $ne: null } },
+		  { createdBy: userId } 
+		]
+	  })
+	  .populate([
+		{ path: "participants", select: "firstName lastName profileImage" },
+		{ path: "lastMessage", select: "content createdAt" },
+		{ path: "booking", select: "serviceCategory eventType" }
+	  ])
+	  .sort({ lastMessageAt: -1 })
+	  .skip((Number(page) - 1) * Number(limit))
+	  .limit(Number(limit));
+	  
+	  // format with "other participant" title
+	  const formattedConversations = conversations.map(conv => {
+		const participants = conv.participants.map(p =>
+		  typeof p.toObject === "function" ? p.toObject() : p
+		);
+  
+		const otherParticipant = participants.find(
+		  p => String(p._id) != userId
+		);
+  
+
+		console.log(otherParticipant,"otherParticipant")
+		return {
+		  ...conv.toObject(),
+		  title: otherParticipant
+			? `${otherParticipant.firstName} ${otherParticipant.lastName}`
+			: "Unknown User",
+		  avatarUrl: otherParticipant?.profileImage || null,
+		  otherParticipant
+		};
+	  });
+  
+	  const total = await Conversation.countDocuments({
+		participants: userId,
+		isActive: true
+	  });
+  
+	  return res.json({
+		conversations: formattedConversations,
+		pagination: {
+		  page: Number(page),
+		  limit: Number(limit),
+		  total,
+		  pages: Math.ceil(total / Number(limit))
+		}
+	  });
 	} catch (err) {
-		return res.status(500).json({ message: err.message });
+	  return res.status(500).json({ message: err.message });
 	}
-};
+  };
+  
 
  const getConversation = async (req, res) => {
 	try {
@@ -114,22 +141,25 @@ const Booking = require('../models/Booking.js');
 		return res.status(500).json({ message: err.message });
 	}
 };
-
- const sendMessage = async (req, res) => {
+const sendMessage = async (req, res) => {
 	try {
 		const { conversationId } = req.params;
 		const { content, messageType = 'text', attachments = [] } = req.body;
 		const userId = req.user.id;
-		
+
+		console.log(`📨 HTTP sendMessage - User: ${userId}, Conversation: ${conversationId}`);
+
 		// Check if user has access to conversation
-		const conversation = await Conversation.findById(conversationId);
+		let conversation = await Conversation.findById(conversationId);
 		if (!conversation) return res.status(404).json({ message: 'Conversation not found' });
-		
+
+		const isFirstMessage = !conversation.lastMessage;
 		const isParticipant = conversation.participants.some(p => String(p) === String(userId));
 		if (!isParticipant && req.user.role !== 'admin') {
 			return res.status(403).json({ message: 'Forbidden' });
 		}
-		
+
+		// Create message
 		const message = await Message.create({
 			conversation: conversationId,
 			sender: userId,
@@ -137,11 +167,11 @@ const Booking = require('../models/Booking.js');
 			messageType,
 			attachments
 		});
-		
+
 		// Update conversation last message
 		conversation.lastMessage = message._id;
 		conversation.lastMessageAt = new Date();
-		
+
 		// Update unread count for other participants
 		conversation.participants.forEach(participantId => {
 			if (String(participantId) !== String(userId)) {
@@ -149,16 +179,59 @@ const Booking = require('../models/Booking.js');
 				conversation.unreadCount.set(String(participantId), currentCount + 1);
 			}
 		});
-		
+
 		await conversation.save();
-		
 		await message.populate('sender', 'firstName lastName profileImage');
-		
+
+		// ✅ If first message, emit full conversation object
+		if (isFirstMessage && req.io) {
+			const populatedConversation = await Conversation.findById(conversation._id)
+				.populate([
+					{ path: 'participants', select: 'firstName lastName profileImage email phone' },
+					{ path: 'booking', select: 'serviceCategory eventType dateStart location' },
+					{ path: 'lastMessage', populate: { path: 'sender', select: 'firstName lastName profileImage' } }
+				]);
+
+			conversation.participants.forEach((p) => {
+				if (String(p._id) !== String(userId)) {
+					req.io.to(`user_${p._id}`).emit("new_conversation", populatedConversation);
+				}
+			});
+		}
+
+		// ✅ EMIT SOCKET EVENTS FROM HTTP ROUTE
+		const io = req.io;
+		if (io) {
+			console.log(`🚀 EMITTING new_message via HTTP route to conversation_${conversationId}`);
+			console.log(`📊 Message data:`, {
+				id: message._id,
+				content: message.content,
+				sender: message.sender._id
+			});
+
+			// Emit to conversation room
+			io.to(`conversation_${conversationId}`).emit('new_message', message);
+
+			// Emit conversation updates to all participants
+			conversation.participants.forEach(participantId => {
+				console.log(`📤 Emitting conversation_updated to user_${participantId}`);
+				io.to(`user_${participantId}`).emit('conversation_updated', {
+					conversationId,
+					lastMessage: message,
+					unreadCount: conversation.unreadCount.get(String(participantId)) || 0
+				});
+			});
+		} else {
+			console.log('❌ IO instance not available in HTTP route');
+		}
+
 		return res.status(201).json({ message });
 	} catch (err) {
+		console.error('❌ sendMessage error:', err);
 		return res.status(500).json({ message: err.message });
 	}
 };
+
 
  const createConversation = async (req, res) => {
 	try {
@@ -189,9 +262,10 @@ const Booking = require('../models/Booking.js');
 		const conversation = await Conversation.create({
 			participants: [userId, participantId],
 			booking: bookingId,
-			title: title || `${participant.firstName} ${participant.lastName}`
-		});
-		
+			title: title || `${participant.firstName} ${participant.lastName}`,
+			createdBy: userId   
+		  });
+		  
 		await conversation.populate([
 			{ path: 'participants', select: 'firstName lastName profileImage email phone' },
 			{ path: 'booking', select: 'serviceCategory eventType dateStart location' }

@@ -20,6 +20,8 @@ const reviewRoutes = require('./routes/review.routes');
 const webhookRoutes = require('./routes/webhook.routes');
 const messageRoutes = require('./routes/message.routes');
 const supportRoutes = require('./routes/support.routes');
+const Message = require('./models/Message');
+const Conversation = require('./models/Conversation');
 
 const app = express();
 const server = createServer(app);
@@ -27,9 +29,15 @@ const server = createServer(app);
 // Socket.IO setup
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: "*",
     methods: ["GET", "POST"]
   }
+});
+
+// ✅ CRITICAL: Add this middleware to make io available to routes
+app.use((req, res, next) => {
+  req.io = io;
+  next();
 });
 
 console.log("Mongo URI:", process.env.MONGODB_URI);
@@ -79,26 +87,26 @@ io.use((socket, next) => {
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  console.log(`User ${socket.userId} connected`);
+  console.log(`👤 User ${socket.userId} connected`);
   socket.join(`user_${socket.userId}`);
 
   socket.on('join_conversation', (conversationId) => {
+    console.log(`🏠 User ${socket.userId} joining conversation: ${conversationId}`);
     socket.join(`conversation_${conversationId}`);
-    console.log(`User ${socket.userId} joined conversation ${conversationId}`);
   });
 
   socket.on('leave_conversation', (conversationId) => {
+    console.log(`🚪 User ${socket.userId} leaving conversation: ${conversationId}`);
     socket.leave(`conversation_${conversationId}`);
-    console.log(`User ${socket.userId} left conversation ${conversationId}`);
   });
 
   socket.on('send_message', async (data) => {
     try {
+      console.log("📨 Socket send_message event received:", data);
+      console.log("👤 socket.userId:", socket.userId);
+  
       const { conversationId, content, messageType = 'text', attachments = [] } = data;
-
-      const Message = require('./models/Message').default;
-      const Conversation = require('./models/Conversation').default;
-
+  
       const message = await Message.create({
         conversation: conversationId,
         sender: socket.userId,
@@ -106,26 +114,31 @@ io.on('connection', (socket) => {
         messageType,
         attachments
       });
-
+  
+      console.log("📝 Message created:", message._id);
+  
       await message.populate('sender', 'firstName lastName profileImage');
-
+  
       const conversation = await Conversation.findById(conversationId);
+      console.log("💬 Conversation found:", conversation?._id);
+  
       if (conversation) {
         conversation.lastMessage = message._id;
         conversation.lastMessageAt = new Date();
-
+  
         conversation.participants.forEach(participantId => {
           if (String(participantId) !== String(socket.userId)) {
             const currentCount = conversation.unreadCount.get(String(participantId)) || 0;
             conversation.unreadCount.set(String(participantId), currentCount + 1);
           }
         });
-
+  
         await conversation.save();
       }
-
+  
+      console.log("🚀 EMITTING to conversation:", conversationId);
       io.to(`conversation_${conversationId}`).emit('new_message', message);
-
+  
       conversation.participants.forEach(participantId => {
         io.to(`user_${participantId}`).emit('conversation_updated', {
           conversationId,
@@ -133,33 +146,21 @@ io.on('connection', (socket) => {
           unreadCount: conversation.unreadCount.get(String(participantId)) || 0
         });
       });
-
+  
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('❌ Error sending message:', error);
       socket.emit('message_error', { error: 'Failed to send message' });
     }
   });
 
-  socket.on('typing_start', (data) => {
-    socket.to(`conversation_${data.conversationId}`).emit('user_typing', {
-      userId: socket.userId,
-      isTyping: true
-    });
-  });
 
-  socket.on('typing_stop', (data) => {
-    socket.to(`conversation_${data.conversationId}`).emit('user_typing', {
-      userId: socket.userId,
-      isTyping: false
-    });
-  });
 
   socket.on('disconnect', () => {
-    console.log(`User ${socket.userId} disconnected`);
+    console.log(`👋 User ${socket.userId} disconnected`);
   });
 });
 
-// Routes
+// Routes - THESE MUST COME AFTER THE IO MIDDLEWARE
 app.use('/api/auth', authRoutes);
 app.use('/api/providers', providerRoutes);
 app.use('/api/bookings', bookingRoutes);
