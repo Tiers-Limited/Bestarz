@@ -15,6 +15,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getInitials } from "../utils/helper";
+import { useMessage } from '../context/messages/MessageContext';
 
 const { Sider, Content, Header } = Layout;
 
@@ -24,6 +25,8 @@ const ClientLayout = ({ children }) => {
 
   const { user,signOut } = useAuth();
 
+
+  const {unreadCount}=useMessage();
 
   // ✅ Client-specific sidebar menu
   const menuItems = [
@@ -162,7 +165,7 @@ const ClientLayout = ({ children }) => {
                 icon={<Bell size={16} />}
                 className="text-gray-300 hover:text-white"
               >
-                5
+                {unreadCount}
               </Button>
               <Dropdown
                 menu={{

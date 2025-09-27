@@ -18,6 +18,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getInitials } from "../utils/helper";
+import { useMessage } from "../context/messages/MessageContext";
 
 const { Sider, Content, Header } = Layout;
 
@@ -26,6 +27,8 @@ const ProviderLayout = ({ children }) => {
   const location = useLocation();
 
   const { user, signOut } = useAuth();
+
+  const {unreadCount}=useMessage();
 
   console.log(user, "user");
 
@@ -177,7 +180,7 @@ const ProviderLayout = ({ children }) => {
                 className="text-gray-300 hover:text-white"
                 onClick={() => navigate("/provider/messages")}
               >
-                3
+              {unreadCount}
               </Button>
               <Dropdown
                 menu={{

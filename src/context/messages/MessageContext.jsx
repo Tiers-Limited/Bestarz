@@ -72,6 +72,10 @@ export const MessageProvider = ({ children }) => {
           );
           
           // Only update total unread count if conversation is not active
+
+
+          console.log(conversationId,activeConversation?.id,"NEWW");
+
           if (conversationId !== activeConversation?.id) {
             fetchUnreadCount();
           }
@@ -257,9 +261,9 @@ export const MessageProvider = ({ children }) => {
           }
 
           // Set first conversation as active if none selected and conversations exist
-          if (!activeConversation && formattedConversations.length > 0) {
-            setActiveConversationAndFetch(formattedConversations[0]);
-          }
+          // if (!activeConversation && formattedConversations.length > 0) {
+          //   setActiveConversationAndFetch(formattedConversations[0]);
+          // }
         } else {
           message.error(data.message || "Failed to load conversations");
         }

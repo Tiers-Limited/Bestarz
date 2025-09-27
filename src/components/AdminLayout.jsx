@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useMessage } from "../context/messages/MessageContext";
 
 const { Sider, Content, Header } = Layout;
 
@@ -24,6 +25,8 @@ const AdminLayout = ({ children }) => {
   const location = useLocation();
 
   const {user,signOut}=useAuth();
+
+  const {unreadCount}=useMessage();
 
   const menuItems = [
     {
@@ -171,7 +174,7 @@ const AdminLayout = ({ children }) => {
                 className="text-gray-300 hover:text-white"
                 onClick={() => navigate("/admin/messages")}
               >
-                5
+                {unreadCount}
               </Button>
               <Dropdown
                 menu={{
