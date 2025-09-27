@@ -4,10 +4,11 @@ const Provider = require('../models/Provider.js');
 const AuditLog = require('../models/AuditLog.js');
 const { createAuditLog } = require('../services/auditlog.service.js');
 const crypto = require("crypto");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const { transporter } = require("../config/nodemailer.js");
-const  verificationEmailTemplate  = require('../templates/verificationEmailTemplate.js');
-const  resetPasswordEmailTemplate  = require('../templates/resetPasswordEmailTemplate.js');
+const verificationEmailTemplate = require('../templates/verificationEmailTemplate.js');
+const resetPasswordEmailTemplate = require('../templates/resetPasswordEmailTemplate.js');
 
 
 const signToken = (user) => {
@@ -33,10 +34,11 @@ async function generateUniqueSlug(Provider, baseName) {
 	return slug;
 }
 
- const signup = async (req, res) => {
+const signup = async (req, res) => {
 	try {
 		const { firstName, lastName, email, password, userType, businessName } = req.body;
 
+		// Check if email already exists
 		const existing = await User.findOne({ email });
 		if (existing) {
 			await createAuditLog(
@@ -48,12 +50,12 @@ async function generateUniqueSlug(Provider, baseName) {
 		}
 
 		const passwordHash = await User.hashPassword(password);
-		const role = userType === "provider" ? "provider" : "client";
+		const role = userType === "provider" ? "provider" : userType === "admin" ? "admin" : "client";
 
-		// client accounts inactive until email verification
-		const isActive = false;
+		// client accounts inactive until email verification, others active
+		const isActive = role === "client" ? false : true;
 
-		const user = await User.create({
+		let user = await User.create({
 			firstName,
 			lastName,
 			email,
@@ -61,6 +63,31 @@ async function generateUniqueSlug(Provider, baseName) {
 			role,
 			isActive,
 		});
+
+		// If Client → create Stripe Customer
+		if (role === "client") {
+			const customer = await stripe.customers.create({
+				email,
+				name: `${firstName} ${lastName}`,
+			});
+			user.stripeCustomerId = customer.id;
+		}
+
+		// If Provider or Admin → create Stripe Connect Account
+		if (role === "provider" || role === "admin") {
+			const account = await stripe.accounts.create({
+				type: "express",
+				country: "US",
+				email,
+				capabilities: {
+					transfers: { requested: true },
+				},
+			});
+			user.stripeAccountId = account.id;
+		}
+
+		// Save user with updated stripe IDs
+		await user.save();
 
 		// If provider, create Provider profile
 		if (role === "provider" && businessName) {
@@ -85,22 +112,34 @@ async function generateUniqueSlug(Provider, baseName) {
 			html: verificationEmailTemplate(firstName, verifyLink),
 		});
 
-		await createAuditLog(`User signup successful - verification email sent`, user._id, "normal");
+		await createAuditLog(
+			`User signup successful - verification email sent`,
+			user._id,
+			"normal"
+		);
 
 		return res.status(201).json({
 			message: "Account created successfully! Please check your email to verify your account.",
 		});
 	} catch (err) {
+		// Handle duplicate key error
 		if (err.code === 11000) {
-			return res
-				.status(409)
-				.json({ message: "Business name already taken. Please choose another." });
+			if (err.keyPattern?.businessName) {
+				return res
+					.status(409)
+					.json({ message: "Business name already taken. Please choose another." });
+			}
+			if (err.keyPattern?.email) {
+				return res.status(409).json({ message: "Email already registered" });
+			}
 		}
-		return res.status(500).json({ message: err.message });
+		console.error("Signup error:", err);
+		return res.status(500).json({ message: "Something went wrong. Please try again later." });
 	}
 };
 
- const signin = async (req, res) => {
+
+const signin = async (req, res) => {
 	try {
 		const { email, password } = req.body;
 		const user = await User.findOne({ email });
@@ -159,7 +198,7 @@ async function generateUniqueSlug(Provider, baseName) {
 				email: user.email,
 				isActive: user.isActive,
 				profileImage: user.profileImage,
-				phone:user.phone,
+				phone: user.phone,
 				...(providerData ? { slug: providerData.slug } : {}), // add slug only if provider
 			},
 		});
@@ -169,7 +208,7 @@ async function generateUniqueSlug(Provider, baseName) {
 };
 
 
- const me = async (req, res) => {
+const me = async (req, res) => {
 	try {
 		const user = await User.findById(req.user.id).select('-passwordHash');
 		if (!user) return res.status(404).json({ message: 'User not found' });
@@ -179,7 +218,7 @@ async function generateUniqueSlug(Provider, baseName) {
 	}
 };
 
- const updateProfile = async (req, res) => {
+const updateProfile = async (req, res) => {
 	try {
 		const { firstName, lastName, phone, profileImage } = req.body;
 		const user = await User.findById(req.user.id);
@@ -210,7 +249,7 @@ async function generateUniqueSlug(Provider, baseName) {
 	}
 };
 
- const changePassword = async (req, res) => {
+const changePassword = async (req, res) => {
 	try {
 		const { currentPassword, newPassword } = req.body;
 		const user = await User.findById(req.user.id);
@@ -236,7 +275,7 @@ async function generateUniqueSlug(Provider, baseName) {
 };
 
 
- const verifyEmail = async (req, res) => {
+const verifyEmail = async (req, res) => {
 	try {
 		const { id } = req.query;
 		const user = await User.findById(id);
@@ -259,7 +298,7 @@ async function generateUniqueSlug(Provider, baseName) {
 	}
 };
 
- const forgotPassword = async (req, res) => {
+const forgotPassword = async (req, res) => {
 	try {
 		const { email } = req.body;
 		const user = await User.findOne({ email });
@@ -297,12 +336,12 @@ async function generateUniqueSlug(Provider, baseName) {
 };
 
 // Reset Password - verify token + set new password
- const resetPassword = async (req, res) => {
+const resetPassword = async (req, res) => {
 	try {
 		const { id, token, newPassword } = req.body;
 
 
-		console.log(id,token,newPassword)
+		console.log(id, token, newPassword)
 
 		const user = await User.findById(id);
 		if (!user) return res.status(404).json({ message: "User not found" });
@@ -334,13 +373,13 @@ async function generateUniqueSlug(Provider, baseName) {
 
 
 module.exports = {
-    signup,
-    signin,
-    me,
-    updateProfile,
-    changePassword,
-    verifyEmail,
-    resetPassword,
-    forgotPassword,
-   
+	signup,
+	signin,
+	me,
+	updateProfile,
+	changePassword,
+	verifyEmail,
+	resetPassword,
+	forgotPassword,
+
 };

@@ -18,6 +18,10 @@ const userSchema = new mongoose.Schema(
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
 
+
+    stripeCustomerId: { type: String },
+    stripeAccountId: { type: String }, 
+
     subscriptionPlan: {
       type: String,
       enum: ['starter', 'professional', 'enterprise', 'none'],
