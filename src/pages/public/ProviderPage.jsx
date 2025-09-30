@@ -17,7 +17,9 @@ import {
   Divider,
   Image,
   message,
-  Spin
+  Spin,
+  Slider,
+  Select
 } from "antd";
 import {
   MapPin,
@@ -28,16 +30,20 @@ import {
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { useBooking } from "../../context/booking/BookingContext";
+import { useAuth } from "../../context/AuthContext";
 
 const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
-const { RangePicker } = DatePicker;
+const { Option } = Select;
 
 const PublicProviderPage = () => {
   const { slug } = useParams();
   const { createBooking, loading: bookingLoading } = useBooking();
   const [provider, setProvider] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [budgetRange, setBudgetRange] = useState([0, 1500]);
+
+  const {user}=useAuth();
 
   const baseUrl = import.meta.env.VITE_BASE_URL;
 
@@ -61,33 +67,24 @@ const PublicProviderPage = () => {
     };
 
     fetchProvider();
-  }, [slug]);
+  }, [slug, baseUrl]);
 
   const onFinish = async (values) => {
     if (!provider) return;
 
+    // Format the booking payload to match backend expectations
     const bookingPayload = {
-      providerId: provider.id,
-      serviceCategory: provider.category,
-      eventType: values.eventType || "Other",
-      location: {
-        address: values.address || "",
-        city: values.city || "",
-        state: values.state || "",
-        zipCode: values.zipCode || "",
-        country: values.country || "",
-      },
-      guests: values.guests || 1,
-      dateStart: values.eventDate
-        ? values.eventDate.startOf("day").toISOString()
-        : null,
-      dateEnd: values.eventDate
-        ? values.eventDate.endOf("day").toISOString()
-        : null,
+      providerId: provider.id || provider._id,
+      serviceCategory: provider.category, // Use provider's category
+      eventType: values.eventType, // Selected service from dropdown
+      location: values.location,
+      guests: values.guests || 50,
+      dateStart: values.eventDate ? values.eventDate.format("YYYY-MM-DD") : null,
+      dateEnd: values.eventDate ? values.eventDate.format("YYYY-MM-DD") : null,
       eventTime: values.eventTime ? values.eventTime.format("HH:mm") : "",
-      duration: values.duration ? `${values.duration} hours` : "",
-      budgetMin: values.budget || provider.basePrice,
-      budgetMax: values.budget || provider.basePrice,
+      duration: values.duration || 4,
+      budgetMin: budgetRange[0],
+      budgetMax: budgetRange[1],
       description: values.message || "",
       contactInfo: {
         phone: values.phone || "",
@@ -129,9 +126,17 @@ const PublicProviderPage = () => {
             <div className="bestarz-logo">
               Best<span className="bestarz-star">★</span>rz
             </div>
-            <Link to="/signup">
+         
+
+            {
+              user? <Link to="/client/dashboard">
+              <Button type="primary">Go To Dashboard</Button>
+            </Link>:  <Link to="/signup">
               <Button type="primary">Join Bestarz</Button>
             </Link>
+            }
+
+           
           </div>
         </div>
       </header>
@@ -175,7 +180,7 @@ const PublicProviderPage = () => {
                 </div>
                 <div className="flex items-center text-gray-300">
                   <Globe size={16} className="mr-2 text-gray-400" />
-                  {provider.user?.website || "N/A"}
+                  {provider?.website || "N/A"}
                 </div>
               </Space>
             </Card>
@@ -220,6 +225,26 @@ const PublicProviderPage = () => {
               <Form layout="vertical" onFinish={onFinish}>
                 <Row gutter={[16, 16]}>
                   <Col xs={24} md={12}>
+                    <Form.Item 
+                      name="eventType" 
+                      label="Select Service" 
+                      rules={[{ required: true, message: "Please select a service!" }]}
+                    >
+                      <Select size="large" placeholder="Choose a service">
+                        {provider.services?.map((service) => (
+                          <Option key={service} value={service}>
+                            {service}
+                          </Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item name="guests" label="Number of Guests">
+                      <InputNumber size="large" className="w-full" min={1} placeholder="50" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
                     <Form.Item name="eventDate" label="Event Date" rules={[{ required: true, message: "Please select date!" }]}>
                       <DatePicker size="large" className="w-full" />
                     </Form.Item>
@@ -234,23 +259,49 @@ const PublicProviderPage = () => {
                       <InputNumber size="large" className="w-full" min={1} max={24} />
                     </Form.Item>
                   </Col>
-                  <Col xs={24} md={12}>
-                    <Form.Item name="budget" label="Your Budget" rules={[{ required: true, message: "Please input budget!" }]}>
-                      <InputNumber size="large" className="w-full" min={0} placeholder="Your budget" prefix="$" />
+                  <Col xs={24}>
+                    <Form.Item label={<span className="text-white">Budget Range</span>}>
+                      <div className="px-4">
+                        <Slider
+                          range
+                          min={0}
+                          max={5000}
+                          value={budgetRange}
+                          onChange={setBudgetRange}
+                          marks={{
+                            0: { label: "$0", style: { color: "#9CA3AF" } },
+                            1000: { label: "$1,000", style: { color: "#9CA3AF" } },
+                            2500: { label: "$2,500", style: { color: "#9CA3AF" } },
+                            5000: { label: "$5,000+", style: { color: "#9CA3AF" } },
+                          }}
+                          tooltip={{
+                            formatter: (value) => `$${value}`,
+                          }}
+                        />
+                      </div>
+                      <div className="text-center mt-2 text-gray-400">
+                        ${budgetRange[0]} - ${budgetRange[1]}
+                      </div>
                     </Form.Item>
                   </Col>
+                  <Col xs={24}>
+                    <Form.Item name="location" label="Event Address">
+                      <Input size="large" placeholder="Event Address" />
+                    </Form.Item>
+                  </Col>
+             
                   <Col xs={24}>
                     <Form.Item name="message" label="Additional Details">
                       <TextArea rows={4} placeholder="Any special requests or info..." />
                     </Form.Item>
                   </Col>
-                  <Col xs={24}>
+                  <Col xs={24} md={12}>
                     <Form.Item name="phone" label="Phone" rules={[{ required: true, message: "Please provide your phone!" }]}>
                       <Input size="large" placeholder="Phone" />
                     </Form.Item>
                   </Col>
-                  <Col xs={24}>
-                    <Form.Item name="email" label="Email" rules={[{ required: true, message: "Please provide your email!" }]}>
+                  <Col xs={24} md={12}>
+                    <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email', message: "Please provide valid email!" }]}>
                       <Input size="large" placeholder="Email" />
                     </Form.Item>
                   </Col>

@@ -420,3 +420,29 @@ body {
 .h-100{
   height: 100% !important;
 }
+
+
+.dark-ok-btn {
+  background-color: #2563eb !important; /* Tailwind blue-600 */
+  color: white !important;
+  border: none !important;
+  border-radius: 6px;
+}
+
+.dark-ok-btn:hover {
+  background-color: #1d4ed8 !important; /* Darker blue */
+  color: white !important;
+}
+
+/* Cancel button */
+.dark-cancel-btn {
+  background-color: #374151 !important; /* Tailwind gray-700 */
+  color: white !important;
+  border: none !important;
+  border-radius: 6px;
+}
+
+.dark-cancel-btn:hover {
+  background-color: #4b5563 !important; /* Gray-600 */
+  color: white !important;
+}

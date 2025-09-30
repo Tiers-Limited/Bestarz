@@ -41,10 +41,52 @@ export const MessageProvider = ({ children }) => {
       });
 
       // 🔹 new_message - Handle incoming messages
+      // socketInstance.on("new_message", (newMessage) => {
+      //   console.log("Received new message:", newMessage);
+      //   const conversationId = newMessage.conversation;
+        
+      //   setMessages((prev) => ({
+      //     ...prev,
+      //     [conversationId]: [
+      //       ...(prev[conversationId] || []),
+      //       formatMessage(newMessage),
+      //     ],
+      //   }));
+
+      //   // Update conversation list
+      //   if (newMessage.sender._id !== user._id) {
+      //     setConversations((prev) =>
+      //       prev.map((conv) =>
+      //         conv.id === conversationId
+      //           ? {
+      //               ...conv,
+      //               lastMessage: newMessage.content,
+      //               lastMessageAt: formatTime(newMessage.createdAt),
+      //               unreadCount:
+      //                 conv.id === activeConversation?.id
+      //                   ? 0 // Don't increment if this conversation is active
+      //                   : conv.unreadCount + 1,
+      //             }
+      //           : conv
+      //       )
+      //     );
+          
+      //     // Only update total unread count if conversation is not active
+
+
+      //     console.log(conversationId,activeConversation?.id,"NEWW");
+
+      //     if (conversationId !== activeConversation?.id) {
+      //       fetchUnreadCount();
+      //     }
+      //   }
+      // });
+
+
       socketInstance.on("new_message", (newMessage) => {
         console.log("Received new message:", newMessage);
         const conversationId = newMessage.conversation;
-        
+      
         setMessages((prev) => ({
           ...prev,
           [conversationId]: [
@@ -52,8 +94,7 @@ export const MessageProvider = ({ children }) => {
             formatMessage(newMessage),
           ],
         }));
-
-        // Update conversation list
+      
         if (newMessage.sender._id !== user._id) {
           setConversations((prev) =>
             prev.map((conv) =>
@@ -64,23 +105,27 @@ export const MessageProvider = ({ children }) => {
                     lastMessageAt: formatTime(newMessage.createdAt),
                     unreadCount:
                       conv.id === activeConversation?.id
-                        ? 0 // Don't increment if this conversation is active
+                        ? 0
                         : conv.unreadCount + 1,
                   }
                 : conv
             )
           );
-          
-          // Only update total unread count if conversation is not active
-
-
-          console.log(conversationId,activeConversation?.id,"NEWW");
-
+      
           if (conversationId !== activeConversation?.id) {
             fetchUnreadCount();
+      
+            // ✅ Show desktop notification
+            if ("Notification" in window && Notification.permission === "granted") {
+              new Notification(`Message from ${newMessage.sender.firstName}`, {
+                body: newMessage.content,
+                icon: newMessage.sender.profileImage || "/default-avatar.png",
+              });
+            }
           }
         }
       });
+      
 
       // 🔹 NEW: Handle new conversation creation
       socketInstance.on("new_conversation", (newConversationData) => {
@@ -364,9 +409,10 @@ export const MessageProvider = ({ children }) => {
 
   // Create new conversation
   const createConversation = useCallback(
-    async (participantId, bookingId = null, title = null) => {
-      if (!token || !participantId) return null;
-
+    async (participantId = null, bookingId = null, title = null, withAdmin = false) => {
+      // Must have token, and either participantId or withAdmin flag
+      if (!token || (!participantId && !withAdmin)) return null;
+  
       try {
         const res = await fetch(`${baseUrl}/messages/conversations`, {
           method: "POST",
@@ -374,22 +420,18 @@ export const MessageProvider = ({ children }) => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ participantId, bookingId, title }),
+          body: JSON.stringify({ participantId, bookingId, title, withAdmin }),
         });
         const data = await res.json();
-
-
-        console.log(data,"datadata")
-
+  
+        console.log(data, "datadata");
+  
         if (res.ok) {
           const conv = data.conversation;
-          const otherParticipant = conv.participants.find(
-            (p) => p._id != user._id
-          );
-
-
-
-          console.log(otherParticipant,"otherParticipant")
+          const otherParticipant = conv.participants.find((p) => p._id !== user._id);
+  
+          console.log(otherParticipant, "otherParticipant");
+  
           const newConversation = {
             id: conv._id,
             title:
@@ -405,11 +447,8 @@ export const MessageProvider = ({ children }) => {
             booking: conv.booking,
             otherParticipant,
           };
-
-          // Check if conversation already exists in list
-          const existingIndex = conversations.findIndex(
-            (c) => c.id === newConversation.id
-          );
+  
+          const existingIndex = conversations.findIndex((c) => c.id === newConversation.id);
           if (existingIndex >= 0) {
             setActiveConversationAndFetch(conversations[existingIndex]);
             return conversations[existingIndex];
@@ -430,6 +469,7 @@ export const MessageProvider = ({ children }) => {
     },
     [token, baseUrl, user, conversations]
   );
+  
 
   // Mark messages as read
   const markAsRead = useCallback(

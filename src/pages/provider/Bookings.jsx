@@ -31,6 +31,7 @@ import ProviderLayout from "../../components/ProviderLayout";
 import dayjs from "dayjs";
 import { useProvider } from "../../context/provider/ProviderContext";
 import BookingStatusModal from "../../components/BookingStatusModal";
+import { useCreateConversation } from "../../hooks/useCreateConversation";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -38,6 +39,8 @@ const { Option } = Select;
 
 const ProviderBookings = () => {
   const { fetchBookings, bookingsData, loading } = useProvider();
+
+  const { createAndNavigateToConversation } = useCreateConversation();
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState("all");
@@ -250,7 +253,7 @@ const ProviderBookings = () => {
       render: (location) => (
         <div className="flex items-center">
           <MapPin size={12} className="mr-2" />
-          {location.city}, {location.state}
+          {location}
         </div>
       ),
     },
@@ -273,13 +276,18 @@ const ProviderBookings = () => {
       title: "Actions",
       key: "actions",
       className: "whitespace-nowrap",
-      render: (_, booking) => (
+      render: (_, booking) => 
+      
+      {
+
+        console.log(booking,"bookingbookingbooking")
+      return(
         <div className="flex gap-2">
           <Button
             icon={<MessageCircle size={14} />}
-            disabled={!booking.client}
+            // disabled={!booking.provider}
             onClick={() =>
-              navigate(`/provider/messages?client=${booking.client._id}`)
+              createAndNavigateToConversation(booking?.client?._id)
             }
           >
             Message
@@ -297,21 +305,16 @@ const ProviderBookings = () => {
               Confirm
             </Button>
           )}
-          {booking.status === "confirmed" && (
-            <Button
-              type="default"
-              onClick={() => handleStatusUpdate(booking, "completed")}
-            >
-              Mark Complete
-            </Button>
-          )}
+
           {booking.status === "cancelled" && (
             <Button type="dashed" disabled>
               Cancelled
             </Button>
           )}
         </div>
-      ),
+      )
+
+       }
     },
   ];
 
@@ -333,7 +336,6 @@ const ProviderBookings = () => {
             <Option value="all">All Statuses</Option>
             <Option value="pending">Pending</Option>
             <Option value="confirmed">Confirmed</Option>
-            <Option value="completed">Completed</Option>
             <Option value="cancelled">Cancelled</Option>
           </Select>
 
@@ -511,17 +513,8 @@ const ProviderBookings = () => {
                       <div className="flex items-start">
                         <MapPin className="w-4 h-4 mr-2 mt-1 text-red-500" />
                         <div>
-                          <Text>
-                            <strong>Address:</strong>
-                          </Text>
-                          <div className="text-sm text-gray-600">
-                            {selectedBooking.location.address}
-                            <br />
-                            {selectedBooking.location.city},{" "}
-                            {selectedBooking.location.state}{" "}
-                            {selectedBooking.location.zipCode}
-                            <br />
-                            {selectedBooking.location.country}
+                          <div className="text-sm text-white">
+                            <strong>Address:</strong> {selectedBooking.location}
                           </div>
                         </div>
                       </div>

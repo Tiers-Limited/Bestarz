@@ -164,6 +164,9 @@ const ClientLayout = ({ children }) => {
                 type="text" 
                 icon={<Bell size={16} />}
                 className="text-gray-300 hover:text-white"
+                onClick={()=>{
+                  navigate('/client/messages');
+                }}
               >
                 {unreadCount}
               </Button>

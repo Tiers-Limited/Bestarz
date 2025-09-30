@@ -37,6 +37,8 @@ import { useBooking } from "../../context/booking/BookingContext";
 import ClientReviewModal from "../../components/ClientReviewModal";
 import { useClient } from "../../context/client/ClientContext";
 import { useCreateConversation } from "../../hooks/useCreateConversation";
+import BookingDetailsModal from "../../components/BookingDetailsModal";
+import PaymentButton from "../../components/PaymentButton";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -294,7 +296,7 @@ const ClientBookings = () => {
       render: (location) => (
         <div className="flex items-center">
           <MapPin size={12} className="mr-2" />
-          {location.city}, {location.state}
+          {location}
         </div>
       ),
     },
@@ -304,7 +306,6 @@ const ClientBookings = () => {
       className: "whitespace-nowrap",
       render: (_, booking) => (
         <div className="flex items-center">
-          <DollarSign size={12} className="mr-2" />
           {booking.amount
             ? formatCurrency(booking.amount)
             : `${formatCurrency(booking.budgetMin)} - ${formatCurrency(
@@ -318,14 +319,15 @@ const ClientBookings = () => {
       key: "actions",
       className: "whitespace-nowrap",
       render: (_, booking) => {
-
-        console.log(booking,"Booking")
+        console.log(booking, "Booking");
         return (
           <div className="flex gap-2">
             <Button
               icon={<MessageCircle size={14} />}
               disabled={!booking.client}
-              onClick={() => createAndNavigateToConversation(booking?.provider?.user?._id)}
+              onClick={() =>
+                createAndNavigateToConversation(booking?.provider?.user?._id)
+              }
             >
               Message
             </Button>
@@ -333,7 +335,7 @@ const ClientBookings = () => {
               Details
             </Button>
 
-            {booking.status === "confirmed" && (
+            {booking.status === "confirmed" &&booking.paymentStatus!=="advance_paid"&& (
               <Button
                 type="default"
                 onClick={() => handleStatusUpdate(booking, "completed")}
@@ -342,7 +344,7 @@ const ClientBookings = () => {
               </Button>
             )}
 
-            {booking.status === "completed" && !booking.hasReview && (
+            {booking.status === "completed" &&booking.paymentStatus==="final_paid"&& !booking.hasReview && (
               <Button
                 size="small"
                 type="primary"
@@ -352,6 +354,8 @@ const ClientBookings = () => {
                 Review
               </Button>
             )}
+
+            <PaymentButton booking={booking} />
           </div>
         );
       },
@@ -430,276 +434,15 @@ const ClientBookings = () => {
         </Spin>
 
         {/* Booking Details Modal */}
-        <Modal
-          title={
-            <div className="flex items-center space-x-3">
-              {selectedBooking?.client?.profileImage ? (
-                <Avatar size={40} src={selectedBooking.client.profileImage} />
-              ) : (
-                <Avatar size={40} style={{ backgroundColor: "#3B82F6" }}>
-                  {selectedBooking ? getClientInitials(selectedBooking) : "AC"}
-                </Avatar>
-              )}
-              <div>
-                <div className="text-lg font-semibold">
-                  {selectedBooking
-                    ? getClientName(selectedBooking)
-                    : "Booking Details"}
-                </div>
-                <div className="text-sm text-gray-500">
-                  Booking ID: {selectedBooking?._id}
-                </div>
-              </div>
-            </div>
-          }
+        <BookingDetailsModal
           visible={isModalVisible}
-          onCancel={handleModalClose}
-          footer={[
-            <Button key="close" onClick={handleModalClose}>
-              Close
-            </Button>,
-          ]}
-          width={800}
-        >
-          {selectedBooking && (
-            <div className="space-y-4">
-              {/* Status Tags */}
-              <div className="flex space-x-2 mb-4">
-                <Tag
-                  color={getStatusColor(selectedBooking.status)}
-                  className="text-sm"
-                >
-                  Status:{" "}
-                  {selectedBooking.status.charAt(0).toUpperCase() +
-                    selectedBooking.status.slice(1)}
-                </Tag>
-                <Tag
-                  color={getPaymentStatusColor(selectedBooking.paymentStatus)}
-                  className="text-sm"
-                >
-                  Payment:{" "}
-                  {selectedBooking.paymentStatus.charAt(0).toUpperCase() +
-                    selectedBooking.paymentStatus.slice(1)}
-                </Tag>
-              </div>
-
-              <Row gutter={[24, 16]}>
-                {/* Event Details */}
-                <Col span={12}>
-                  <Card size="small" title="Event Details" className="h-full">
-                    <div className="space-y-3">
-                      <div className="flex items-center">
-                        <Users className="w-4 h-4 mr-2 text-blue-500" />
-                        <Text>
-                          <strong>Service:</strong>{" "}
-                          {selectedBooking.serviceCategory}
-                        </Text>
-                      </div>
-                      <div className="flex items-center">
-                        <FileText className="w-4 h-4 mr-2 text-green-500" />
-                        <Text>
-                          <strong>Event Type:</strong>{" "}
-                          {selectedBooking.eventType}
-                        </Text>
-                      </div>
-                      <div className="flex items-center">
-                        <Users className="w-4 h-4 mr-2 text-purple-500" />
-                        <Text>
-                          <strong>Guests:</strong> {selectedBooking.guests}
-                        </Text>
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="w-4 h-4 mr-2 text-orange-500" />
-                        <Text>
-                          <strong>Duration:</strong> {selectedBooking.duration}
-                        </Text>
-                      </div>
-                    </div>
-                  </Card>
-                </Col>
-
-                {/* Date & Time */}
-                <Col span={12}>
-                  <Card size="small" title="Schedule" className="h-full">
-                    <div className="space-y-3">
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-2 text-blue-500" />
-                        <Text>
-                          <strong>Start:</strong>{" "}
-                          {formatDateTime(selectedBooking.dateStart)}
-                        </Text>
-                      </div>
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-2 text-red-500" />
-                        <Text>
-                          <strong>End:</strong>{" "}
-                          {formatDateTime(selectedBooking.dateEnd)}
-                        </Text>
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="w-4 h-4 mr-2 text-green-500" />
-                        <Text>
-                          <strong>Event Time:</strong>{" "}
-                          {selectedBooking.eventTime}
-                        </Text>
-                      </div>
-                    </div>
-                  </Card>
-                </Col>
-
-                {/* Location */}
-                <Col span={12}>
-                  <Card size="small" title="Location" className="h-full">
-                    <div className="space-y-3">
-                      <div className="flex items-start">
-                        <MapPin className="w-4 h-4 mr-2 mt-1 text-red-500" />
-                        <div>
-                          <Text>
-                            <strong>Address:</strong>
-                          </Text>
-                          <div className="text-sm text-gray-600">
-                            {selectedBooking.location.address}
-                            <br />
-                            {selectedBooking.location.city},{" "}
-                            {selectedBooking.location.state}{" "}
-                            {selectedBooking.location.zipCode}
-                            <br />
-                            {selectedBooking.location.country}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                </Col>
-
-                {/* Contact Information */}
-                <Col span={12}>
-                  <Card
-                    size="small"
-                    title="Contact Information"
-                    className="h-full"
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-center">
-                        <Phone className="w-4 h-4 mr-2 text-blue-500" />
-                        <Text>
-                          <strong>Phone:</strong>{" "}
-                          {selectedBooking.contactInfo.phone}
-                        </Text>
-                      </div>
-                      <div className="flex items-center">
-                        <Mail className="w-4 h-4 mr-2 text-green-500" />
-                        <Text>
-                          <strong>Email:</strong>{" "}
-                          {selectedBooking.contactInfo.email}
-                        </Text>
-                      </div>
-                      {selectedBooking.client && (
-                        <div className="flex items-center">
-                          <Phone className="w-4 h-4 mr-2 text-purple-500" />
-                          <Text>
-                            <strong>Client Phone:</strong>{" "}
-                            {selectedBooking.client.phone}
-                          </Text>
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                </Col>
-
-                {/* Pricing */}
-                <Col span={24}>
-                  <Card size="small" title="Pricing">
-                    <Row gutter={16}>
-                      <Col span={8}>
-                        <div className="flex items-center">
-                          <DollarSign className="w-4 h-4 mr-2 text-green-500" />
-                          <Text>
-                            <strong>Budget Range:</strong>
-                          </Text>
-                        </div>
-                        <Text className="text-gray-600 ml-6">
-                          {formatCurrency(selectedBooking.budgetMin)} -{" "}
-                          {formatCurrency(selectedBooking.budgetMax)}
-                        </Text>
-                      </Col>
-                      {selectedBooking.amount && (
-                        <Col span={8}>
-                          <div className="flex items-center">
-                            <CreditCard className="w-4 h-4 mr-2 text-blue-500" />
-                            <Text>
-                              <strong>Final Amount:</strong>
-                            </Text>
-                          </div>
-                          <Text className="text-gray-600 ml-6 text-lg font-semibold">
-                            {formatCurrency(selectedBooking.amount)}
-                          </Text>
-                        </Col>
-                      )}
-                      <Col span={8}>
-                        <div className="flex items-center">
-                          <CreditCard className="w-4 h-4 mr-2 text-orange-500" />
-                          <Text>
-                            <strong>Payment Status:</strong>
-                          </Text>
-                        </div>
-                        <Tag
-                          color={getPaymentStatusColor(
-                            selectedBooking.paymentStatus
-                          )}
-                          className="ml-6"
-                        >
-                          {selectedBooking.paymentStatus
-                            .charAt(0)
-                            .toUpperCase() +
-                            selectedBooking.paymentStatus.slice(1)}
-                        </Tag>
-                      </Col>
-                    </Row>
-                  </Card>
-                </Col>
-
-                {/* Description */}
-                {selectedBooking.description && (
-                  <Col span={24}>
-                    <Card size="small" title="Description">
-                      <Text>{selectedBooking.description}</Text>
-                    </Card>
-                  </Col>
-                )}
-
-                {/* Notes */}
-                {selectedBooking.notes && (
-                  <Col span={24}>
-                    <Card size="small" title="Notes">
-                      <Text>{selectedBooking.notes}</Text>
-                    </Card>
-                  </Col>
-                )}
-
-                {/* Timestamps */}
-                <Col span={24}>
-                  <Card size="small" title="Booking Information">
-                    <Row gutter={16}>
-                      <Col span={12}>
-                        <Text>
-                          <strong>Created:</strong>{" "}
-                          {formatDateTime(selectedBooking.createdAt)}
-                        </Text>
-                      </Col>
-                      <Col span={12}>
-                        <Text>
-                          <strong>Last Updated:</strong>{" "}
-                          {formatDateTime(selectedBooking.updatedAt)}
-                        </Text>
-                      </Col>
-                    </Row>
-                  </Card>
-                </Col>
-              </Row>
-            </div>
-          )}
-        </Modal>
+          onClose={handleModalClose}
+          booking={selectedBooking}
+          getStatusColor={getStatusColor}
+          getPaymentStatusColor={getPaymentStatusColor}
+          getClientInitials={getClientInitials}
+          getClientName={getClientName}
+        />
 
         <BookingStatusModal
           visible={statusModal.visible}

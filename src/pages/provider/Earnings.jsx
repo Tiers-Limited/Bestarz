@@ -146,7 +146,7 @@ const ProviderEarnings = () => {
         "Status": payment.status,
         "Payment Method": payment.paymentMethod,
         "Event Date": payment.eventDate || "",
-        "Location": payment.location ? `${payment.location.address}, ${payment.location.city}, ${payment.location.state}` : "",
+        "Location": payment.location ,
       }));
 
       // Create workbook and worksheet
@@ -282,7 +282,7 @@ const ProviderEarnings = () => {
           <div className="text-gray-300 text-sm">
             <div className="flex items-center">
               <MapPin size={12} className="mr-1" />
-              <span>{record.location.city}, {record.location.state}</span>
+              <span>{record.location}</span>
             </div>
           </div>
         ) : (
@@ -373,7 +373,7 @@ const ProviderEarnings = () => {
               <Statistic 
                 title="This Month" 
                 value={stats.thisMonthEarnings} 
-                prefix={<DollarSign className="text-green-400" />} 
+               
                 valueStyle={{ color: "#22C55E" }} 
               />
             </Card>

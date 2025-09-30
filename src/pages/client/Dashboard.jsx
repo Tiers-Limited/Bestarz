@@ -30,6 +30,7 @@ import ClientLayout from "../../components/ClientLayout";
 import { useNavigate } from "react-router-dom";
 import { useClient } from "../../context/client/ClientContext";
 import ClientReviewModal from "../../components/ClientReviewModal";
+import { useCreateConversation } from "../../hooks/useCreateConversation";
 
 const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -43,6 +44,9 @@ const ClientDashboard = () => {
     createReview,
     sendSupportRequest,
   } = useClient();
+
+
+  const { createAndNavigateToAdminConversation } = useCreateConversation();
 
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [eventDrawerVisible, setEventDrawerVisible] = useState(false);
@@ -312,6 +316,17 @@ const ClientDashboard = () => {
                     icon={<MessageCircle size={16} />}
                   >
                     Contact Support
+                  </Button>
+
+                  <Button
+                   
+                    block
+                    size="large"
+                    icon={<MessageCircle size={16} />}
+
+                    onClick={() => createAndNavigateToAdminConversation()}
+                  >
+                    Contact Admin
                   </Button>
                 </Space>
               </Card>

@@ -86,34 +86,47 @@ const AdminClients = () => {
     if (!client.isActive) return 'disabled';
     return 'active';
   };
-
   const handleDisable = (client) => {
     Modal.confirm({
-      title: `Disable ${client.firstName} ${client.lastName}?`,
-      content: `This will temporarily disable ${client.firstName} ${client.lastName}'s account. They won't be able to make new bookings.`,
+      title: (
+        <span className="text-white">
+          Disable {client.firstName} {client.lastName}?
+        </span>
+      ),
+      content: (
+        <span className="text-white">
+          This will temporarily disable {client.firstName} {client.lastName}'s account.
+          They won't be able to make new bookings.
+        </span>
+      ),
       okText: "Disable Client",
       okType: "danger",
+      className: "custom-dark-modal",
+      okButtonProps: { className: "dark-danger-btn" },
+      cancelButtonProps: { className: "dark-cancel-btn" },
       onOk: async () => {
         try {
           const result = await disableUser(
             client._id,
             "Temporarily disabled by admin"
           );
-          
+  
           if (result.success) {
-            message.success(`${client.firstName} ${client.lastName} has been disabled successfully`);
+            message.success(
+              `${client.firstName} ${client.lastName} has been disabled successfully`
+            );
             await loadClients();
           } else {
             message.error(result.error || "Failed to disable client");
           }
         } catch (error) {
-
-          console.log(error)
+          console.error(error);
           message.error("An error occurred while disabling the client");
         }
-      }
+      },
     });
   };
+  
 
   const handleBlock = (client) => {
     Modal.confirm({
@@ -191,13 +204,13 @@ const AdminClients = () => {
           >
             Disable
           </Button>
-          <Button
+          {/* <Button
             size="small"
             danger
             onClick={() => handleBlock(client)}
           >
             Block
-          </Button>
+          </Button> */}
         </Space>
       );
     } else {
@@ -266,25 +279,7 @@ const AdminClients = () => {
         </span>
       ),
     },
-    {
-      title: "Subscription",
-      key: "subscription",
-      render: (_, record) => (
-        <div>
-          <div className="text-gray-300">
-            {record.subscriptionPlan || 'None'}
-          </div>
-          {record.subscriptionStatus && (
-            <Tag 
-              color={record.subscriptionStatus === 'active' ? 'green' : 'orange'}
-              size="small"
-            >
-              {record.subscriptionStatus}
-            </Tag>
-          )}
-        </div>
-      ),
-    },
+  
     {
       title: "Status",
       key: "status",
@@ -396,7 +391,7 @@ const AdminClients = () => {
               >
                 <Option value="active">Active</Option>
                 <Option value="disabled">Disabled</Option>
-                <Option value="blocked">Blocked</Option>
+                {/* <Option value="blocked">Blocked</Option> */}
               </Select>
             </Col>
           </Row>
@@ -404,7 +399,7 @@ const AdminClients = () => {
 
         {/* Stats Cards */}
         <Row gutter={[16, 16]} className="mb-6">
-          <Col xs={24} sm={12} md={6}>
+          <Col xs={24} sm={12} md={8}>
             <Card className="text-center">
               <div className="text-2xl font-bold text-green-500">
                 {clients.filter(c => getClientStatus(c) === 'active').length}
@@ -412,7 +407,7 @@ const AdminClients = () => {
               <div className="text-gray-400">Active Clients</div>
             </Card>
           </Col>
-          <Col xs={24} sm={12} md={6}>
+          <Col xs={24} sm={12} md={8}>
             <Card className="text-center">
               <div className="text-2xl font-bold text-red-500">
                 {clients.filter(c => getClientStatus(c) === 'disabled').length}
@@ -420,15 +415,8 @@ const AdminClients = () => {
               <div className="text-gray-400">Disabled</div>
             </Card>
           </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card className="text-center">
-              <div className="text-2xl font-bold text-purple-500">
-                {clients.filter(c => c.subscriptionPlan && c.subscriptionPlan !== 'none').length}
-              </div>
-              <div className="text-gray-400">Subscribers</div>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
+        
+          <Col xs={24} sm={12} md={8}>
             <Card className="text-center">
               <div className="text-2xl font-bold text-blue-500">
                 {totalClients}

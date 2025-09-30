@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, InputNumber, Button, message } from 'antd';
-import { useProvider } from '../context/provider/ProviderContext';
+import { useAuth } from '../context/AuthContext';
+import { useBooking } from '../context/booking/BookingContext';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -13,8 +14,24 @@ const BookingStatusModal = ({
   onSuccess 
 }) => {
   const [form] = Form.useForm();
-  const { updateBookingStatus, loading } = useProvider();
+  const { updateBookingStatus, loading } = useBooking();
   const [selectedStatus, setSelectedStatus] = useState(currentStatus);
+
+  console.log(currentStatus,"currentStatuscurrentStatus")
+
+  const { user } = useAuth();
+
+
+  useEffect(()=>{
+
+    if(user?.role=="provider"){
+
+      setSelectedStatus("confirmed")
+
+    }
+
+
+  },[])
 
   const handleSubmit = async (values) => {
     try {
@@ -40,12 +57,22 @@ const BookingStatusModal = ({
     return booking?.budgetMin || 0;
   };
 
-  const statusOptions = [
-    { value: 'pending', label: 'Pending', color: '#F59E0B' },
-    { value: 'confirmed', label: 'Confirmed', color: '#22C55E' },
-    { value: 'cancelled', label: 'Cancelled', color: '#EF4444' },
-    { value: 'completed', label: 'Completed', color: '#3B82F6' },
-  ];
+  // Get status options based on user role
+  const getStatusOptions = () => {
+    if (user?.role === 'provider') {
+      return [
+        { value: 'confirmed', label: 'Accept', color: '#22C55E' },
+        { value: 'cancelled', label: 'Reject', color: '#EF4444' }
+      ];
+    } else if (user?.role === 'client') {
+      return [
+        { value: 'completed', label: 'Mark as Completed', color: '#3B82F6' },
+      ];
+    }
+    return [];
+  };
+
+  const statusOptions = getStatusOptions();
 
   return (
     <Modal
@@ -59,7 +86,10 @@ const BookingStatusModal = ({
       {booking && (
         <div className="mb-4 p-4 bg-gray-800 rounded-lg">
           <div className="text-white font-semibold mb-2">
-            {booking.client?.firstName} {booking.client?.lastName}
+            {user?.role === 'provider' 
+              ? `${booking.client?.firstName} ${booking.client?.lastName}`
+              : booking.provider?.businessName || 'Provider'
+            }
           </div>
           <div className="text-gray-300 text-sm">
             {booking.serviceCategory} - {booking.eventType}
@@ -67,6 +97,7 @@ const BookingStatusModal = ({
           <div className="text-gray-400 text-xs mt-1">
             {new Date(booking.dateStart).toLocaleDateString()} • {booking.guests} guests
           </div>
+        
         </div>
       )}
 
@@ -104,7 +135,7 @@ const BookingStatusModal = ({
           </Select>
         </Form.Item>
 
-        {/* {(selectedStatus === 'confirmed' || selectedStatus === 'completed') && (
+        {(selectedStatus === 'confirmed' && user?.role === 'provider') && (
           <Form.Item
             name="amount"
             label="Final Amount"
@@ -121,15 +152,28 @@ const BookingStatusModal = ({
               placeholder="Enter final booking amount"
             />
           </Form.Item>
-        )} */}
+        )}
 
         <Form.Item
           name="notes"
-          label="Notes (Optional)"
+          label={
+            selectedStatus === 'cancelled' 
+              ? 'Reason for Cancellation' 
+              : 'Notes (Optional)'
+          }
+          rules={
+            selectedStatus === 'cancelled'
+              ? [{ required: true, message: 'Please provide a reason for cancellation' }]
+              : []
+          }
         >
           <TextArea
             rows={3}
-            placeholder="Add any notes about this status update..."
+            placeholder={
+              selectedStatus === 'cancelled'
+                ? 'Please provide a reason for cancellation...'
+                : 'Add any notes about this status update...'
+            }
             maxLength={500}
             showCount
           />
@@ -145,8 +189,12 @@ const BookingStatusModal = ({
               htmlType="submit"
               loading={loading}
               className="glow-button"
+              danger={selectedStatus === 'cancelled'}
             >
-              Update Status
+              {selectedStatus === 'confirmed' && 'Accept Booking'}
+              {selectedStatus === 'cancelled' && 'Cancel Booking'}
+              {selectedStatus === 'completed' && 'Mark Complete'}
+              {!['confirmed', 'cancelled', 'completed'].includes(selectedStatus) && 'Update Status'}
             </Button>
           </div>
         </Form.Item>

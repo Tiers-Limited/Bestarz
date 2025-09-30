@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { Input, Spin } from "antd";
-import ClientLayout from "../../components/ClientLayout";
+import AdminLayout from "../../components/AdminLayout";
 import ConversationList from "../../components/ConversationList";
 import ChatWindow from "../../components/ChatWindow";
 import { useMessage } from "../../context/messages/MessageContext";
@@ -38,16 +38,16 @@ const AdminMessages = () => {
 
   if (loading && conversations.length === 0) {
     return (
-      <ClientLayout>
+      <AdminLayout>
         <div className="flex items-center justify-center h-[calc(100vh-120px)]">
           <Spin size="large" />
         </div>
-      </ClientLayout>
+      </AdminLayout>
     );
   }
 
   return (
-    <ClientLayout>
+    <AdminLayout>
       <div className="p-4 h-[calc(100vh-120px)]">
         <div className="h-full grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Conversations List */}
@@ -97,7 +97,7 @@ const AdminMessages = () => {
           </div>
         </div>
       </div>
-    </ClientLayout>
+    </AdminLayout>
   );
 };
 

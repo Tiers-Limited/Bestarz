@@ -130,8 +130,7 @@ const AdminDashboard = () => {
   };
 
   const getProviderStatus = (provider) => {
-    if (!provider.isActive) return "disabled";
-    if (!provider.isVerified) return "pending";
+    if (!provider.user.isActive) return "disabled";
     return "active";
   };
 

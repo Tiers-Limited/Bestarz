@@ -28,6 +28,8 @@ const ProviderProfile = () => {
   useEffect(() => {
     if (profileData) {
       // Set form values when profile data is loaded
+
+    console.log(profileData,"profileDataprofileData")
       form.setFieldsValue({
         businessName: profileData.businessName || '',
         category: profileData.category || '',
@@ -178,6 +180,7 @@ const ProviderProfile = () => {
       const result = await updateProfile(formDataWithImages);
       if (result.success) {
         message.success('Profile updated successfully!');
+        await fetchProfileData()
       } else {
         message.error(result.error);
       }

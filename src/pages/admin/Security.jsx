@@ -12,15 +12,17 @@ import {
   Col,
   Statistic,
   message,
+  Modal,
 } from "antd";
 import { Shield, Ban, Eye, CheckCircle } from "lucide-react";
+import dayjs from "dayjs";
 import AdminLayout from "../../components/AdminLayout";
 import { useAdmin } from "../../context/admin/AdminContext";
 
 const { Title, Paragraph } = Typography;
 
 const AdminSecurity = () => {
-  const { auditLogs, fetchAuditLogs, blockUser } = useAdmin();
+  const { auditLogs, fetchAuditLogs, disableUser } = useAdmin();
   const [auditLogVisible, setAuditLogVisible] = useState(false);
   const [selectedLog, setSelectedLog] = useState(null);
 
@@ -47,19 +49,43 @@ const AdminSecurity = () => {
     setLogStats(stats);
   };
 
-  const handleBlockUser = (userId, userEmail) => {
-    confirm({
-      title: `Are you sure you want to block ${userEmail}?`,
-      content: "This action cannot be undone.",
-      okText: "Yes, Block",
+  
+  const handleDisable = (client) => {
+    Modal.confirm({
+      title: (
+        <span className="text-white">
+          Disable {client.firstName} {client.lastName}?
+        </span>
+      ),
+      content: (
+        <span className="text-white">
+          This will temporarily disable {client.firstName} {client.lastName}'s
+          account. They won&apos;t be able to make new bookings.
+        </span>
+      ),
+      okText: `Disable ${client.role}`,
       okType: "danger",
-      cancelText: "Cancel",
+      className: "custom-dark-modal",
+      okButtonProps: { className: "dark-danger-btn" },
+      cancelButtonProps: { className: "dark-cancel-btn" },
       onOk: async () => {
-        const res = await blockUser(userId);
-        if (res.success) {
-          message.success(`${userEmail} has been blocked successfully`);
-        } else {
-          message.error(res.error || `Failed to block ${userEmail}`);
+        try {
+          const result = await disableUser(
+            client._id,
+            "Temporarily disabled by admin"
+          );
+
+          if (result.success) {
+            message.success(
+              `${client.firstName} ${client.lastName} has been disabled successfully`
+            );
+            await fetchAuditLogs();
+          } else {
+            message.error(result.error || "Failed to disable client");
+          }
+        } catch (error) {
+          console.error(error);
+          message.error("An error occurred while disabling the client");
         }
       },
     });
@@ -83,7 +109,30 @@ const AdminSecurity = () => {
         return <Tag color={color}>{label}</Tag>;
       },
     },
-    { title: "Timestamp", dataIndex: "timestamp", key: "timestamp" },
+    {
+      title: "User Status",
+      dataIndex: ["user", "status"],
+      key: "userStatus",
+
+      render: (status) => {
+        const config = {
+          active: { color: "green", label: "Active" },
+          disabled: { color: "orange", label: "Disabled" },
+          pending: { color: "blue", label: "Pending" },
+        };
+        const { color, label } = config[status] || {
+          color: "default",
+          label: status,
+        };
+        return <Tag color={color}>{label}</Tag>;
+      },
+    },
+    {
+      title: "Timestamp",
+      dataIndex: "timestamp",
+      key: "timestamp",
+      render: (ts) => dayjs(ts).format("YYYY-MM-DD HH:mm:ss"),
+    },
     {
       title: "Action",
       key: "action",
@@ -99,14 +148,19 @@ const AdminSecurity = () => {
           >
             View
           </Button>
-          <Button
-            size="small"
-            danger
-            icon={<Ban size={14} />}
-            onClick={() => handleBlockUser(record.user._id, record.user.email)}
-          >
-            Block
-          </Button>
+
+
+          {record.user.status!="disabled"?
+             <Button
+             size="small"
+             danger
+             icon={<Ban size={14} />}
+             onClick={() => handleDisable(record.user)}
+           >
+             Disable
+           </Button>:""
+          }
+         
         </Space>
       ),
     },
@@ -161,6 +215,9 @@ const AdminSecurity = () => {
             columns={columns}
             pagination={{ pageSize: 10 }}
             rowClassName="hover:bg-gray-800"
+            rowKey="_id"
+            scroll={{ x: "max-content" }} // enables horizontal scroll if needed
+            className="no-wrap-table"
           />
         </Card>
 
@@ -171,7 +228,7 @@ const AdminSecurity = () => {
           size="large"
           onClose={() => setAuditLogVisible(false)}
           open={auditLogVisible}
-          className="bg-black"
+          className="bg-black text-white"
         >
           {selectedLog && (
             <div>
@@ -196,7 +253,9 @@ const AdminSecurity = () => {
                             {selectedLog.action}
                           </Title>
                           <span className="text-gray-500 text-sm">
-                            {selectedLog.timestamp}
+                            {dayjs(selectedLog.timestamp).format(
+                              "YYYY-MM-DD HH:mm:ss"
+                            )}
                           </span>
                         </div>
                         <Paragraph className="text-gray-300 mb-1">
@@ -204,7 +263,9 @@ const AdminSecurity = () => {
                         </Paragraph>
                         <Paragraph className="text-gray-300 mb-1">
                           <strong>Reason:</strong>{" "}
-                          {selectedLog.action.split("- Reason: ")[1]}
+                          {selectedLog.action.includes("- Reason:")
+                            ? selectedLog.action.split("- Reason: ")[1]
+                            : "N/A"}
                         </Paragraph>
                       </div>
                     ),

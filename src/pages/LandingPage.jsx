@@ -23,7 +23,7 @@ const { Title, Paragraph } = Typography;
 const LandingPage = () => {
   const navigate = useNavigate();
 
-  const { user,signOut } = useAuth();
+  const { user,signOut,getRoleDashboard } = useAuth();
 
   const features = [
     {

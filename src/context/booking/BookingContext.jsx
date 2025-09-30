@@ -14,11 +14,16 @@ export const useBooking = () => {
 export const BookingProvider = ({ children }) => {
   const { token } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [bookingsData, setBookingsData] = useState([]);
+
+  // Keep bookings shape consistent
+  const [bookingsData, setBookingsData] = useState({
+    bookings: [],
+    pagination: {},
+  });
 
   const baseUrl = import.meta.env.VITE_BASE_URL;
 
-  // Create new booking
+  // --- Create booking ---
   const createBooking = async (bookingData) => {
     try {
       setLoading(true);
@@ -50,8 +55,8 @@ export const BookingProvider = ({ children }) => {
     }
   };
 
-  // Get bookings for current user (status, page, limit are dynamic)
-  const fetchBookings = async ({ status, page = 1, limit = 10 }) => {
+  // --- Fetch bookings (with filters/pagination) ---
+  const fetchBookings = async ({ status, page = 1, limit = 10 } = {}) => {
     try {
       setLoading(true);
 
@@ -93,14 +98,57 @@ export const BookingProvider = ({ children }) => {
     }
   };
 
+  // --- Update booking status ---
+  const updateBookingStatus = async (bookingId, status, notes = "", amount) => {
+    try {
+      setLoading(true);
+
+      const payload = { status, notes };
+      if (amount != null) payload.amount = amount;
+
+      const response = await fetch(
+        `${baseUrl}/bookings/${bookingId}/status`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Refresh bookings after update (keeps state in sync)
+        await fetchBookings();
+        return { success: true, data };
+      } else {
+        return {
+          success: false,
+          error: data.message || "Failed to update booking status",
+        };
+      }
+    } catch (error) {
+      console.error("Booking status update error:", error);
+      return { success: false, error: "Network error. Please try again." };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const value = {
     loading,
+    bookingsData,
     createBooking,
     fetchBookings,
-    bookingsData,
+    updateBookingStatus,
   };
 
   return (
-    <BookingContext.Provider value={value}>{children}</BookingContext.Provider>
+    <BookingContext.Provider value={value}>
+      {children}
+    </BookingContext.Provider>
   );
 };

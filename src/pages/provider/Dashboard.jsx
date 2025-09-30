@@ -6,6 +6,7 @@ import BookingStatusModal from '../../components/BookingStatusModal';
 import { useNavigate } from 'react-router-dom';
 import { useProvider } from '../../context/provider/ProviderContext';
 import { useAuth } from '../../context/AuthContext';
+import { useCreateConversation } from '../../hooks/useCreateConversation';
 
 const { Title, Paragraph } = Typography;
 
@@ -14,6 +15,9 @@ const ProviderDashboard = () => {
   const { dashboardData, loading, fetchDashboardData } = useProvider();
   const { user } = useAuth();
  
+
+  const { createAndNavigateToAdminConversation } = useCreateConversation();
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -373,6 +377,17 @@ const ProviderDashboard = () => {
                 >
                   Subscription
                 </Button>
+
+                <Button
+                   
+                   block
+                   size="large"
+                   icon={<MessageCircle size={16} />}
+
+                   onClick={() => createAndNavigateToAdminConversation()}
+                 >
+                   Contact Admin
+                 </Button>
               </Space>
             </Card>
           </Col>

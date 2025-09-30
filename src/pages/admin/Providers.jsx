@@ -28,7 +28,7 @@ const { Search } = Input;
 const { Option } = Select;
 
 const AdminProviders = () => {
-  const { loading, providers, fetchProviders, blockUser, restoreUser } =
+  const { loading, providers, fetchProviders,disableUser, blockUser, restoreUser } =
     useAdmin();
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -101,9 +101,20 @@ const AdminProviders = () => {
 
   const handleBlock = async (provider) => {
     Modal.confirm({
-      title: `Block ${provider.businessName}?`,
-      content: "This provider will be blocked permanently.",
+      title: (
+        <span className="text-white">
+          Block {provider.businessName}?
+        </span>
+      ),
+      content: (
+        <span className="text-white">
+          This provider will be blocked permanently.
+        </span>
+      ),
       okType: "danger",
+      className: "custom-dark-modal",
+      okButtonProps: { className: "dark-ok-btn" },
+      cancelButtonProps: { className: "dark-cancel-btn" },
       onOk: async () => {
         const res = await blockUser(provider.user?._id);
         if (res.success) {
@@ -113,12 +124,23 @@ const AdminProviders = () => {
       },
     });
   };
-
+  
   const handleDisable = async (provider) => {
     Modal.confirm({
-      title: `Disable ${provider.businessName}?`,
-      content: "This provider will be temporarily suspended.",
+      title: (
+        <span className="text-white">
+          Disable {provider.businessName}?
+        </span>
+      ),
+      content: (
+        <span className="text-white">
+          This provider will be temporarily suspended.
+        </span>
+      ),
       okType: "warning",
+      className: "custom-dark-modal",
+      okButtonProps: { className: "dark-ok-btn" },
+      cancelButtonProps: { className: "dark-cancel-btn" },
       onOk: async () => {
         const res = await disableUser(provider.user?._id);
         if (res.success) {
@@ -128,7 +150,7 @@ const AdminProviders = () => {
       },
     });
   };
-
+  
   const handleRestore = async (provider) => {
     const res = await restoreUser(provider.user?._id);
     if (res.success) {
@@ -204,9 +226,9 @@ const AdminProviders = () => {
 
             {userStatus === "active" && (
               <>
-                <Button size="small" danger onClick={() => handleBlock(record)}>
+                {/* <Button size="small" danger onClick={() => handleBlock(record)}>
                   Block
-                </Button>
+                </Button> */}
                 <Button size="small" onClick={() => handleDisable(record)}>
                   Disable
                 </Button>
@@ -377,7 +399,7 @@ const AdminProviders = () => {
 
         {/* Stats Row */}
         <Row gutter={16} className="mb-6">
-          <Col span={6}>
+          <Col span={8}>
             <Card className="glow-border">
               <Statistic
                 title="Total Providers"
@@ -386,7 +408,7 @@ const AdminProviders = () => {
               />
             </Card>
           </Col>
-          <Col span={6}>
+          <Col span={8}>
             <Card className="glow-border">
               <Statistic
                 title="Active"
@@ -396,7 +418,7 @@ const AdminProviders = () => {
               />
             </Card>
           </Col>
-          <Col span={6}>
+          <Col span={8}>
             <Card className="glow-border">
               <Statistic
                 title="Disabled"
@@ -406,7 +428,7 @@ const AdminProviders = () => {
               />
             </Card>
           </Col>
-          <Col span={6}>
+          {/* <Col span={6}>
             <Card className="glow-border">
               <Statistic
                 title="Blocked"
@@ -415,7 +437,7 @@ const AdminProviders = () => {
                 valueStyle={{ color: "volcano" }}
               />
             </Card>
-          </Col>
+          </Col> */}
         </Row>
 
         {/* Filters */}
@@ -440,7 +462,7 @@ const AdminProviders = () => {
           >
             <Option value="active">Active</Option>
             <Option value="disabled">Disabled</Option>
-            <Option value="blocked">Blocked</Option>
+            {/* <Option value="blocked">Blocked</Option> */}
             <Option value="pending">Pending</Option>
           </Select>
           <Select

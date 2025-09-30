@@ -22,6 +22,7 @@ import { Search, MapPin, Zap, Filter, Star, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ClientLayout from "../../components/ClientLayout";
 import { useClient } from "../../context/client/ClientContext";
+import { useCreateConversation } from "../../hooks/useCreateConversation";
 
 const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -33,6 +34,8 @@ const ClientBooking = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [autoMatching, setAutoMatching] = useState(false);
   const [searchFilters, setSearchFilters] = useState({});
+
+  const { createAndNavigateToConversation } = useCreateConversation();
 
   const categories = [
     "DJ & Music",
@@ -449,6 +452,7 @@ const ClientBooking = () => {
                         size="large"
                         block
                         className="border-gray-600 text-gray-300 hover:border-green-400 hover:text-green-400"
+                        onClick={() => createAndNavigateToConversation(provider?.user?._id)}
                       >
                         Quick Message
                       </Button>
