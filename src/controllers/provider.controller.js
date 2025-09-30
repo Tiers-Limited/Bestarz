@@ -90,42 +90,42 @@ const getMyProviderProfile = async (req, res) => {
 // Update provider profile
 const updateProviderProfile = async (req, res) => {
 	try {
-		const userId = req.user.id;
-		const update = req.body;
-
-		// Generate slug if needed
-		if (update.businessName && !update.slug) {
-			update.slug = update.businessName
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, '-')
-				.replace(/^-+|-+$/g, '');
-		}
-
-		// Extract profileImage if present
-		const { profileImage, ...providerUpdate } = update;
-
-		// Update Provider
-		const provider = await Provider.findOneAndUpdate(
-			{ user: userId },
-			{ $set: providerUpdate },
-			{ new: true, upsert: true }
-		).populate('user', 'firstName lastName profileImage email phone');
-
-		// Update User profileImage if provided
-		if (profileImage) {
-			await User.findByIdAndUpdate(
-				userId,
-				{ $set: { profileImage } },
-				{ new: true }
-			);
-		}
-
-		return res.json({ provider });
+	  const userId = req.user.id;
+	  const update = req.body;
+  
+	  // Generate slug if needed
+	  if (update.businessName && !update.slug) {
+		update.slug = update.businessName
+		  .toLowerCase()
+		  .replace(/[^a-z0-9]+/g, '-')
+		  .replace(/^-+|-+$/g, '');
+	  }
+  
+	  // Extract profileImage & phone if present
+	  const { profileImage, phone, ...providerUpdate } = update;
+  
+	  // Update Provider
+	  const provider = await Provider.findOneAndUpdate(
+		{ user: userId },
+		{ $set: providerUpdate },
+		{ new: true, upsert: true }
+	  ).populate('user', 'firstName lastName profileImage email phone');
+  
+	  // Update User profileImage and/or phone if provided
+	  const userUpdate = {};
+	  if (profileImage) userUpdate.profileImage = profileImage;
+	  if (phone) userUpdate.phone = phone;
+  
+	  if (Object.keys(userUpdate).length > 0) {
+		await User.findByIdAndUpdate(userId, { $set: userUpdate }, { new: true });
+	  }
+  
+	  return res.json({ provider });
 	} catch (err) {
-		return res.status(500).json({ message: err.message });
+	  return res.status(500).json({ message: err.message });
 	}
-};
-
+  };
+  
 
 // Get provider bookings with filtering
 const getProviderBookings = async (req, res) => {
@@ -466,8 +466,8 @@ const getProviderBySlug = async (req, res) => {
 		const { slug } = req.params;
 
 		const provider = await Provider.findOne({ slug })
-			.populate('user', 'firstName lastName profileImage')
-			.select('-user.passwordHash -user.email -user.phone');
+			.populate('user', 'firstName lastName profileImage email phone')
+			.select('-user.passwordHash ');
 
 		if (!provider) {
 			return res.status(404).json({ message: 'Provider not found' });
@@ -489,10 +489,14 @@ const getProviderBySlug = async (req, res) => {
 				portfolio: provider.portfolio,
 				rateCards: provider.rateCards,
 				availability: provider.availability,
+				website:provider.website,
+
 				user: {
 					firstName: provider.user.firstName,
 					lastName: provider.user.lastName,
-					profileImage: provider.user.profileImage
+					profileImage: provider.user.profileImage,
+					phone: provider.user.phone,
+					email: provider.user.email
 				}
 			}
 		});

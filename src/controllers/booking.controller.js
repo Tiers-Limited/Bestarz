@@ -8,7 +8,6 @@ const createBooking = async (req, res) => {
 	try {
 		const clientId = req.user.id;
 
-		console.log(clientId, "clientId")
 		const {
 			providerId,
 			serviceCategory,
@@ -42,7 +41,8 @@ const createBooking = async (req, res) => {
 			budgetMin,
 			budgetMax,
 			description,
-			contactInfo
+			contactInfo,
+			paymentStatus: 'unpaid'
 		});
 
 		// Populate the booking with provider and client details
@@ -50,9 +50,6 @@ const createBooking = async (req, res) => {
 			{ path: 'provider', populate: { path: 'user', select: 'firstName lastName email phone' } },
 			{ path: 'client', select: 'firstName lastName email phone' }
 		]);
-
-
-		console.log(booking, "booking")
 
 		const mailOptions = {
 			from: process.env.EMAIL,
@@ -83,7 +80,9 @@ const listMyBookings = async (req, res) => {
 			const bookings = await Booking.find(filter)
 				.populate([
 					{ path: 'provider', populate: { path: 'user', select: 'firstName lastName email phone profileImage' } },
-					{ path: 'client', select: 'firstName lastName email phone profileImage' }
+					{ path: 'client', select: 'firstName lastName email phone profileImage' },
+					{ path: 'advancePaymentId', select: 'status amount paymentType processedAt' },
+					{ path: 'finalPaymentId', select: 'status amount paymentType processedAt' }
 				])
 				.sort({ createdAt: -1 })
 				.skip((Number(page) - 1) * Number(limit))
@@ -94,7 +93,7 @@ const listMyBookings = async (req, res) => {
 			const reviews = await Review.find({ booking: { $in: bookingIds }, client: req.user.id });
 			const reviewMap = {};
 			reviews.forEach(r => {
-				reviewMap[r.booking.toString()] = r; // store full review object
+				reviewMap[r.booking.toString()] = r;
 			});
 
 			const bookingsWithReviews = bookings.map(booking => ({
@@ -123,7 +122,9 @@ const listMyBookings = async (req, res) => {
 
 			const bookings = await Booking.find(filter)
 				.populate([
-					{ path: 'client', select: 'firstName lastName email phone profileImage' }
+					{ path: 'client', select: 'firstName lastName email phone profileImage' },
+					{ path: 'advancePaymentId', select: 'status amount paymentType processedAt providerEarnings' },
+					{ path: 'finalPaymentId', select: 'status amount paymentType processedAt providerEarnings' }
 				])
 				.sort({ createdAt: -1 })
 				.skip((Number(page) - 1) * Number(limit))
@@ -163,28 +164,72 @@ const listMyBookings = async (req, res) => {
 
 const updateBookingStatus = async (req, res) => {
 	try {
+
+
+		console.log(req.user,"UESTSSS")
 		const { id } = req.params;
 		const { status, notes, amount } = req.body;
 		const booking = await Booking.findById(id);
 		if (!booking) return res.status(404).json({ message: 'Booking not found' });
 
-		// Only the provider owning the booking can update status
-		if (req.user.role !== 'provider') return res.status(403).json({ message: 'Forbidden' });
-		const provider = await Provider.findOne({ user: req.user.id });
-		if (!provider || String(provider._id) !== String(booking.provider)) {
+		// Provider can confirm/cancel, Client can complete
+		if (req.user.role === 'provider') {
+			const provider = await Provider.findOne({ user: req.user.id });
+			if (!provider || String(provider._id) !== String(booking.provider)) {
+				return res.status(403).json({ message: 'Forbidden' });
+			}
+			
+			// Provider can only confirm or cancel
+			if (status === 'confirmed') {
+				if (!amount || amount <= 0) {
+					return res.status(400).json({ message: 'Amount must be set when confirming booking' });
+				}
+				booking.amount = amount;
+				booking.status = 'confirmed';
+				booking.paymentStatus = 'unpaid'; // Ready for advance payment
+			} else if (status === 'cancelled') {
+				booking.status = 'cancelled';
+			} else {
+				return res.status(400).json({ message: 'Provider can only confirm or cancel bookings' });
+			}
+		} 
+		else if (req.user.role === 'client') {
+			// Client can only mark as completed
+
+			console.log(booking.client,"booking.client")
+			if (String(booking.client) !== String(req.user.id)) {
+				return res.status(403).json({ message: 'Forbidden' });
+			}
+			
+			if (status === 'completed') {
+				// Check if booking is confirmed and advance payment is made
+				if (booking.status !== 'confirmed') {
+					return res.status(400).json({ message: 'Booking must be confirmed first' });
+				}
+				if (booking.paymentStatus !== 'advance_paid') {
+					return res.status(400).json({ message: 'Advance payment must be completed first' });
+				}
+				booking.status = 'completed';
+				// Payment status will be updated when final payment is made
+			} else {
+				return res.status(400).json({ message: 'Client can only mark bookings as completed' });
+			}
+		} 
+		
+		else {
 			return res.status(403).json({ message: 'Forbidden' });
 		}
 
-		booking.status = status;
 		if (notes) booking.notes = notes;
-		if (amount) booking.amount = amount;
 
 		await booking.save();
 
 		// Populate the updated booking
 		await booking.populate([
 			{ path: 'provider', populate: { path: 'user', select: 'firstName lastName email phone profileImage' } },
-			{ path: 'client', select: 'firstName lastName email phone profileImage' }
+			{ path: 'client', select: 'firstName lastName email phone profileImage' },
+			{ path: 'advancePaymentId', select: 'status amount paymentType processedAt' },
+			{ path: 'finalPaymentId', select: 'status amount paymentType processedAt' }
 		]);
 
 		return res.json({ booking });
@@ -199,14 +244,17 @@ const getBooking = async (req, res) => {
 		const booking = await Booking.findById(id)
 			.populate([
 				{ path: 'provider', populate: { path: 'user', select: 'firstName lastName email phone profileImage' } },
-				{ path: 'client', select: 'firstName lastName email phone profileImage' }
+				{ path: 'client', select: 'firstName lastName email phone profileImage' },
+				{ path: 'advancePaymentId', select: 'status amount paymentType processedAt platformFee providerEarnings' },
+				{ path: 'finalPaymentId', select: 'status amount paymentType processedAt platformFee providerEarnings' }
 			]);
 
 		if (!booking) return res.status(404).json({ message: 'Booking not found' });
 
 		// Check if user has access to this booking
 		const isClient = String(booking.client._id) === String(req.user.id);
-		const isProvider = req.user.role === 'provider' && String(booking.provider._id) === String(req.user.id);
+		const provider = await Provider.findOne({ user: req.user.id });
+		const isProvider = provider && String(booking.provider._id) === String(provider._id);
 
 		if (!isClient && !isProvider && req.user.role !== 'admin') {
 			return res.status(403).json({ message: 'Forbidden' });
@@ -252,7 +300,6 @@ const getBookingStats = async (req, res) => {
 		return res.status(500).json({ message: err.message });
 	}
 };
-
 
 module.exports = {
 	createBooking,

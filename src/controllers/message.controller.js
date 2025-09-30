@@ -233,44 +233,104 @@ const sendMessage = async (req, res) => {
 };
 
 
- const createConversation = async (req, res) => {
+//  const createConversation = async (req, res) => {
+// 	try {
+// 		const { participantId, bookingId, title } = req.body;
+// 		const userId = req.user.id;
+		
+// 		// Check if participant exists
+// 		const participant = await User.findById(participantId);
+// 		if (!participant) return res.status(404).json({ message: 'Participant not found' });
+		
+// 		// Check if booking exists (if provided)
+// 		let booking = null;
+// 		if (bookingId) {
+// 			booking = await Booking.findById(bookingId);
+// 			if (!booking) return res.status(404).json({ message: 'Booking not found' });
+// 		}
+		
+// 		// Check if conversation already exists
+// 		const existingConversation = await Conversation.findOne({
+// 			participants: { $all: [userId, participantId] },
+// 			isActive: true
+// 		});
+		
+// 		if (existingConversation) {
+// 			return res.json({ conversation: existingConversation });
+// 		}
+		
+// 		const conversation = await Conversation.create({
+// 			participants: [userId, participantId],
+// 			booking: bookingId,
+// 			title: title || `${participant.firstName} ${participant.lastName}`,
+// 			createdBy: userId   
+// 		  });
+		  
+// 		await conversation.populate([
+// 			{ path: 'participants', select: 'firstName lastName profileImage email phone' },
+// 			{ path: 'booking', select: 'serviceCategory eventType dateStart location' }
+// 		]);
+		
+// 		return res.status(201).json({ conversation });
+// 	} catch (err) {
+// 		return res.status(500).json({ message: err.message });
+// 	}
+// };
+
+
+
+
+const createConversation = async (req, res) => {
 	try {
-		const { participantId, bookingId, title } = req.body;
+		const { participantId, bookingId, title, withAdmin } = req.body; // 👈 allow client to pass "withAdmin: true"
 		const userId = req.user.id;
-		
-		// Check if participant exists
-		const participant = await User.findById(participantId);
-		if (!participant) return res.status(404).json({ message: 'Participant not found' });
-		
-		// Check if booking exists (if provided)
+
+		let participant;
+
+		// Case 1: Chat with Admin
+		if (withAdmin) {
+			participant = await User.findOne({ role: "admin" }); // 👈 get the admin user
+			if (!participant) {
+				return res.status(404).json({ message: "Admin not found" });
+			}
+		} else {
+			// Case 2: Chat with normal participant
+			participant = await User.findById(participantId);
+			if (!participant) {
+				return res.status(404).json({ message: "Participant not found" });
+			}
+		}
+
+		// Check booking (if provided)
 		let booking = null;
 		if (bookingId) {
 			booking = await Booking.findById(bookingId);
-			if (!booking) return res.status(404).json({ message: 'Booking not found' });
+			if (!booking) return res.status(404).json({ message: "Booking not found" });
 		}
-		
+
 		// Check if conversation already exists
 		const existingConversation = await Conversation.findOne({
-			participants: { $all: [userId, participantId] },
+			participants: { $all: [userId, participant._id] },
 			isActive: true
 		});
-		
+
 		if (existingConversation) {
 			return res.json({ conversation: existingConversation });
 		}
-		
+
+		// Create new conversation
 		const conversation = await Conversation.create({
-			participants: [userId, participantId],
-			booking: bookingId,
-			title: title || `${participant.firstName} ${participant.lastName}`,
-			createdBy: userId   
-		  });
-		  
+			participants: [userId, participant._id],
+			booking: bookingId || null,
+			title:`${participant.firstName} ${participant.lastName}`||title,
+			createdBy: userId
+		});
+
 		await conversation.populate([
-			{ path: 'participants', select: 'firstName lastName profileImage email phone' },
-			{ path: 'booking', select: 'serviceCategory eventType dateStart location' }
+			{ path: "participants", select: "firstName lastName profileImage email phone role" },
+			{ path: "booking", select: "serviceCategory eventType dateStart location" }
 		]);
-		
+
 		return res.status(201).json({ conversation });
 	} catch (err) {
 		return res.status(500).json({ message: err.message });

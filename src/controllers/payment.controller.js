@@ -1,95 +1,371 @@
 const Payment = require('../models/Payment.js');
 const Booking = require('../models/Booking.js');
 const Provider = require('../models/Provider.js');
-const { createPaymentLink, retrieveSession, createStripeRefund } = require('../services/stripe.service.js');
+const User = require('../models/User.js');
+const { createPaymentLink, retrieveSession, transferToConnectedAccount } = require('../services/stripe.service.js');
 
- const createPayment = async (req, res) => {
+// Create advance payment (30%)
+const createAdvancePayment = async (req, res) => {
 	try {
-		const { bookingId, amount, paymentMethod = 'stripe' } = req.body;
+		const { bookingId } = req.body;
 		const userId = req.user.id;
-		
+
 		const booking = await Booking.findById(bookingId)
-			.populate('provider client');
-		if (!booking) return res.status(404).json({ message: 'Booking not found' });
-		
-		// Check if user has access to this booking
-		const isClient = String(booking.client._id) === String(userId);
-		if (!isClient && req.user.role !== 'admin') {
-			return res.status(403).json({ message: 'Forbidden' });
+			.populate([
+				{ path: 'provider', populate: { path: 'user' } },
+				{ path: 'client' }
+			]);
+
+		if (!booking) {
+			return res.status(404).json({ message: 'Booking not found' });
 		}
-		
-		// Check if payment already exists and is successful
-		const existingPayment = await Payment.findOne({ booking: bookingId });
-		if (existingPayment && existingPayment.status === 'completed') {
-			return res.status(400).json({ message: 'Payment already completed for this booking' });
+
+		// Verify booking is confirmed and has amount set
+		if (booking.status !== 'confirmed') {
+			return res.status(400).json({ message: 'Booking must be confirmed first' });
 		}
-		
-		// If payment exists but failed or is pending, delete it to allow retry
-		if (existingPayment && (existingPayment.status === 'failed' || existingPayment.status === 'pending')) {
-			await Payment.findByIdAndDelete(existingPayment._id);
+
+		if (!booking.amount) {
+			return res.status(400).json({ message: 'Booking amount not set by provider' });
 		}
-		
+
+		// Check if user is the client
+		if (String(booking.client._id) !== String(userId)) {
+			return res.status(403).json({ message: 'Only the client can make payments' });
+		}
+
+		// Check if advance payment already exists
+		if (booking.advancePaymentId) {
+			const existingPayment = await Payment.findById(booking.advancePaymentId);
+			if (existingPayment && existingPayment.status === 'completed') {
+				return res.status(400).json({ message: 'Advance payment already completed' });
+			}
+			// If payment exists but failed, delete it
+			if (existingPayment) {
+				await Payment.findByIdAndDelete(existingPayment._id);
+			}
+		}
+
+		// Calculate payment amounts
+		const totalAmount = booking.amount;
+		const advanceAmount = Math.round(totalAmount * 0.30); // 30%
+		const platformFee = Math.round(advanceAmount * 0.20); // 20%
+		const providerEarnings = advanceAmount - platformFee; // 80%
+
 		// Create payment record
 		const payment = await Payment.create({
 			booking: bookingId,
 			client: booking.client._id,
 			provider: booking.provider._id,
-			amount,
-			paymentMethod
+			paymentType: 'advance',
+			totalAmount,
+			amount: advanceAmount,
+			platformFee,
+			providerEarnings,
+			paymentMethod: 'stripe'
 		});
-		
+
 		// Create Stripe payment link
-		const { paymentLink, sessionId } = await createPaymentLink(booking, booking.client.email);
-		
+		const { paymentLink, sessionId } = await createPaymentLink(
+			booking,
+			booking.client.email,
+			advanceAmount,
+			'advance'
+		);
+
 		// Update payment with session ID
 		payment.stripePaymentIntentId = sessionId;
 		await payment.save();
-		
-		// Update booking payment status
-		booking.paymentStatus = 'pending';
+
+		// Update booking
+		booking.advancePaymentId = payment._id;
+		booking.paymentStatus = 'advance_pending';
 		await booking.save();
-		
-		return res.status(201).json({ 
+
+		return res.status(201).json({
 			payment,
 			paymentLink,
-			sessionId
+			sessionId,
+			message: 'Advance payment (30%) initiated successfully'
 		});
 	} catch (err) {
-		console.error('Create payment error:', err);
+		console.error('Create advance payment error:', err);
 		return res.status(500).json({ message: err.message });
 	}
 };
 
- const getMyPayments = async (req, res) => {
+// Create final payment (70%)
+const createFinalPayment = async (req, res) => {
+	try {
+		const { bookingId } = req.body;
+		const userId = req.user.id;
+
+		const booking = await Booking.findById(bookingId)
+			.populate([
+				{ path: 'provider', populate: { path: 'user' } },
+				{ path: 'client' }
+			]);
+
+		if (!booking) {
+			return res.status(404).json({ message: 'Booking not found' });
+		}
+
+		// Verify booking is completed
+		if (booking.status !== 'completed') {
+			return res.status(400).json({ message: 'Booking must be completed first' });
+		}
+
+		// Check if user is the client
+		if (String(booking.client._id) !== String(userId)) {
+			return res.status(403).json({ message: 'Only the client can make payments' });
+		}
+
+		// Check if advance payment was made
+		if (!booking.advancePaymentId || booking.paymentStatus !== 'advance_paid') {
+			return res.status(400).json({ message: 'Advance payment must be completed first' });
+		}
+
+		// Check if final payment already exists
+		if (booking.finalPaymentId) {
+			const existingPayment = await Payment.findById(booking.finalPaymentId);
+			if (existingPayment && existingPayment.status === 'completed') {
+				return res.status(400).json({ message: 'Final payment already completed' });
+			}
+			// If payment exists but failed, delete it
+			if (existingPayment) {
+				await Payment.findByIdAndDelete(existingPayment._id);
+			}
+		}
+
+		// Calculate payment amounts
+		const totalAmount = booking.amount;
+		const finalAmount = Math.round(totalAmount * 0.70); // 70%
+		const platformFee = Math.round(finalAmount * 0.20); // 20%
+		const providerEarnings = finalAmount - platformFee; // 80%
+
+		// Create payment record
+		const payment = await Payment.create({
+			booking: bookingId,
+			client: booking.client._id,
+			provider: booking.provider._id,
+			paymentType: 'final',
+			totalAmount,
+			amount: finalAmount,
+			platformFee,
+			providerEarnings,
+			paymentMethod: 'stripe'
+		});
+
+		// Create Stripe payment link
+		const { paymentLink, sessionId } = await createPaymentLink(
+			booking,
+			booking.client.email,
+			finalAmount,
+			'final'
+		);
+
+		// Update payment with session ID
+		payment.stripePaymentIntentId = sessionId;
+		await payment.save();
+
+		// Update booking
+		booking.finalPaymentId = payment._id;
+		booking.paymentStatus = 'final_pending';
+		await booking.save();
+
+		return res.status(201).json({
+			payment,
+			paymentLink,
+			sessionId,
+			message: 'Final payment (70%) initiated successfully'
+		});
+	} catch (err) {
+		console.error('Create final payment error:', err);
+		return res.status(500).json({ message: err.message });
+	}
+};
+
+// Confirm payment (called by webhook or frontend after successful payment)
+const confirmPayment = async (req, res) => {
+	try {
+		const { sessionId } = req.body;
+
+		const session = await retrieveSession(sessionId);
+
+		if (session.payment_status === 'paid') {
+			// Find payment by session ID
+			const payment = await Payment.findOne({ stripePaymentIntentId: sessionId })
+				.populate([
+					{ path: 'booking' },
+					{ path: 'provider', populate: { path: 'user' } }
+				]);
+
+			if (!payment) {
+				return res.status(404).json({ message: 'Payment not found' });
+			}
+
+			if (payment.status === 'completed') {
+				return res.json({
+					success: true,
+					payment,
+					message: 'Payment already confirmed'
+				});
+			}
+
+			// Update payment status
+			payment.status = 'completed';
+			payment.transactionId = session.payment_intent;
+			payment.processedAt = new Date();
+			await payment.save();
+
+			// Update booking payment status
+			const booking = await Booking.findById(payment.booking._id);
+			if (booking) {
+				if (payment.paymentType === 'advance') {
+					booking.paymentStatus = 'advance_paid';
+				} else if (payment.paymentType === 'final') {
+					booking.paymentStatus = 'final_paid';
+				}
+				await booking.save();
+			}
+
+			// Transfer funds to provider (80%)
+			try {
+				const providerUser = payment.provider.user;
+				if (providerUser.stripeAccountId) {
+					const transfer = await transferToConnectedAccount(
+						providerUser.stripeAccountId,
+						payment.providerEarnings,
+						payment.transactionId,
+						`${payment.paymentType} payment for booking ${payment.booking._id}`
+					);
+
+					payment.transferredToProvider = true;
+					payment.stripeTransferId = transfer.id;
+					payment.transferredAt = new Date();
+					await payment.save();
+				}
+			} catch (transferError) {
+				console.error('Transfer error:', transferError);
+				// Don't fail the payment confirmation if transfer fails
+				// Admin can manually handle transfers
+			}
+
+			return res.json({
+				success: true,
+				payment,
+				message: 'Payment confirmed successfully'
+			});
+		}
+
+		return res.status(400).json({
+			success: false,
+			message: 'Payment not completed'
+		});
+	} catch (err) {
+		console.error('Confirm payment error:', err);
+		return res.status(500).json({ message: err.message });
+	}
+};
+
+// Get payment details
+const getPayment = async (req, res) => {
+	try {
+		const { id } = req.params;
+		const payment = await Payment.findById(id)
+			.populate([
+				{ path: 'booking', select: 'serviceCategory eventType dateStart location description amount status' },
+				{ path: 'client', select: 'firstName lastName email phone' },
+				{ path: 'provider', populate: { path: 'user', select: 'firstName lastName email phone' } }
+			]);
+
+		if (!payment) {
+			return res.status(404).json({ message: 'Payment not found' });
+		}
+
+		// Check access
+		const isClient = String(payment.client._id) === String(req.user.id);
+		const isProvider = req.user.role === 'provider' && String(payment.provider.user._id) === String(req.user.id);
+
+		if (!isClient && !isProvider && req.user.role !== 'admin') {
+			return res.status(403).json({ message: 'Forbidden' });
+		}
+
+		return res.json({ payment });
+	} catch (err) {
+		return res.status(500).json({ message: err.message });
+	}
+};
+
+// Get all payments for a booking
+const getBookingPayments = async (req, res) => {
+	try {
+		const { bookingId } = req.params;
+
+		const booking = await Booking.findById(bookingId);
+		if (!booking) {
+			return res.status(404).json({ message: 'Booking not found' });
+		}
+
+		// Check access
+		const isClient = String(booking.client) === String(req.user.id);
+		const provider = await Provider.findOne({ user: req.user.id });
+		const isProvider = provider && String(booking.provider) === String(provider._id);
+
+		if (!isClient && !isProvider && req.user.role !== 'admin') {
+			return res.status(403).json({ message: 'Forbidden' });
+		}
+
+		const payments = await Payment.find({ booking: bookingId })
+			.populate([
+				{ path: 'client', select: 'firstName lastName email' },
+				{ path: 'provider', populate: { path: 'user', select: 'firstName lastName email' } }
+			])
+			.sort({ createdAt: 1 });
+
+		return res.json({ payments });
+	} catch (err) {
+		return res.status(500).json({ message: err.message });
+	}
+};
+
+// Get my payments (client or provider)
+const getMyPayments = async (req, res) => {
 	try {
 		const userId = req.user.id;
-		const { status, page = 1, limit = 20 } = req.query;
-		
+		const { status, paymentType, page = 1, limit = 20 } = req.query;
+
 		let filter = {};
 		if (req.user.role === 'client') {
 			filter.client = userId;
 		} else if (req.user.role === 'provider') {
 			const provider = await Provider.findOne({ user: userId });
-			if (!provider) return res.json({ payments: [], pagination: { page: 1, limit: Number(limit), total: 0, pages: 0 } });
+			if (!provider) {
+				return res.json({
+					payments: [],
+					pagination: { page: 1, limit: Number(limit), total: 0, pages: 0 }
+				});
+			}
 			filter.provider = provider._id;
 		} else {
 			return res.status(403).json({ message: 'Forbidden' });
 		}
-		
+
 		if (status) filter.status = status;
-		
+		if (paymentType) filter.paymentType = paymentType;
+
 		const payments = await Payment.find(filter)
 			.populate([
-				{ path: 'booking', select: 'serviceCategory eventType dateStart location' },
+				{ path: 'booking', select: 'serviceCategory eventType dateStart location amount' },
 				{ path: 'client', select: 'firstName lastName email' },
 				{ path: 'provider', populate: { path: 'user', select: 'firstName lastName email' } }
 			])
 			.sort({ createdAt: -1 })
 			.skip((Number(page) - 1) * Number(limit))
 			.limit(Number(limit));
-		
+
 		const total = await Payment.countDocuments(filter);
-		
+
 		return res.json({
 			payments,
 			pagination: {
@@ -104,207 +380,88 @@ const { createPaymentLink, retrieveSession, createStripeRefund } = require('../s
 	}
 };
 
- const getPayment = async (req, res) => {
-	try {
-		const { id } = req.params;
-		const payment = await Payment.findById(id)
-			.populate([
-				{ path: 'booking', select: 'serviceCategory eventType dateStart location description' },
-				{ path: 'client', select: 'firstName lastName email phone' },
-				{ path: 'provider', populate: { path: 'user', select: 'firstName lastName email phone' } }
-			]);
-		
-		if (!payment) return res.status(404).json({ message: 'Payment not found' });
-		
-		// Check access
-		const isClient = String(payment.client._id) === String(req.user.id);
-		const isProvider = req.user.role === 'provider' && String(payment.provider._id) === String(req.user.id);
-		
-		if (!isClient && !isProvider && req.user.role !== 'admin') {
-			return res.status(403).json({ message: 'Forbidden' });
-		}
-		
-		return res.json({ payment });
-	} catch (err) {
-		return res.status(500).json({ message: err.message });
-	}
-};
-
- const updatePaymentStatus = async (req, res) => {
-	try {
-		const { id } = req.params;
-		const { status, transactionId, stripePaymentIntentId } = req.body;
-		
-		const payment = await Payment.findById(id);
-		if (!payment) return res.status(404).json({ message: 'Payment not found' });
-		
-		// Only admin or provider can update payment status
-		if (req.user.role !== 'admin' && req.user.role !== 'provider') {
-			return res.status(403).json({ message: 'Forbidden' });
-		}
-		
-		payment.status = status;
-		if (transactionId) payment.transactionId = transactionId;
-		if (stripePaymentIntentId) payment.stripePaymentIntentId = stripePaymentIntentId;
-		
-		if (status === 'completed') {
-			payment.processedAt = new Date();
-		}
-		
-		await payment.save();
-		
-		// Update booking payment status
-		const booking = await Booking.findById(payment.booking);
-		if (booking) {
-			booking.paymentStatus = status;
-			await booking.save();
-		}
-		
-		return res.json({ payment });
-	} catch (err) {
-		return res.status(500).json({ message: err.message });
-	}
-};
-
- const getPaymentStats = async (req, res) => {
+// Get payment statistics
+const getPaymentStats = async (req, res) => {
 	try {
 		const userId = req.user.id;
 		let filter = {};
-		
+
 		if (req.user.role === 'client') {
 			filter.client = userId;
 		} else if (req.user.role === 'provider') {
 			const provider = await Provider.findOne({ user: userId });
-			if (!provider) return res.json({ stats: { total: 0, completed: 0, pending: 0, failed: 0, totalAmount: 0 } });
+			if (!provider) {
+				return res.json({
+					stats: {
+						total: 0,
+						completed: 0,
+						pending: 0,
+						totalEarnings: 0,
+						advancePayments: 0,
+						finalPayments: 0
+					}
+				});
+			}
 			filter.provider = provider._id;
 		} else {
 			return res.status(403).json({ message: 'Forbidden' });
 		}
-		
+
 		const total = await Payment.countDocuments(filter);
 		const completed = await Payment.countDocuments({ ...filter, status: 'completed' });
 		const pending = await Payment.countDocuments({ ...filter, status: 'pending' });
-		const failed = await Payment.countDocuments({ ...filter, status: 'failed' });
-		
+		const advancePayments = await Payment.countDocuments({ ...filter, paymentType: 'advance', status: 'completed' });
+		const finalPayments = await Payment.countDocuments({ ...filter, paymentType: 'final', status: 'completed' });
+
+		// Calculate earnings based on role
+		let totalEarnings = 0;
+		let thisMonthEarnings = 0;
+
 		const completedPayments = await Payment.find({ ...filter, status: 'completed' });
-		const totalAmount = completedPayments.reduce((sum, payment) => sum + payment.amount, 0);
-		
+
+		if (req.user.role === 'provider') {
+			totalEarnings = completedPayments.reduce((sum, payment) => sum + payment.providerEarnings, 0);
+		} else if (req.user.role === 'client') {
+			totalEarnings = completedPayments.reduce((sum, payment) => sum + payment.amount, 0);
+		}
+
 		// This month's earnings
 		const thisMonth = new Date();
 		thisMonth.setDate(1);
 		thisMonth.setHours(0, 0, 0, 0);
-		
-		const thisMonthPayments = completedPayments.filter(payment => 
+
+		const thisMonthPayments = completedPayments.filter(payment =>
 			payment.processedAt && payment.processedAt >= thisMonth
 		);
-		const thisMonthAmount = thisMonthPayments.reduce((sum, payment) => sum + payment.amount, 0);
-		
+
+		if (req.user.role === 'provider') {
+			thisMonthEarnings = thisMonthPayments.reduce((sum, payment) => sum + payment.providerEarnings, 0);
+		} else if (req.user.role === 'client') {
+			thisMonthEarnings = thisMonthPayments.reduce((sum, payment) => sum + payment.amount, 0);
+		}
+
 		return res.json({
 			stats: {
 				total,
 				completed,
 				pending,
-				failed,
-				totalAmount,
-				thisMonthAmount
+				advancePayments,
+				finalPayments,
+				totalEarnings,
+				thisMonthEarnings
 			}
 		});
 	} catch (err) {
 		return res.status(500).json({ message: err.message });
 	}
 };
-
- const createRefund = async (req, res) => {
-	try {
-		const { id } = req.params;
-		const { amount, reason } = req.body;
-		
-		const payment = await Payment.findById(id);
-		if (!payment) return res.status(404).json({ message: 'Payment not found' });
-		
-		if (payment.status !== 'completed') {
-			return res.status(400).json({ message: 'Can only refund completed payments' });
-		}
-		
-		// Only admin or provider can create refunds
-		if (req.user.role !== 'admin' && req.user.role !== 'provider') {
-			return res.status(403).json({ message: 'Forbidden' });
-		}
-		
-		const refundAmount = amount || payment.amount;
-		
-		// Create Stripe refund
-		const stripeRefund = await createStripeRefund(payment.stripePaymentIntentId, refundAmount);
-		
-		payment.status = 'refunded';
-		payment.refundAmount = refundAmount;
-		payment.refundReason = reason;
-		payment.refundId = stripeRefund.id;
-		payment.refundedAt = new Date();
-		
-		await payment.save();
-		
-		// Update booking payment status
-		const booking = await Booking.findById(payment.booking);
-		if (booking) {
-			booking.paymentStatus = 'refunded';
-			await booking.save();
-		}
-		
-		return res.json({ payment });
-	} catch (err) {
-		return res.status(500).json({ message: err.message });
-	}
-};
-
- const confirmPayment = async (req, res) => {
-	try {
-		const { sessionId } = req.body;
-		
-		const session = await retrieveSession(sessionId);
-		
-		if (session.payment_status === 'paid') {
-			// Find payment by session ID
-			const payment = await Payment.findOne({ stripePaymentIntentId: sessionId });
-			if (payment) {
-				payment.status = 'completed';
-				payment.transactionId = session.payment_intent;
-				payment.processedAt = new Date();
-				await payment.save();
-				
-				// Update booking payment status
-				const booking = await Booking.findById(payment.booking);
-				if (booking) {
-					booking.paymentStatus = 'paid';
-					await booking.save();
-				}
-				
-				return res.json({ 
-					success: true, 
-					payment,
-					message: 'Payment confirmed successfully' 
-				});
-			}
-		}
-		
-		return res.status(400).json({ 
-			success: false, 
-			message: 'Payment not found or not completed' 
-		});
-	} catch (err) {
-		return res.status(500).json({ message: err.message });
-	}
-};
-
-
-
 
 module.exports = {
-	createPayment,
-	getMyPayments,
+	createAdvancePayment,
+	createFinalPayment,
+	confirmPayment,
 	getPayment,
-	updatePaymentStatus,
-	getPaymentStats,
-	createRefund,
-	confirmPayment
-  };
+	getBookingPayments,
+	getMyPayments,
+	getPaymentStats
+};

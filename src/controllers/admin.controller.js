@@ -532,7 +532,7 @@ const getAuditLogs = async (req, res) => {
 
         const skip = (Number(page) - 1) * Number(limit);
         const logs = await AuditLog.find(filter)
-            .populate('user', 'firstName lastName email')
+            .populate('user', 'firstName lastName email isActive status role')
             .sort({ timestamp: -1 })
             .skip(skip)
             .limit(Number(limit));

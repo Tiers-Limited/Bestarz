@@ -2,23 +2,36 @@ const express = require('express');
 const router = express.Router();
 
 const {
-	createPayment,
-	getMyPayments,
-	getPayment,
-	updatePaymentStatus,
-	getPaymentStats,
-	createRefund,
+	createAdvancePayment,
+	createFinalPayment,
 	confirmPayment,
+	getPayment,
+	getBookingPayments,
+	getMyPayments,
+	getPaymentStats,
 } = require('../controllers/payment.controller.js');
 
 const { auth } = require('../middleware/auth.js');
 
-router.post('/', auth(['client', 'admin']), createPayment);
-router.post('/confirm', confirmPayment); // No auth needed for webhook confirmation
+// Create advance payment (30%)
+router.post('/advance', auth('client'), createAdvancePayment);
+
+// Create final payment (70%)
+router.post('/final', auth('client'), createFinalPayment);
+
+// Confirm payment (webhook or frontend callback)
+router.post('/confirm', confirmPayment);
+
+// Get my payments
 router.get('/me', auth(['client', 'provider']), getMyPayments);
+
+// Get payment statistics
 router.get('/stats', auth(['client', 'provider']), getPaymentStats);
+
+// Get payments for a specific booking
+router.get('/booking/:bookingId', auth(), getBookingPayments);
+
+// Get specific payment details
 router.get('/:id', auth(), getPayment);
-router.patch('/:id/status', auth(['admin', 'provider']), updatePaymentStatus);
-router.post('/:id/refund', auth(['admin', 'provider']), createRefund);
 
 module.exports = router;

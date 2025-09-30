@@ -32,7 +32,7 @@ router.put('/profile', auth('provider'), updateProviderProfile);
 // Booking Management
 router.get('/bookings', auth('provider'), getProviderBookings);
 router.get('/bookings/:id', auth('provider'), getBooking);
-router.patch('/bookings/:id/status', auth('provider'), updateBookingStatus);
+router.patch('/bookings/:id/status', auth(), updateBookingStatus);
 
 // Customer Management
 router.get('/customers', auth('provider'), getProviderCustomers);
