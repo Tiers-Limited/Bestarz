@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 
 const SubscriptionContext = createContext();
@@ -12,11 +12,46 @@ export const useSubscription = () => {
 };
 
 export const SubscriptionProvider = ({ children }) => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [subscription, setSubscription] = useState(null);
 
   const baseUrl = import.meta.env.VITE_BASE_URL;
+
+  // ✅ Get current subscription
+  const getCurrentSubscription = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${baseUrl}/subscription/current`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSubscription(data.subscription);
+        return { success: true, data: data.subscription };
+      } else {
+        return { success: false, error: data.message || 'Failed to get subscription' };
+      }
+    } catch (error) {
+      console.error('Get subscription error:', error);
+      return { success: false, error: 'Network error. Please try again.' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load subscription data when component mounts
+  useEffect(() => {
+    if (token && user?.role === 'provider') {
+      getCurrentSubscription();
+    }
+  }, [token, user]);
 
   // ✅ Create subscription (returns Stripe checkout link)
   const createSubscription = async (plan, amount) => {
@@ -116,6 +151,7 @@ export const SubscriptionProvider = ({ children }) => {
     createSubscription,
     updateSubscription,
     cancelSubscription,
+    getCurrentSubscription,
   };
 
   return (

@@ -1,5 +1,5 @@
 import React from "react";
-import { Card, Typography, Button, Row, Col, List, Tag, Space, Modal } from "antd";
+import { Card, Typography, Button, Row, Col, List, Tag, Space } from "antd";
 import { Check, Star, Zap, Crown, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ProviderLayout from "../../components/ProviderLayout";
@@ -93,41 +93,6 @@ const ProviderSubscription = () => {
     }
   };
 
-  const handleCancelSubscription = () => {
-    const planName = currentPlan.name?.charAt(0).toUpperCase() + currentPlan.name?.slice(1);
-    const renewalDate = currentPlan.renewalDate ? new Date(currentPlan.renewalDate).toLocaleDateString() : 'N/A';
-
-    Modal.confirm({
-      title: <span style={{ color: '#ffffff' }}>Cancel {planName} Subscription</span>,
-      content: (
-        <div>
-          <p style={{ marginBottom: '16px', color: '#ff7875', fontWeight: 'bold' }}>
-            ⚠️ You are about to cancel your {planName} subscription.
-          </p>
-          <p style={{ marginBottom: '12px', color: '#ffffff' }}>
-            <strong style={{ color: '#ffffff' }}>What happens next:</strong>
-          </p>
-          <ul style={{ marginBottom: '16px', paddingLeft: '20px', color: '#d9d9d9' }}>
-            <li>You'll keep access to premium features until {renewalDate}</li>
-            <li>No more charges will be made to your card</li>
-            <li>You can resubscribe anytime before the end date</li>
-            <li>You'll lose access to: unlimited bookings, advanced profiles, priority support</li>
-          </ul>
-          <p style={{ color: '#bfbfbf', fontSize: '14px' }}>
-            This action cannot be undone. Are you sure you want to proceed?
-          </p>
-        </div>
-      ),
-      okText: 'Yes, Cancel Subscription',
-      okType: 'danger',
-      cancelText: 'Keep My Subscription',
-      width: 500,
-      onOk: () => {
-        cancelSubscription();
-      },
-    });
-  };
-
   const hasSubscription = currentPlan.name && currentPlan.status === "active";
 
   return (
@@ -179,7 +144,7 @@ const ProviderSubscription = () => {
                 <div>
                   <Button 
                     danger 
-                    onClick={handleCancelSubscription}
+                    onClick={() => cancelSubscription()}
                     loading={loading}
                   >
                     Cancel Subscription
