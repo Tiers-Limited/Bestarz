@@ -125,8 +125,50 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 
 
+// ✅ Get current subscription details
+const getCurrentSubscription = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Return subscription details from database
+    const subscriptionData = {
+      subscriptionPlan: user.subscriptionPlan || 'none',
+      subscriptionStatus: user.subscriptionStatus || 'canceled',
+      stripeSubscriptionId: user.stripeSubscriptionId,
+      subscriptionStart: user.subscriptionStart,
+      subscriptionEnd: user.subscriptionEnd,
+      hasActiveSubscription: user.subscriptionStatus === 'active' && user.subscriptionPlan !== 'none'
+    };
+
+    // If user has active Stripe subscription, get latest details
+    if (user.stripeSubscriptionId && user.subscriptionStatus === 'active') {
+      try {
+        const stripeSubscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+        subscriptionData.stripeDetails = {
+          id: stripeSubscription.id,
+          status: stripeSubscription.status,
+          current_period_start: new Date(stripeSubscription.current_period_start * 1000),
+          current_period_end: new Date(stripeSubscription.current_period_end * 1000),
+          cancel_at_period_end: stripeSubscription.cancel_at_period_end
+        };
+      } catch (stripeError) {
+        console.log('Could not fetch Stripe subscription:', stripeError.message);
+      }
+    }
+
+    return res.json({ subscription: subscriptionData });
+  } catch (err) {
+    console.error('Get current subscription error:', err);
+    return res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   createSubscription,
   cancelSubscription,
-  updateSubscription
+  updateSubscription,
+  getCurrentSubscription
 };
