@@ -34,7 +34,7 @@ const getPlatformStats = async (req, res) => {
             // Total revenue
             Payment.aggregate([
                 { $match: { status: 'completed' } },
-                { $group: { _id: null, total: { $sum: '$amount' } } }
+                { $group: { _id: null, total: { $sum: '$platformFee' } } }
             ]),
             // Active providers based on User.isActive
             Provider.aggregate([
@@ -71,12 +71,12 @@ const getPlatformStats = async (req, res) => {
             // Current month revenue
             Payment.aggregate([
                 { $match: { status: 'completed', createdAt: { $gte: startOfCurrentMonth, $lte: endOfCurrentMonth } } },
-                { $group: { _id: null, total: { $sum: '$amount' } } }
+                { $group: { _id: null, total: { $sum: '$platformFee' } } }
             ]),
             // Previous month revenue
             Payment.aggregate([
                 { $match: { status: 'completed', createdAt: { $gte: startOfPrevMonth, $lte: endOfPrevMonth } } },
-                { $group: { _id: null, total: { $sum: '$amount' } } }
+                { $group: { _id: null, total: { $sum: '$platformFee' } } }
             ])
         ]);
 
@@ -364,7 +364,7 @@ const getAllPayments = async (req, res) => {
 
         // --- NEW: Stats aggregation ---
         const statsAgg = await Payment.aggregate([
-            { $group: { _id: "$status", count: { $sum: 1 }, totalAmount: { $sum: "$amount" } } }
+            { $group: { _id: "$status", count: { $sum: 1 }, totalAmount: { $sum: "$platformFee" } } }
         ]);
 
         const stats = statsAgg.reduce((acc, s) => {

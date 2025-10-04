@@ -276,6 +276,7 @@ const getProviderEarnings = async (req, res) => {
 		if (status) filter.status = status;
 
 		const payments = await Payment.find(filter)
+			.select('amount platformFee providerEarnings status createdAt processedAt stripePaymentIntentId paymentMethod currency paymentType totalAmount')
 			.populate([
 				{ path: 'booking', select: 'serviceCategory eventType dateStart location' },
 				{ path: 'client', select: '-passwordHash -refreshToken -__v' }
@@ -288,7 +289,7 @@ const getProviderEarnings = async (req, res) => {
 
 		// Calculate stats
 		const allPayments = await Payment.find({ provider: provider._id, status: 'completed' });
-		const totalEarnings = allPayments.reduce((sum, payment) => sum + payment.amount, 0);
+		const totalEarnings = allPayments.reduce((sum, payment) => sum + payment.providerEarnings, 0);
 
 		const thisMonth = new Date();
 		thisMonth.setDate(1);
@@ -296,10 +297,10 @@ const getProviderEarnings = async (req, res) => {
 
 		const thisMonthEarnings = allPayments
 			.filter(payment => payment.processedAt && payment.processedAt >= thisMonth)
-			.reduce((sum, payment) => sum + payment.amount, 0);
+			.reduce((sum, payment) => sum + payment.providerEarnings, 0);
 
 		const pendingPayments = await Payment.find({ provider: provider._id, status: 'pending' });
-		const upcomingPayout = pendingPayments.reduce((sum, payment) => sum + payment.amount, 0);
+		const upcomingPayout = pendingPayments.reduce((sum, payment) => sum + payment.providerEarnings, 0);
 
 		return res.json({
 			payments,

@@ -3,6 +3,15 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 // Create payment link for booking
 const createPaymentLink = async (booking, customerEmail, amount, paymentType = 'advance') => {
 	try {
+		// Validate required data
+		if (!booking || !customerEmail || !amount) {
+			throw new Error('Missing required payment data');
+		}
+
+		if (amount <= 0) {
+			throw new Error('Invalid payment amount');
+		}
+
 		const session = await stripe.checkout.sessions.create({
 			payment_method_types: ['card'],
 			line_items: [
@@ -10,8 +19,8 @@ const createPaymentLink = async (booking, customerEmail, amount, paymentType = '
 					price_data: {
 						currency: 'usd',
 						product_data: {
-							name: `${paymentType === 'advance' ? 'Advance' : 'Final'} Payment - ${booking.serviceCategory}`,
-							description: `${booking.eventType} at ${booking.location} on ${new Date(booking.dateStart).toLocaleDateString()}`,
+							name: `${paymentType === 'advance' ? 'Advance' : 'Final'} Payment - ${booking.serviceCategory || 'Service'}`,
+							description: `${booking.eventType || 'Event'} at ${booking.location || 'Location'} on ${booking.dateStart ? new Date(booking.dateStart).toLocaleDateString() : 'TBD'}`,
 						},
 						unit_amount: Math.round(amount * 100), // Convert to cents
 					},
@@ -19,14 +28,14 @@ const createPaymentLink = async (booking, customerEmail, amount, paymentType = '
 				},
 			],
 			mode: 'payment',
-			success_url: `${process.env.FRONTEND_URL}/success}`,
+			success_url: `${process.env.FRONTEND_URL}/success`,
 			cancel_url: `${process.env.FRONTEND_URL}/cancel`,
 			customer_email: customerEmail,
 			metadata: {
 				bookingId: booking._id.toString(),
 				paymentType: paymentType,
-				providerId: booking.provider._id.toString(),
-				clientId: booking.client._id.toString(),
+				providerId: booking.provider?._id?.toString() || '',
+				clientId: booking.client?._id?.toString() || '',
 			},
 		});
 
@@ -36,7 +45,7 @@ const createPaymentLink = async (booking, customerEmail, amount, paymentType = '
 		};
 	} catch (error) {
 		console.error('Stripe payment link creation error:', error);
-		throw new Error('Failed to create payment link');
+		throw new Error(`Failed to create payment link: ${error.message}`);
 	}
 };
 

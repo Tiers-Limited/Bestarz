@@ -301,10 +301,174 @@ const getBookingStats = async (req, res) => {
 	}
 };
 
+const confirmBooking = async (req, res) => {
+	try {
+		const { bookingId } = req.params;
+		const providerId = req.user.id;
+
+		// Find the booking
+		const booking = await Booking.findById(bookingId)
+			.populate('client', 'firstName lastName email')
+			.populate({ path: 'provider', populate: { path: 'user', select: 'firstName lastName email' } });
+
+		if (!booking) return res.status(404).json({ message: 'Booking not found' });
+
+		// Check if user is the provider for this booking
+		const provider = await Provider.findOne({ user: providerId });
+		if (!provider || String(booking.provider._id) !== String(provider._id)) {
+			return res.status(403).json({ message: 'Only the assigned provider can confirm this booking' });
+		}
+
+		// Check if booking is already confirmed
+		if (booking.status === 'confirmed') {
+			return res.status(400).json({ message: 'Booking is already confirmed' });
+		}
+
+		// Update booking status
+		booking.status = 'confirmed';
+		booking.confirmedAt = new Date();
+		booking.confirmedBy = providerId;
+		await booking.save();
+
+		// Send email notification to client
+		const clientEmailTemplate = `
+			<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+				<h2 style="color: #333;">Booking Confirmed! 🎉</h2>
+				<p>Dear ${booking.client.firstName} ${booking.client.lastName},</p>
+				<p>Your booking has been confirmed by ${booking.provider.user.firstName} ${booking.provider.user.lastName}.</p>
+				
+				<div style="background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px;">
+					<h3>Booking Details:</h3>
+					<p><strong>Service:</strong> ${booking.serviceCategory}</p>
+					<p><strong>Event Type:</strong> ${booking.eventType}</p>
+					<p><strong>Date:</strong> ${new Date(booking.dateStart).toLocaleDateString()}</p>
+					<p><strong>Time:</strong> ${booking.eventTime}</p>
+					<p><strong>Location:</strong> ${booking.location}</p>
+					<p><strong>Guests:</strong> ${booking.guests}</p>
+					${booking.amount ? `<p><strong>Amount:</strong> $${booking.amount}</p>` : ''}
+				</div>
+				
+				<p>Please proceed with the payment to secure your booking.</p>
+				<p>You can make payment through your dashboard.</p>
+				
+				<p>Best regards,<br>Best★rz Team</p>
+			</div>
+		`;
+
+		const mailOptions = {
+			from: process.env.EMAIL,
+			to: booking.client.email,
+			subject: "Your Booking Has Been Confirmed - Best★rz",
+			html: clientEmailTemplate,
+		};
+
+		await transporter.sendMail(mailOptions);
+
+		return res.json({ 
+			message: 'Booking confirmed successfully', 
+			booking,
+			emailSent: true 
+		});
+	} catch (err) {
+		console.error('Confirm booking error:', err);
+		return res.status(500).json({ message: err.message });
+	}
+};
+
+const completeBooking = async (req, res) => {
+	try {
+		const { bookingId } = req.params;
+		const clientId = req.user.id;
+
+		// Find the booking
+		const booking = await Booking.findById(bookingId)
+			.populate('client', 'firstName lastName email')
+			.populate({ path: 'provider', populate: { path: 'user', select: 'firstName lastName email stripeAccountId' } });
+
+		if (!booking) return res.status(404).json({ message: 'Booking not found' });
+
+		// Check if user is the client for this booking
+		if (String(booking.client._id) !== String(clientId)) {
+			return res.status(403).json({ message: 'Only the booking client can mark it as completed' });
+		}
+
+		// Check if booking is confirmed
+		if (booking.status !== 'confirmed') {
+			return res.status(400).json({ message: 'Booking must be confirmed before it can be completed' });
+		}
+
+		// Check if booking is already completed
+		if (booking.status === 'completed') {
+			return res.status(400).json({ message: 'Booking is already completed' });
+		}
+
+		// Check if payment is completed
+		if (booking.paymentStatus !== 'final_paid') {
+			return res.status(400).json({ message: 'Payment must be completed before marking booking as done' });
+		}
+
+		// Update booking status
+		booking.status = 'completed';
+		booking.completedAt = new Date();
+		booking.completedBy = clientId;
+
+		// Calculate payment split (80% to provider, 20% to admin)
+		if (booking.amount) {
+			booking.providerAmount = Math.round(booking.amount * 0.8 * 100) / 100; // 80%
+			booking.adminAmount = Math.round(booking.amount * 0.2 * 100) / 100;   // 20%
+		}
+
+		// Attempt to transfer funds to provider
+		let transferResult = null;
+		try {
+			if (booking.provider.user.stripeAccountId && booking.providerAmount > 0) {
+				// Find the final payment to get the payment intent ID
+				const finalPayment = await require('../models/Payment.js').findById(booking.finalPaymentId);
+				
+				if (finalPayment && finalPayment.transactionId) {
+					const { transferToConnectedAccount } = require('../services/stripe.service.js');
+					
+					transferResult = await transferToConnectedAccount(
+						booking.provider.user.stripeAccountId,
+						booking.providerAmount,
+						finalPayment.transactionId, // This is the payment_intent ID
+						`Payment for booking ${bookingId} - ${booking.serviceCategory}`
+					);
+					
+					booking.transferStatus = 'transferred';
+					
+					// Update payment record
+					finalPayment.transferredToProvider = true;
+					finalPayment.stripeTransferId = transferResult.id;
+					finalPayment.transferredAt = new Date();
+					await finalPayment.save();
+				}
+			}
+		} catch (transferError) {
+			console.error('Transfer error:', transferError);
+			booking.transferStatus = 'failed';
+			// Don't fail the completion if transfer fails - admin can handle manually
+		}
+
+		await booking.save();
+
+		return res.json({ 
+			message: 'Booking marked as completed successfully', 
+			booking,
+			transferResult: transferResult ? 'success' : 'pending'
+		});
+	} catch (err) {
+		console.error('Complete booking error:', err);
+		return res.status(500).json({ message: err.message });
+	}
+};
+
 module.exports = {
 	createBooking,
 	listMyBookings,
 	updateBookingStatus,
 	getBooking,
-	getBookingStats
+	getBookingStats,
+	confirmBooking,
+	completeBooking
 };

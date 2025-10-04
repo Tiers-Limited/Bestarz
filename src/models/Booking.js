@@ -41,6 +41,29 @@ const bookingSchema = new mongoose.Schema(
       default: 'pending' 
     },
     
+    // Confirmation tracking
+    confirmedAt: { type: Date },
+    confirmedBy: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: 'User' 
+    },
+    
+    // Completion tracking
+    completedAt: { type: Date },
+    completedBy: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: 'User' 
+    },
+    
+    // Payment splitting
+    providerAmount: { type: Number }, // 80% to provider
+    adminAmount: { type: Number },    // 20% to admin
+    transferStatus: {
+      type: String,
+      enum: ['pending', 'transferred', 'failed'],
+      default: 'pending'
+    },
+    
     // Payment tracking
     paymentStatus: {
       type: String,
