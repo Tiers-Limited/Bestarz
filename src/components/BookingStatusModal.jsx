@@ -14,7 +14,7 @@ const BookingStatusModal = ({
   onSuccess 
 }) => {
   const [form] = Form.useForm();
-  const { updateBookingStatus, loading } = useBooking();
+  const { updateBookingStatus, confirmBooking, loading } = useBooking();
   const [selectedStatus, setSelectedStatus] = useState(currentStatus);
 
   console.log(currentStatus,"currentStatuscurrentStatus")
@@ -36,8 +36,16 @@ const BookingStatusModal = ({
   const handleSubmit = async (values) => {
     try {
       const { status, notes, amount } = values;
-      const result = await updateBookingStatus(booking._id, status, notes, amount);
-      
+
+      let result;
+      if (status === 'confirmed' && user?.role === 'provider') {
+        // For provider confirmation, call the confirm endpoint
+        result = await confirmBooking(booking._id, amount);
+      } else {
+        // For other status updates, use the general update function
+        result = await updateBookingStatus(booking._id, status, notes, amount);
+      }
+
       if (result.success) {
         message.success(`Booking ${status} successfully!`);
         form.resetFields();

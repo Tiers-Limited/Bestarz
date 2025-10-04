@@ -1,3 +1,135 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom Calendar Styles */
+.custom-calendar .ant-picker-calendar-date {
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.custom-calendar .ant-picker-calendar-date:hover {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+.custom-calendar .ant-picker-calendar-date-today {
+  background-color: rgba(59, 130, 246, 0.2) !important;
+  border: 2px solid #3b82f6 !important;
+  border-radius: 8px !important;
+}
+
+.custom-calendar .ant-picker-calendar-date-content {
+  height: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 4px;
+}
+
+.custom-calendar .ant-picker-calendar-date-value {
+  color: #d1d5db;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.custom-calendar .ant-picker-calendar-date-today .ant-picker-calendar-date-value {
+  color: #60a5fa;
+  font-weight: 700;
+}
+
+/* Dark theme overrides for calendar */
+.custom-calendar {
+  background: transparent;
+}
+
+.custom-calendar .ant-picker-calendar-header {
+  background: transparent;
+  border-bottom: 1px solid #374151;
+  padding-bottom: 16px;
+}
+
+.custom-calendar .ant-picker-calendar-body {
+  padding: 8px 0;
+}
+
+.custom-calendar .ant-picker-calendar-date-panel {
+  background: transparent;
+}
+
+/* Tooltip styling */
+.ant-tooltip-dark .ant-tooltip-inner {
+  background-color: #1f2937;
+  border: 1px solid #374151;
+  max-width: 320px;
+  word-wrap: break-word;
+}
+
+.ant-tooltip-dark .ant-tooltip-arrow::before {
+  background-color: #1f2937;
+  border-color: #374151;
+}
+
+/* Calendar tooltip specific styling */
+.calendar-tooltip .ant-tooltip-inner {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* Mobile responsive calendar */
+@media (max-width: 640px) {
+  .custom-calendar .ant-picker-calendar-date-content {
+    padding: 2px;
+  }
+  
+  .custom-calendar .ant-picker-calendar-date-value {
+    font-size: 12px;
+  }
+  
+  .ant-tooltip {
+    display: none !important;
+  }
+}
+
+/* Booking Details Modal Responsive Styles */
+@media (max-width: 768px) {
+  .booking-details-modal .ant-modal {
+    width: 95% !important;
+    max-width: none !important;
+    margin: 16px auto;
+  }
+  
+  .booking-details-modal .ant-modal-content {
+    border-radius: 8px;
+  }
+  
+  .booking-details-modal .ant-modal-body {
+    padding: 16px;
+  }
+  
+  .booking-details-modal .ant-modal-header {
+    padding: 16px;
+  }
+  
+  .booking-details-modal .ant-modal-footer {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .booking-details-modal .ant-modal {
+    width: 98% !important;
+    margin: 8px auto;
+  }
+  
+  .booking-details-modal .ant-modal-body {
+    padding: 12px;
+  }
+  
+  .booking-details-modal .ant-modal-header {
+    padding: 12px;
+  }
+  
+  .booking-details-modal .ant-modal-footer {
+    padding: 12px;
+  }
+}

@@ -68,7 +68,7 @@ const AdminPayments = () => {
       title: "Amount",
       dataIndex: "amount",
       key: "amount",
-      render: (amt, record) => `${record.currency} ${amt}`,
+      render: (amt, record) => `${record.currency || '$'} ${record.platformFee || 0}`,
     },
     {
       title: "Status",

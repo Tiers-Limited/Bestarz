@@ -40,233 +40,205 @@ const BookingDetailsModal = ({
       title={
         <div className="flex items-center space-x-3">
           {booking?.client?.profileImage ? (
-            <Avatar size={40} src={booking.client.profileImage} />
+            <Avatar size={48} src={booking.client.profileImage} />
           ) : (
-            <Avatar size={40} style={{ backgroundColor: "#3B82F6" }}>
+            <Avatar size={48} style={{ backgroundColor: "#3B82F6" }}>
               {getClientInitials(booking)}
             </Avatar>
           )}
           <div>
-            <div className="text-lg font-semibold">
+            <div className="text-xl font-bold text-white">
               {getClientName(booking)}
             </div>
-            <div className="text-sm text-gray-500">Booking ID: {booking._id}</div>
+            <div className="text-sm text-gray-400">Booking #{booking._id.slice(-8)}</div>
           </div>
         </div>
       }
       open={visible}
       onCancel={onClose}
       footer={[
-        <button
-          key="close"
-          onClick={onClose}
-          className="px-4 py-1 bg-gray-700 text-white rounded-md"
-        >
-          Close
-        </button>,
-      ]}
-      width={800}
-    >
-      <div className="space-y-4">
-        {/* Status Tags */}
-        <div className="flex space-x-2 mb-4">
-          <Tag color={getStatusColor(booking.status)} className="text-sm">
-            Status: {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-          </Tag>
-          <Tag
-            color={getPaymentStatusColor(booking.paymentStatus)}
-            className="text-sm"
+        <div key="footer" className="flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <Tag color={getStatusColor(booking.status)} className="text-sm font-medium">
+              {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+            </Tag>
+            <Tag color={getPaymentStatusColor(booking.paymentStatus)} className="text-sm font-medium">
+              {booking.paymentStatus.charAt(0).toUpperCase() + booking.paymentStatus.slice(1)}
+            </Tag>
+          </div>
+          <button
+            onClick={onClose}
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
           >
-            Payment:{" "}
-            {booking.paymentStatus.charAt(0).toUpperCase() +
-              booking.paymentStatus.slice(1)}
-          </Tag>
+            Close
+          </button>
+        </div>,
+      ]}
+      width={900}
+      className="booking-details-modal"
+      styles={{
+        body: {
+          padding: '24px',
+          backgroundColor: '#1a1a1a'
+        }
+      }}
+    >
+      <div className="space-y-6">
+        {/* Key Information Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Event Overview */}
+          <div className="bg-gray-800/50 rounded-xl p-5 border border-gray-700">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+              <Users className="w-5 h-5 mr-2 text-blue-400" />
+              Event Details
+            </h3>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Service:</span>
+                <span className="text-white font-medium">{booking.serviceCategory}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Event Type:</span>
+                <span className="text-white">{booking.eventType}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Guests:</span>
+                <span className="text-white">{booking.guests}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Duration:</span>
+                <span className="text-white">{booking.duration}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Schedule */}
+          <div className="bg-gray-800/50 rounded-xl p-5 border border-gray-700">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+              <Calendar className="w-5 h-5 mr-2 text-green-400" />
+              Schedule
+            </h3>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Start:</span>
+                <span className="text-white font-medium">{formatDateTime(booking.dateStart)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">End:</span>
+                <span className="text-white">{formatDateTime(booking.dateEnd)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Event Time:</span>
+                <span className="text-white">{booking.eventTime}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <Row gutter={[24, 16]}>
-          {/* Event Details */}
-          <Col span={12}>
-            <Card size="small" title="Event Details" className="h-full">
-              <div className="space-y-3">
+        {/* Location & Contact */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-gray-800/50 rounded-xl p-5 border border-gray-700">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+              <MapPin className="w-5 h-5 mr-2 text-red-400" />
+              Location
+            </h3>
+            <p className="text-white">{booking.location}</p>
+          </div>
+
+          <div className="bg-gray-800/50 rounded-xl p-5 border border-gray-700">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+              <Phone className="w-5 h-5 mr-2 text-purple-400" />
+              Contact Information
+            </h3>
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <Phone className="w-4 h-4 mr-2 text-gray-400" />
+                <span className="text-white">{booking.contactInfo.phone}</span>
+              </div>
+              <div className="flex items-center">
+                <Mail className="w-4 h-4 mr-2 text-gray-400" />
+                <span className="text-white">{booking.contactInfo.email}</span>
+              </div>
+              {booking.client && (
                 <div className="flex items-center">
-                  <Users className="w-4 h-4 mr-2 text-blue-500" />
-                  <Text>
-                    <strong>Service:</strong> {booking.serviceCategory}
-                  </Text>
+                  <Phone className="w-4 h-4 mr-2 text-gray-400" />
+                  <span className="text-white">Client: {booking.client.phone}</span>
                 </div>
-                <div className="flex items-center">
-                  <FileText className="w-4 h-4 mr-2 text-green-500" />
-                  <Text>
-                    <strong>Event Type:</strong> {booking.eventType}
-                  </Text>
-                </div>
-                <div className="flex items-center">
-                  <Users className="w-4 h-4 mr-2 text-purple-500" />
-                  <Text>
-                    <strong>Guests:</strong> {booking.guests}
-                  </Text>
-                </div>
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 mr-2 text-orange-500" />
-                  <Text>
-                    <strong>Duration:</strong> {booking.duration}
-                  </Text>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Pricing */}
+        <div className="bg-gradient-to-r from-blue-900/50 to-purple-900/50 rounded-xl p-6 border border-blue-500/30">
+          <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+            <DollarSign className="w-6 h-6 mr-2 text-yellow-400" />
+            Pricing Information
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="text-gray-400 text-sm">Budget Range</div>
+              <div className="text-white font-bold text-lg">
+                {formatCurrency(booking.budgetMin)} - {formatCurrency(booking.budgetMax)}
+              </div>
+            </div>
+            {booking.amount && (
+              <div className="text-center">
+                <div className="text-gray-400 text-sm">Final Amount</div>
+                <div className="text-green-400 font-bold text-xl">
+                  {formatCurrency(booking.amount)}
                 </div>
               </div>
-            </Card>
-          </Col>
+            )}
+            <div className="text-center">
+              <div className="text-gray-400 text-sm">Payment Status</div>
+              <Tag
+                color={getPaymentStatusColor(booking.paymentStatus)}
+                className="mt-1 text-sm font-medium"
+              >
+                {booking.paymentStatus.charAt(0).toUpperCase() + booking.paymentStatus.slice(1)}
+              </Tag>
+            </div>
+          </div>
+        </div>
 
-          {/* Date & Time */}
-          <Col span={12}>
-            <Card size="small" title="Schedule" className="h-full">
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <Calendar className="w-4 h-4 mr-2 text-blue-500" />
-                  <Text>
-                    <strong>Start:</strong> {formatDateTime(booking.dateStart)}
-                  </Text>
-                </div>
-                <div className="flex items-center">
-                  <Calendar className="w-4 h-4 mr-2 text-red-500" />
-                  <Text>
-                    <strong>End:</strong> {formatDateTime(booking.dateEnd)}
-                  </Text>
-                </div>
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 mr-2 text-green-500" />
-                  <Text>
-                    <strong>Event Time:</strong> {booking.eventTime}
-                  </Text>
-                </div>
+        {/* Additional Information */}
+        {(booking.description || booking.notes) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {booking.description && (
+              <div className="bg-gray-800/50 rounded-xl p-5 border border-gray-700">
+                <h3 className="text-lg font-semibold text-white mb-3 flex items-center">
+                  <FileText className="w-5 h-5 mr-2 text-orange-400" />
+                  Description
+                </h3>
+                <p className="text-gray-300 leading-relaxed">{booking.description}</p>
               </div>
-            </Card>
-          </Col>
-
-          {/* Location */}
-          <Col span={12}>
-            <Card size="small" title="Location" className="h-full">
-              <div className="flex items-start">
-                <MapPin className="w-4 h-4 mr-2 mt-1 text-red-500" />
-                <Text>
-                  <strong>Address:</strong> {booking.location}
-                </Text>
+            )}
+            {booking.notes && (
+              <div className="bg-gray-800/50 rounded-xl p-5 border border-gray-700">
+                <h3 className="text-lg font-semibold text-white mb-3 flex items-center">
+                  <FileText className="w-5 h-5 mr-2 text-orange-400" />
+                  Notes
+                </h3>
+                <p className="text-gray-300 leading-relaxed">{booking.notes}</p>
               </div>
-            </Card>
-          </Col>
+            )}
+          </div>
+        )}
 
-          {/* Contact Info */}
-          <Col span={12}>
-            <Card size="small" title="Contact Information" className="h-full">
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <Phone className="w-4 h-4 mr-2 text-blue-500" />
-                  <Text>
-                    <strong>Phone:</strong> {booking.contactInfo.phone}
-                  </Text>
-                </div>
-                <div className="flex items-center">
-                  <Mail className="w-4 h-4 mr-2 text-green-500" />
-                  <Text>
-                    <strong>Email:</strong> {booking.contactInfo.email}
-                  </Text>
-                </div>
-                {booking.client && (
-                  <div className="flex items-center">
-                    <Phone className="w-4 h-4 mr-2 text-purple-500" />
-                    <Text>
-                      <strong>Client Phone:</strong> {booking.client.phone}
-                    </Text>
-                  </div>
-                )}
-              </div>
-            </Card>
-          </Col>
-
-          {/* Pricing */}
-          <Col span={24}>
-            <Card size="small" title="Pricing">
-              <Row gutter={16}>
-                <Col span={8}>
-                  <div className="flex items-center">
-                    <DollarSign className="w-4 h-4 mr-2 text-green-500" />
-                    <Text>
-                      <strong>Budget Range:</strong>
-                    </Text>
-                  </div>
-                  <Text className="text-gray-600 ml-6">
-                    {formatCurrency(booking.budgetMin)} -{" "}
-                    {formatCurrency(booking.budgetMax)}
-                  </Text>
-                </Col>
-                {booking.amount && (
-                  <Col span={8}>
-                    <div className="flex items-center">
-                      <CreditCard className="w-4 h-4 mr-2 text-blue-500" />
-                      <Text>
-                        <strong>Final Amount:</strong>
-                      </Text>
-                    </div>
-                    <Text className="text-gray-600 ml-6 text-lg font-semibold">
-                      {formatCurrency(booking.amount)}
-                    </Text>
-                  </Col>
-                )}
-                <Col span={8}>
-                  <div className="flex items-center">
-                    <CreditCard className="w-4 h-4 mr-2 text-orange-500" />
-                    <Text>
-                      <strong>Payment Status:</strong>
-                    </Text>
-                  </div>
-                  <Tag
-                    color={getPaymentStatusColor(booking.paymentStatus)}
-                    className="ml-6"
-                  >
-                    {booking.paymentStatus.charAt(0).toUpperCase() +
-                      booking.paymentStatus.slice(1)}
-                  </Tag>
-                </Col>
-              </Row>
-            </Card>
-          </Col>
-
-          {/* Description */}
-          {booking.description && (
-            <Col span={24}>
-              <Card size="small" title="Description">
-                <Text>{booking.description}</Text>
-              </Card>
-            </Col>
-          )}
-
-          {/* Notes */}
-          {booking.notes && (
-            <Col span={24}>
-              <Card size="small" title="Notes">
-                <Text>{booking.notes}</Text>
-              </Card>
-            </Col>
-          )}
-
-          {/* Timestamps */}
-          <Col span={24}>
-            <Card size="small" title="Booking Information">
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Text>
-                    <strong>Created:</strong> {formatDateTime(booking.createdAt)}
-                  </Text>
-                </Col>
-                <Col span={12}>
-                  <Text>
-                    <strong>Last Updated:</strong>{" "}
-                    {formatDateTime(booking.updatedAt)}
-                  </Text>
-                </Col>
-              </Row>
-            </Card>
-          </Col>
-        </Row>
+        {/* Booking Metadata */}
+        <div className="bg-gray-900/50 rounded-xl p-4 border border-gray-600">
+          <div className="flex flex-col sm:flex-row justify-between text-sm">
+            <div>
+              <span className="text-gray-400">Created:</span>
+              <span className="text-white ml-2">{formatDateTime(booking.createdAt)}</span>
+            </div>
+            <div>
+              <span className="text-gray-400">Last Updated:</span>
+              <span className="text-white ml-2">{formatDateTime(booking.updatedAt)}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </Modal>
   );

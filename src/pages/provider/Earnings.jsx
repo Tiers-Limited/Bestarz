@@ -13,7 +13,8 @@ import {
   Input,
   Select,
   message,
-  Tabs
+  Tabs,
+  Modal
 } from "antd";
 import { 
   DollarSign, 
@@ -25,7 +26,8 @@ import {
   MapPin,
   User,
   CreditCard,
-  Clock
+  Clock,
+  Eye
 } from "lucide-react";
 import * as XLSX from 'xlsx';
 import ProviderLayout from "../../components/ProviderLayout";
@@ -40,6 +42,8 @@ const ProviderEarnings = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
 
   const {
     earningsData,
@@ -100,6 +104,17 @@ const ProviderEarnings = () => {
     setPageSize(pagination.pageSize);
   };
 
+  // Handle payment details modal
+  const handleViewPaymentDetails = (payment) => {
+    setSelectedPayment(payment);
+    setPaymentModalVisible(true);
+  };
+
+  const handleClosePaymentModal = () => {
+    setPaymentModalVisible(false);
+    setSelectedPayment(null);
+  };
+
   // Handle status filter change
   const handleStatusFilter = async (status) => {
     setStatusFilter(status);
@@ -141,7 +156,9 @@ const ProviderEarnings = () => {
         "Client Email": payment.clientEmail,
         "Event Type": payment.eventType,
         "Service Category": payment.serviceCategory,
-        "Amount": payment.amount,
+        "Client Payment Amount": payment.amount,
+        "Platform Fee (20%)": payment.platformFee,
+        "Your Earnings (80%)": payment.providerEarnings,
         "Currency": payment.currency,
         "Status": payment.status,
         "Payment Method": payment.paymentMethod,
@@ -221,13 +238,21 @@ const ProviderEarnings = () => {
       key: "amount",
       render: (_, record) => (
         <div className="text-center">
-          <div className="text-green-400 font-bold text-lg">
+          <div className="text-white font-bold text-lg mb-2">
             ${record.amount?.toLocaleString()}
           </div>
-          <div className="text-gray-400 text-xs">{record.currency}</div>
+          <Button
+            type="primary"
+            size="small"
+            icon={<Eye size={14} />}
+            onClick={() => handleViewPaymentDetails(record)}
+            className="bg-blue-600 hover:bg-blue-700 border-blue-600"
+          >
+            View Details
+          </Button>
         </div>
       ),
-      sorter: (a, b) => a.amount - b.amount,
+      sorter: (a, b) => (a.amount || 0) - (b.amount || 0),
     },
     {
       title: "Date",
@@ -367,48 +392,60 @@ const ProviderEarnings = () => {
         </div>
 
         {/* Stats Overview */}
-        <Row gutter={[24, 24]} className="mb-6">
-          <Col xs={24} sm={12} lg={6}>
-            <Card className="glow-border text-center">
-              <Statistic 
-                title="This Month" 
-                value={stats.thisMonthEarnings} 
-               
-                valueStyle={{ color: "#22C55E" }} 
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card className="glow-border text-center">
-              <Statistic 
-                title="Total Earnings" 
-                value={stats.totalEarnings} 
-                prefix={<TrendingUp className="text-blue-400" />} 
-                valueStyle={{ color: "#3B82F6" }} 
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card className="glow-border text-center">
-              <Statistic 
-                title="Upcoming Payout" 
-                value={stats.upcomingPayout} 
-                prefix={<Calendar className="text-yellow-400" />} 
-                valueStyle={{ color: "#F59E0B" }} 
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card className="glow-border text-center">
-              <Statistic 
-                title="Average Payment" 
-                value={`$${calculatedStats.averagePayment?.toLocaleString()}`} 
-                prefix={<Clock className="text-purple-400" />} 
-                valueStyle={{ color: "#8B5CF6" }} 
-              />
-            </Card>
-          </Col>
-        </Row>
+        <div className="mb-6">
+          <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 mb-4">
+            <div className="flex items-center justify-center gap-2 text-blue-400">
+              <DollarSign size={20} />
+              <span className="font-semibold">Payment Structure: 80% to You, 20% Platform Fee</span>
+            </div>
+            <p className="text-center text-gray-300 text-sm mt-1">
+              For every payment you receive, 20% covers platform costs and services
+            </p>
+          </div>
+
+          <Row gutter={[24, 24]}>
+            <Col xs={24} sm={12} lg={6}>
+              <Card className="glow-border text-center">
+                <Statistic 
+                  title="This Month" 
+                  value={stats.thisMonthEarnings} 
+                 
+                  valueStyle={{ color: "#22C55E" }} 
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card className="glow-border text-center">
+                <Statistic 
+                  title="Total Earnings" 
+                  value={stats.totalEarnings} 
+                  prefix={<TrendingUp className="text-blue-400" />} 
+                  valueStyle={{ color: "#3B82F6" }} 
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card className="glow-border text-center">
+                <Statistic 
+                  title="Upcoming Payout" 
+                  value={stats.upcomingPayout} 
+                  prefix={<Calendar className="text-yellow-400" />} 
+                  valueStyle={{ color: "#F59E0B" }} 
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card className="glow-border text-center">
+                <Statistic 
+                  title="Average Payment" 
+                  value={`$${calculatedStats.averagePayment?.toLocaleString()}`} 
+                  prefix={<Clock className="text-purple-400" />} 
+                  valueStyle={{ color: "#8B5CF6" }} 
+                />
+              </Card>
+            </Col>
+          </Row>
+        </div>
 
         {/* Search and Filters */}
         <Card className="mb-6 glow-border">
@@ -467,6 +504,115 @@ const ProviderEarnings = () => {
           />
         </Card>
       </div>
+
+      {/* Payment Details Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2">
+            <DollarSign className="text-green-400" size={20} />
+            <span>Payment Breakdown Details</span>
+          </div>
+        }
+        open={paymentModalVisible}
+        onCancel={handleClosePaymentModal}
+        footer={[
+          <Button key="close" onClick={handleClosePaymentModal}>
+            Close
+          </Button>
+        ]}
+        width={600}
+        className="dark-modal"
+      >
+        {selectedPayment && (
+          <div className="space-y-6">
+            {/* Payment Header */}
+            <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h3 className="text-white font-semibold text-lg">
+                    {selectedPayment.eventType} - {selectedPayment.serviceCategory}
+                  </h3>
+                  <p className="text-gray-400 text-sm">
+                    {selectedPayment.clientName} • {selectedPayment.date}
+                  </p>
+                </div>
+                <Tag color={selectedPayment.status === 'completed' ? 'green' : 'orange'}>
+                  {selectedPayment.status?.toUpperCase()}
+                </Tag>
+              </div>
+
+              {/* Payment Breakdown Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Total Payment Card */}
+                <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 text-center">
+                  <div className="text-blue-400 text-sm font-medium mb-1">Total Payment</div>
+                  <div className="text-white text-2xl font-bold">
+                    ${selectedPayment.amount?.toLocaleString()}
+                  </div>
+                  <div className="text-gray-400 text-xs mt-1">
+                    Client paid
+                  </div>
+                </div>
+
+                {/* Platform Fee Card */}
+                <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 text-center">
+                  <div className="text-red-400 text-sm font-medium mb-1">Platform Fee (20%)</div>
+                  <div className="text-red-400 text-2xl font-bold">
+                    -${selectedPayment.platformFee?.toLocaleString()}
+                  </div>
+                  <div className="text-gray-400 text-xs mt-1">
+                    Service costs
+                  </div>
+                </div>
+
+                {/* Provider Earnings Card */}
+                <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-4 text-center">
+                  <div className="text-green-400 text-sm font-medium mb-1">Your Earnings (80%)</div>
+                  <div className="text-green-400 text-2xl font-bold">
+                    ${selectedPayment.providerEarnings?.toLocaleString()}
+                  </div>
+                  <div className="text-gray-400 text-xs mt-1">
+                    Amount you receive
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Details */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-gray-800 p-3 rounded-lg">
+                <div className="text-gray-400 text-sm">Payment Method</div>
+                <div className="text-white font-medium">{selectedPayment.paymentMethod || 'Stripe'}</div>
+              </div>
+              <div className="bg-gray-800 p-3 rounded-lg">
+                <div className="text-gray-400 text-sm">Payment Type</div>
+                <div className="text-white font-medium capitalize">{selectedPayment.paymentType || 'N/A'}</div>
+              </div>
+              <div className="bg-gray-800 p-3 rounded-lg">
+                <div className="text-gray-400 text-sm">Location</div>
+                <div className="text-white font-medium">{selectedPayment.location || 'N/A'}</div>
+              </div>
+              <div className="bg-gray-800 p-3 rounded-lg">
+                <div className="text-gray-400 text-sm">Event Date</div>
+                <div className="text-white font-medium">{selectedPayment.eventDate || 'N/A'}</div>
+              </div>
+            </div>
+
+            {/* Summary */}
+            <div className="bg-blue-900/10 border border-blue-500/20 rounded-lg p-4">
+              <div className="flex items-center gap-2 text-blue-400 mb-2">
+                <DollarSign size={16} />
+                <span className="font-semibold">Payment Summary</span>
+              </div>
+              <p className="text-gray-300 text-sm">
+                This payment follows our 80/20 split: you receive 80% of the payment amount 
+                (${selectedPayment.providerEarnings?.toLocaleString()}) while 20% 
+                (${selectedPayment.platformFee?.toLocaleString()}) covers platform operations and services.
+              </p>
+            </div>
+          </div>
+        )}
+      </Modal>
     </ProviderLayout>
   );
 };

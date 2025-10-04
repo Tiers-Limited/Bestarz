@@ -1,22 +1,21 @@
 import React, { useState, useEffect } from "react";
 import {
-  Table,
   Tag,
   Button,
   Avatar,
   Typography,
-  Select,
-  DatePicker,
-  Pagination,
   message,
   Spin,
   Modal,
   Row,
   Col,
   Card,
+  Calendar,
+  Badge,
+  Tooltip,
+  Popover
 } from "antd";
 import {
-  Calendar,
   Users,
   MessageCircle,
   MapPin,
@@ -26,25 +25,24 @@ import {
   Mail,
   FileText,
   CreditCard,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  Info
 } from "lucide-react";
 import ProviderLayout from "../../components/ProviderLayout";
 import dayjs from "dayjs";
 import { useProvider } from "../../context/provider/ProviderContext";
+import BookingDetailsModal from "../../components/BookingDetailsModal";
 import BookingStatusModal from "../../components/BookingStatusModal";
 import { useCreateConversation } from "../../hooks/useCreateConversation";
 
 const { Title, Text } = Typography;
-const { RangePicker } = DatePicker;
-const { Option } = Select;
 
 const ProviderBookings = () => {
   const { fetchBookings, bookingsData, loading } = useProvider();
 
   const { createAndNavigateToConversation } = useCreateConversation();
-
-  // Filter states
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [dateRange, setDateRange] = useState([]);
 
   // Modal states
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -58,13 +56,7 @@ const ProviderBookings = () => {
     currentStatus: "pending",
   });
 
-  const handleStatusUpdate = (booking, newStatus) => {
-    setStatusModal({
-      visible: true,
-      booking: booking,
-      currentStatus: newStatus,
-    });
-  };
+
 
   const loadBookings = async (params = {}) => {
     const result = await fetchBookings(params);
@@ -77,38 +69,9 @@ const ProviderBookings = () => {
     loadBookings();
   }, []);
 
-  const handleStatusFilterChange = (value) => {
-    setStatusFilter(value);
-    const startDate = dateRange[0] ? dateRange[0].format("YYYY-MM-DD") : null;
-    const endDate = dateRange[1] ? dateRange[1].format("YYYY-MM-DD") : null;
-    loadBookings({
-      page: 1,
-      status: value,
-      startDate,
-      endDate,
-    });
-  };
-
-  const handleDateRangeChange = (dates) => {
-    setDateRange(dates || []);
-    const startDate = dates && dates[0] ? dates[0].format("YYYY-MM-DD") : null;
-    const endDate = dates && dates[1] ? dates[1].format("YYYY-MM-DD") : null;
-    loadBookings({
-      page: 1,
-      status: statusFilter,
-      startDate,
-      endDate,
-    });
-  };
-
   const handlePageChange = (page) => {
-    const startDate = dateRange[0] ? dateRange[0].format("YYYY-MM-DD") : null;
-    const endDate = dateRange[1] ? dateRange[1].format("YYYY-MM-DD") : null;
     loadBookings({
       page,
-      status: statusFilter,
-      startDate,
-      endDate,
     });
   };
 
@@ -181,475 +144,223 @@ const ProviderBookings = () => {
     return "AC";
   };
 
-  // Table columns configuration
-  const columns = [
-    {
-      title: "Client",
-      dataIndex: "client",
-      key: "client",
-      className: "whitespace-nowrap",
+  // Calendar helper functions
+  const getBookingsForDate = (date) => {
+    const dateString = dayjs(date).format("YYYY-MM-DD");
+    return bookings.filter(booking => 
+      dayjs(booking.dateStart).format("YYYY-MM-DD") === dateString
+    );
+  };
 
-      render: (_, booking) => (
-        <div className="flex items-center">
-          {booking.client?.profileImage ? (
-            <Avatar
-              src={booking.client.profileImage}
-              size={32}
-              className="mr-2"
-            />
-          ) : (
-            <Avatar
-              style={{ backgroundColor: "#3B82F6" }}
-              size={32}
-              className="mr-2"
-            >
-              {getClientInitials(booking)}
-            </Avatar>
-          )}
-          <span>{getClientName(booking)}</span>
-        </div>
-      ),
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      className: "whitespace-nowrap",
-      render: (status) => (
-        <Tag color={getStatusColor(status)}>
-          {status.charAt(0).toUpperCase() + status.slice(1)}
-        </Tag>
-      ),
-    },
-    {
-      title: "Date",
-      dataIndex: "dateStart",
-      key: "dateStart",
-      className: "whitespace-nowrap",
-      render: (dateStart, booking) => (
-        <div className="flex items-center">
-          <Calendar size={12} className="mr-2" />
-          {formatDate(dateStart)} at {booking.eventTime}
-        </div>
-      ),
-    },
-    {
-      title: "Service",
-      key: "service",
-      className: "whitespace-nowrap",
-      render: (_, booking) => (
-        <div className="flex items-center">
-          <Users size={12} className="mr-2" />
-          {booking.serviceCategory} - {booking.eventType} ({booking.guests}{" "}
-          guests)
-        </div>
-      ),
-    },
-    {
-      title: "Location",
-      dataIndex: "location",
-      key: "location",
-      className: "whitespace-nowrap",
-      render: (location) => (
-        <div className="flex items-center">
-          <MapPin size={12} className="mr-2" />
-          {location}
-        </div>
-      ),
-    },
-    {
-      title: "Amount",
-      key: "amount",
-      className: "whitespace-nowrap",
-      render: (_, booking) => (
-        <div className="flex items-center">
-          <DollarSign size={12} className="mr-2" />
-          {booking.amount
-            ? formatCurrency(booking.amount)
-            : `${formatCurrency(booking.budgetMin)} - ${formatCurrency(
-                booking.budgetMax
-              )}`}
-        </div>
-      ),
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      className: "whitespace-nowrap",
-      render: (_, booking) => 
-      
-      {
-
-        console.log(booking,"bookingbookingbooking")
-      return(
-        <div className="flex gap-2">
-          <Button
-            icon={<MessageCircle size={14} />}
-            // disabled={!booking.provider}
-            onClick={() =>
-              createAndNavigateToConversation(booking?.client?._id)
-            }
-          >
-            Message
-          </Button>
-          <Button type="primary" onClick={() => showBookingDetails(booking)}>
-            Details
-          </Button>
-
-          {/* Status buttons */}
-          {booking.status === "pending" && (
-            <Button
-              type="primary"
-              onClick={() => handleStatusUpdate(booking, "confirmed")}
-            >
-              Confirm
-            </Button>
-          )}
-
-          {booking.status === "cancelled" && (
-            <Button type="dashed" disabled>
-              Cancelled
-            </Button>
-          )}
-        </div>
-      )
-
-       }
-    },
-  ];
+  const handleCalendarSelect = (date) => {
+    const bookingsForDate = getBookingsForDate(date);
+    if (bookingsForDate.length > 0) {
+      // Show the first booking details for that date
+      showBookingDetails(bookingsForDate[0]);
+    }
+  };
 
   return (
     <ProviderLayout>
-      <div className="p-6">
-        <Title level={2} className="text-white mb-6">
-          Bookings
-        </Title>
-
-        {/* Filters */}
-        <div className="mb-6 flex flex-wrap gap-4">
-          <Select
-            value={statusFilter}
-            onChange={handleStatusFilterChange}
-            className="w-40"
-            placeholder="Filter by status"
-          >
-            <Option value="all">All Statuses</Option>
-            <Option value="pending">Pending</Option>
-            <Option value="confirmed">Confirmed</Option>
-            <Option value="cancelled">Cancelled</Option>
-          </Select>
-
-          <RangePicker
-            value={dateRange}
-            onChange={handleDateRangeChange}
-            className="w-64"
-            placeholder={["Start Date", "End Date"]}
-          />
-
-          <Button
-            onClick={() => {
-              setStatusFilter("all");
-              setDateRange([]);
-              loadBookings({ page: 1 });
-            }}
-          >
-            Clear Filters
-          </Button>
+      <div className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <Title level={2} className="text-white mb-0 text-xl sm:text-2xl">
+            Bookings
+          </Title>
         </div>
 
-        {/* Table */}
-        <Spin spinning={loading}>
-          <Table
-            columns={columns}
-            dataSource={bookings}
-            rowKey="_id"
-            locale={{ emptyText: "No bookings found" }}
-            pagination={false}
-            className="glow-border"
-            rowClassName="hover:bg-gray-800/50"
-            scroll={{ x: "max-content" }}
-          />
+        <>
+          /* Calendar View */
+          <Card className="glow-border mb-6 overflow-hidden">
+            <div className="w-full overflow-x-auto">
+              <Calendar
+                onSelect={handleCalendarSelect}
+                className="custom-calendar min-w-full"
+                fullscreen={false}
+                dateFullCellRender={(date) => {
+                  const isToday = dayjs(date).isSame(dayjs(), 'day');
+                  const bookingsForDate = getBookingsForDate(date);
+                  const hasBookings = bookingsForDate.length > 0;
 
-          {/* Pagination */}
-          {pagination.total > 0 && (
-            <div className="flex justify-center mt-6">
-              <Pagination
-                current={pagination.page}
-                total={pagination.total}
-                pageSize={pagination.limit}
-                onChange={handlePageChange}
-                showSizeChanger={false}
-                showQuickJumper
-                showTotal={(total, range) =>
-                  `${range[0]}-${range[1]} of ${total} bookings`
-                }
+                  const confirmedBookings = bookingsForDate.filter(b => b.status === 'confirmed');
+                  const pendingBookings = bookingsForDate.filter(b => b.status === 'pending');
+                  const cancelledBookings = bookingsForDate.filter(b => b.status === 'cancelled');
+
+                  // Create tooltip content with booking details
+                  const tooltipContent = hasBookings ? (
+                    <div className="max-w-xs sm:max-w-sm">
+                      <div className="text-white font-semibold mb-3 text-center">
+                        {dayjs(date).format('MMM DD, YYYY')}
+                      </div>
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {bookingsForDate.slice(0, 3).map((booking, index) => (
+                          <div key={index} className="bg-gray-700 p-2 sm:p-3 rounded-lg">
+                            <div className="flex justify-between items-start mb-2 gap-2">
+                              <div className="text-white font-medium text-xs sm:text-sm flex-1 min-w-0">
+                                <div className="truncate">{getClientName(booking)}</div>
+                              </div>
+                              <Tag
+                                color={
+                                  booking.status === 'confirmed' ? 'green' :
+                                  booking.status === 'pending' ? 'orange' :
+                                  booking.status === 'cancelled' ? 'red' : 'blue'
+                                }
+                                size="small"
+                                className="text-xs"
+                              >
+                                {booking.status}
+                              </Tag>
+                            </div>
+                            <div className="text-gray-300 text-xs space-y-1">
+                              <div className="truncate">{booking.eventType} • {booking.serviceCategory}</div>
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="truncate">{booking.eventTime}</span>
+                                <span className="whitespace-nowrap">{booking.guests} guests</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        {bookingsForDate.length > 3 && (
+                          <div className="text-gray-400 text-xs text-center py-2">
+                            +{bookingsForDate.length - 3} more bookings
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-gray-600">
+                        <Button
+                          size="small"
+                          type="primary"
+                          icon={<Eye size={12} />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCalendarSelect(date);
+                          }}
+                          className="w-full"
+                          block
+                        >
+                          View All Details
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null;
+
+                  return (
+                    <Tooltip
+                      title={tooltipContent}
+                      placement="right"
+                      overlayStyle={{ maxWidth: '320px' }}
+                      trigger={hasBookings ? ['hover'] : []}
+                      overlayClassName="calendar-tooltip"
+                    >
+                      <div className={`
+                        relative h-12 w-full flex flex-col items-center justify-center p-1 min-w-0
+                        ${isToday ? 'bg-blue-600/20 border border-blue-500 rounded-md' : ''}
+                        ${hasBookings ? 'hover:bg-gray-700/30 cursor-pointer' : ''}
+                        transition-colors
+                      `}>
+                        <span className={`
+                          text-sm font-medium leading-none mb-1
+                          ${isToday ? 'text-blue-300 font-bold' : 'text-gray-300'}
+                        `}>
+                          {date.date()}
+                        </span>
+                        {hasBookings && (
+                          <div className="flex space-x-1">
+                            {confirmedBookings.length > 0 && (
+                              <div className="w-2 h-2 bg-green-500 rounded-full shadow-sm"></div>
+                            )}
+                            {pendingBookings.length > 0 && (
+                              <div className="w-2 h-2 bg-yellow-500 rounded-full shadow-sm"></div>
+                            )}
+                            {cancelledBookings.length > 0 && (
+                              <div className="w-2 h-2 bg-red-500 rounded-full shadow-sm"></div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </Tooltip>
+                  );
+                }}
+                headerRender={({ value, onChange }) => {
+                  const year = value.year();
+                  const month = value.month();
+                  const today = dayjs();
+                  const isCurrentMonth = today.year() === year && today.month() === month;
+
+                  return (
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+                      <div className="flex items-center space-x-2 sm:space-x-3">
+                        <Button
+                          onClick={() => onChange(value.clone().month(month - 1))}
+                          icon={<ChevronLeft size={16} />}
+                          className="text-white border-gray-600 hover:border-blue-500"
+                          size="small"
+                        />
+                        <div className="text-center min-w-0">
+                          <div className="text-white text-lg font-semibold truncate">
+                            {dayjs(value).format('MMMM YYYY')}
+                          </div>
+                          {isCurrentMonth && (
+                            <div className="text-blue-400 text-xs">
+                              Today: {today.format('MMM DD')}
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          onClick={() => onChange(value.clone().month(month + 1))}
+                          icon={<ChevronRight size={16} />}
+                          className="text-white border-gray-600 hover:border-blue-500"
+                          size="small"
+                        />
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+                        <div className="flex items-center space-x-1">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span className="text-gray-300">Confirmed</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                          <span className="text-gray-300">Pending</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                          <span className="text-gray-300">Cancelled</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }}
               />
             </div>
-          )}
-        </Spin>
+            
+            {/* Calendar Info */}
+            <div className="mt-4 bg-gray-800/50 rounded-lg p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center space-x-2 text-gray-300">
+                  <Info size={16} />
+                  <span className="font-medium text-sm sm:text-base">Calendar Guide</span>
+                </div>
+                <div className="text-sm text-gray-400">
+                  Total Bookings: <span className="text-white font-semibold">{bookings.length}</span>
+                </div>
+              </div>
+              <div className="mt-2 text-xs sm:text-sm text-gray-400">
+                Hover over dates with colored dots to see booking details. Click any date to view all bookings for that day.
+              </div>
+            </div>
+          </Card>
 
         {/* Booking Details Modal */}
-        <Modal
-          title={
-            <div className="flex items-center space-x-3">
-              {selectedBooking?.client?.profileImage ? (
-                <Avatar size={40} src={selectedBooking.client.profileImage} />
-              ) : (
-                <Avatar size={40} style={{ backgroundColor: "#3B82F6" }}>
-                  {selectedBooking ? getClientInitials(selectedBooking) : "AC"}
-                </Avatar>
-              )}
-              <div>
-                <div className="text-lg font-semibold">
-                  {selectedBooking
-                    ? getClientName(selectedBooking)
-                    : "Booking Details"}
-                </div>
-                <div className="text-sm text-gray-500">
-                  Booking ID: {selectedBooking?._id}
-                </div>
-              </div>
-            </div>
-          }
+        <BookingDetailsModal
           visible={isModalVisible}
-          onCancel={handleModalClose}
-          footer={[
-            <Button key="close" onClick={handleModalClose}>
-              Close
-            </Button>,
-          ]}
-          width={800}
-        >
-          {selectedBooking && (
-            <div className="space-y-4">
-              {/* Status Tags */}
-              <div className="flex space-x-2 mb-4">
-                <Tag
-                  color={getStatusColor(selectedBooking.status)}
-                  className="text-sm"
-                >
-                  Status:{" "}
-                  {selectedBooking.status.charAt(0).toUpperCase() +
-                    selectedBooking.status.slice(1)}
-                </Tag>
-                <Tag
-                  color={getPaymentStatusColor(selectedBooking.paymentStatus)}
-                  className="text-sm"
-                >
-                  Payment:{" "}
-                  {selectedBooking.paymentStatus.charAt(0).toUpperCase() +
-                    selectedBooking.paymentStatus.slice(1)}
-                </Tag>
-              </div>
-
-              <Row gutter={[24, 16]}>
-                {/* Event Details */}
-                <Col span={12}>
-                  <Card size="small" title="Event Details" className="h-full">
-                    <div className="space-y-3">
-                      <div className="flex items-center">
-                        <Users className="w-4 h-4 mr-2 text-blue-500" />
-                        <Text>
-                          <strong>Service:</strong>{" "}
-                          {selectedBooking.serviceCategory}
-                        </Text>
-                      </div>
-                      <div className="flex items-center">
-                        <FileText className="w-4 h-4 mr-2 text-green-500" />
-                        <Text>
-                          <strong>Event Type:</strong>{" "}
-                          {selectedBooking.eventType}
-                        </Text>
-                      </div>
-                      <div className="flex items-center">
-                        <Users className="w-4 h-4 mr-2 text-purple-500" />
-                        <Text>
-                          <strong>Guests:</strong> {selectedBooking.guests}
-                        </Text>
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="w-4 h-4 mr-2 text-orange-500" />
-                        <Text>
-                          <strong>Duration:</strong> {selectedBooking.duration}
-                        </Text>
-                      </div>
-                    </div>
-                  </Card>
-                </Col>
-
-                {/* Date & Time */}
-                <Col span={12}>
-                  <Card size="small" title="Schedule" className="h-full">
-                    <div className="space-y-3">
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-2 text-blue-500" />
-                        <Text>
-                          <strong>Start:</strong>{" "}
-                          {formatDateTime(selectedBooking.dateStart)}
-                        </Text>
-                      </div>
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-2 text-red-500" />
-                        <Text>
-                          <strong>End:</strong>{" "}
-                          {formatDateTime(selectedBooking.dateEnd)}
-                        </Text>
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="w-4 h-4 mr-2 text-green-500" />
-                        <Text>
-                          <strong>Event Time:</strong>{" "}
-                          {selectedBooking.eventTime}
-                        </Text>
-                      </div>
-                    </div>
-                  </Card>
-                </Col>
-
-                {/* Location */}
-                <Col span={12}>
-                  <Card size="small" title="Location" className="h-full">
-                    <div className="space-y-3">
-                      <div className="flex items-start">
-                        <MapPin className="w-4 h-4 mr-2 mt-1 text-red-500" />
-                        <div>
-                          <div className="text-sm text-white">
-                            <strong>Address:</strong> {selectedBooking.location}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                </Col>
-
-                {/* Contact Information */}
-                <Col span={12}>
-                  <Card
-                    size="small"
-                    title="Contact Information"
-                    className="h-full"
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-center">
-                        <Phone className="w-4 h-4 mr-2 text-blue-500" />
-                        <Text>
-                          <strong>Phone:</strong>{" "}
-                          {selectedBooking.contactInfo.phone}
-                        </Text>
-                      </div>
-                      <div className="flex items-center">
-                        <Mail className="w-4 h-4 mr-2 text-green-500" />
-                        <Text>
-                          <strong>Email:</strong>{" "}
-                          {selectedBooking.contactInfo.email}
-                        </Text>
-                      </div>
-                      {selectedBooking.client && (
-                        <div className="flex items-center">
-                          <Phone className="w-4 h-4 mr-2 text-purple-500" />
-                          <Text>
-                            <strong>Client Phone:</strong>{" "}
-                            {selectedBooking.client.phone}
-                          </Text>
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                </Col>
-
-                {/* Pricing */}
-                <Col span={24}>
-                  <Card size="small" title="Pricing">
-                    <Row gutter={16}>
-                      <Col span={8}>
-                        <div className="flex items-center">
-                          <DollarSign className="w-4 h-4 mr-2 text-green-500" />
-                          <Text>
-                            <strong>Budget Range:</strong>
-                          </Text>
-                        </div>
-                        <Text className="text-gray-600 ml-6">
-                          {formatCurrency(selectedBooking.budgetMin)} -{" "}
-                          {formatCurrency(selectedBooking.budgetMax)}
-                        </Text>
-                      </Col>
-                      {selectedBooking.amount && (
-                        <Col span={8}>
-                          <div className="flex items-center">
-                            <CreditCard className="w-4 h-4 mr-2 text-blue-500" />
-                            <Text>
-                              <strong>Final Amount:</strong>
-                            </Text>
-                          </div>
-                          <Text className="text-gray-600 ml-6 text-lg font-semibold">
-                            {formatCurrency(selectedBooking.amount)}
-                          </Text>
-                        </Col>
-                      )}
-                      <Col span={8}>
-                        <div className="flex items-center">
-                          <CreditCard className="w-4 h-4 mr-2 text-orange-500" />
-                          <Text>
-                            <strong>Payment Status:</strong>
-                          </Text>
-                        </div>
-                        <Tag
-                          color={getPaymentStatusColor(
-                            selectedBooking.paymentStatus
-                          )}
-                          className="ml-6"
-                        >
-                          {selectedBooking.paymentStatus
-                            .charAt(0)
-                            .toUpperCase() +
-                            selectedBooking.paymentStatus.slice(1)}
-                        </Tag>
-                      </Col>
-                    </Row>
-                  </Card>
-                </Col>
-
-                {/* Description */}
-                {selectedBooking.description && (
-                  <Col span={24}>
-                    <Card size="small" title="Description">
-                      <Text>{selectedBooking.description}</Text>
-                    </Card>
-                  </Col>
-                )}
-
-                {/* Notes */}
-                {selectedBooking.notes && (
-                  <Col span={24}>
-                    <Card size="small" title="Notes">
-                      <Text>{selectedBooking.notes}</Text>
-                    </Card>
-                  </Col>
-                )}
-
-                {/* Timestamps */}
-                <Col span={24}>
-                  <Card size="small" title="Booking Information">
-                    <Row gutter={16}>
-                      <Col span={12}>
-                        <Text>
-                          <strong>Created:</strong>{" "}
-                          {formatDateTime(selectedBooking.createdAt)}
-                        </Text>
-                      </Col>
-                      <Col span={12}>
-                        <Text>
-                          <strong>Last Updated:</strong>{" "}
-                          {formatDateTime(selectedBooking.updatedAt)}
-                        </Text>
-                      </Col>
-                    </Row>
-                  </Card>
-                </Col>
-              </Row>
-            </div>
-          )}
-        </Modal>
+          onClose={handleModalClose}
+          booking={selectedBooking}
+          getStatusColor={getStatusColor}
+          getPaymentStatusColor={getPaymentStatusColor}
+          getClientInitials={getClientInitials}
+          getClientName={getClientName}
+        />
 
         <BookingStatusModal
           visible={statusModal.visible}
@@ -662,10 +373,9 @@ const ProviderBookings = () => {
           }
           booking={statusModal.booking}
           currentStatus={statusModal.currentStatus}
-          onSuccess={() =>
-            loadBookings({ page: pagination.page, status: statusFilter })
-          }
+          onSuccess={() => loadBookings()}
         />
+        </>
       </div>
     </ProviderLayout>
   );

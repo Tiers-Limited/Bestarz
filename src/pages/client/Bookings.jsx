@@ -76,6 +76,31 @@ const ClientBookings = () => {
     });
   };
 
+  const handleCompleteBooking = async (bookingId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/bookings/${bookingId}/complete`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        message.success('Booking marked as completed! Payment has been processed.');
+        loadBookings(); // Refresh the bookings list
+      } else {
+        message.error(data.message || 'Failed to complete booking');
+      }
+    } catch (error) {
+      console.error('Complete booking error:', error);
+      message.error('Network error. Please try again.');
+    }
+  };
+
   const [reviewForm] = Form.useForm();
 
   // Handle review submission
@@ -335,10 +360,10 @@ const ClientBookings = () => {
               Details
             </Button>
 
-            {booking.status === "confirmed" &&booking.paymentStatus!=="advance_paid"&& (
+            {booking.status === "confirmed" && booking.paymentStatus === "final_paid" && (
               <Button
                 type="default"
-                onClick={() => handleStatusUpdate(booking, "completed")}
+                onClick={() => handleCompleteBooking(booking._id)}
               >
                 Mark Complete
               </Button>

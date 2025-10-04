@@ -475,7 +475,7 @@ const AdminDashboard = () => {
                           >
                             <div className="flex justify-between items-center mb-2">
                               <span className="text-white font-semibold text-md">
-                                ${payment.amount}
+                                ${payment.platformFee || payment.amount}
                               </span>
                               <Tag
                                 color={

@@ -23,7 +23,42 @@ export const BookingProvider = ({ children }) => {
 
   const baseUrl = import.meta.env.VITE_BASE_URL;
 
-  // --- Create booking ---
+  // --- Confirm booking (provider) ---
+  const confirmBooking = async (bookingId, amount) => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${baseUrl}/bookings/${bookingId}/confirm`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ amount }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Refresh bookings after confirmation
+        await fetchBookings();
+        return { success: true, data };
+      } else {
+        return {
+          success: false,
+          error: data.message || "Failed to confirm booking",
+        };
+      }
+    } catch (error) {
+      console.error("Confirm booking error:", error);
+      return {
+        success: false,
+        error: "Network error. Please try again.",
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
   const createBooking = async (bookingData) => {
     try {
       setLoading(true);
@@ -144,6 +179,7 @@ export const BookingProvider = ({ children }) => {
     createBooking,
     fetchBookings,
     updateBookingStatus,
+    confirmBooking,
   };
 
   return (
