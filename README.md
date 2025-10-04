@@ -183,4 +183,3 @@ src/
 ## 📄 License
 
 This project is proprietary software for Best★rz platform.</content>
-<parameter name="filePath">c:\Users\rajpu\OneDrive\Desktop\Tiers Limited\Backend\Bestarz\README.md
