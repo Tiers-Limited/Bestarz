@@ -4,6 +4,7 @@ import { Check, Star, Zap, Crown, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ProviderLayout from "../../components/ProviderLayout";
 import { useSubscription } from "../../context/provider/SubscriptionContext";
+import { message } from '../../utils';
 import { useProvider } from "../../context/provider/ProviderContext";
 
 const { Title, Paragraph } = Typography;
@@ -122,8 +123,13 @@ const ProviderSubscription = () => {
       okType: 'danger',
       cancelText: 'Keep My Subscription',
       width: 500,
-      onOk: () => {
-        cancelSubscription();
+      onOk: async () => {
+        const result = await cancelSubscription();
+        if (result.success) {
+          message.success('Subscription canceled successfully');
+        } else {
+          message.error(result.error || 'Failed to cancel subscription');
+        }
       },
     });
   };

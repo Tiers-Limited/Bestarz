@@ -86,16 +86,16 @@ export const SubscriptionProvider = ({ children }) => {
   };
 
   // ✅ Update subscription plan
-  const updateSubscription = async (plan, price) => {
+  const updateSubscription = async (plan, amount) => {
     try {
       setLoading(true);
-      const response = await fetch(`${baseUrl}/subscriptions/update`, {
-        method: 'PATCH',
+      const response = await fetch(`${baseUrl}/subscription/update`, {
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ plan, price }),
+        body: JSON.stringify({ plan, amount }),
       });
 
       const data = await response.json();
