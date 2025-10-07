@@ -225,11 +225,12 @@ const ProviderBookings = () => {
     );
   };
 
+  // Show all bookings for selected date in a modal
+  const [dateBookingsModal, setDateBookingsModal] = useState({ visible: false, bookings: [], date: null });
   const handleCalendarSelect = (date) => {
     const bookingsForDate = getBookingsForDate(date);
     if (bookingsForDate.length > 0) {
-      // Show the first booking details for that date
-      showBookingDetails(bookingsForDate[0]);
+      setDateBookingsModal({ visible: true, bookings: bookingsForDate, date });
     }
   };
 
@@ -458,6 +459,40 @@ const ProviderBookings = () => {
             ) : null
           }
         />
+
+        {/* Modal to show all bookings for selected date */}
+        <Modal
+          open={dateBookingsModal.visible}
+          title={dateBookingsModal.date ? `Bookings for ${dayjs(dateBookingsModal.date).format('MMM DD, YYYY')}` : 'Bookings'}
+          onCancel={() => setDateBookingsModal({ visible: false, bookings: [], date: null })}
+          footer={null}
+        >
+          {dateBookingsModal.bookings.length === 0 ? (
+            <div className="text-gray-400">No bookings for this date.</div>
+          ) : (
+            <div className="space-y-4">
+              {dateBookingsModal.bookings.map((booking, idx) => (
+                <Card
+                  key={booking._id || idx}
+                  className="bg-gray-800 border border-gray-700 hover:border-blue-500 cursor-pointer"
+                  onClick={() => {
+                    setDateBookingsModal({ ...dateBookingsModal, visible: false });
+                    showBookingDetails(booking);
+                  }}
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="font-semibold text-white">{getClientName(booking)}</div>
+                      <div className="text-gray-300 text-xs">{booking.eventType} • {booking.serviceCategory}</div>
+                      <div className="text-gray-400 text-xs">{booking.eventTime} • {booking.guests} guests</div>
+                    </div>
+                    <Tag color={getStatusColor(booking.status)}>{booking.status}</Tag>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </Modal>
 
         <BookingStatusModal
           visible={statusModal.visible}
