@@ -61,18 +61,47 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
  const cancelSubscription = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-    if (!user || !user.stripeSubscriptionId) {
-      return res.status(400).json({ message: 'No active subscription found' });
-    }
+      if (!user) {
+        console.info('Cancel subscription: user not found for id', req.user.id);
+        return res.status(404).json({ message: 'User not found' });
+      }
 
-    await stripe.subscriptions.update(user.stripeSubscriptionId, {
-      cancel_at_period_end: true // recurring but cancel at end
-    });
+      // If there's no Stripe subscription id, still mark the subscription as canceled
+      if (!user.stripeSubscriptionId) {
+        console.info('Cancel subscription: no stripeSubscriptionId for user', user.email || user._id);
+        user.subscriptionStatus = 'canceled';
+        user.subscriptionPlan = 'none';
+        user.stripeSubscriptionId = null;
+        user.subscriptionStart = null;
+        user.subscriptionEnd = null;
+        await user.save();
+        return res.json({ message: 'Subscription canceled (no Stripe subscription id found). Local status updated.', user });
+      }
 
-    user.subscriptionStatus = 'canceled';
-    await user.save();
+      // Try cancelling the subscription on Stripe
+      let stripeError = null;
+      try {
+        await stripe.subscriptions.update(user.stripeSubscriptionId, {
+          cancel_at_period_end: true // recurring but cancel at end
+        });
+      } catch (err) {
+        stripeError = err;
+        console.error('Stripe cancel error:', err.message);
+      }
 
-    return res.json({ message: 'Subscription canceled', user });
+      // Always mark local subscription as canceled, even if Stripe fails
+      user.subscriptionStatus = 'canceled';
+      user.subscriptionPlan = 'none';
+      user.stripeSubscriptionId = null;
+      user.subscriptionStart = null;
+      user.subscriptionEnd = null;
+      await user.save();
+
+      if (stripeError) {
+        return res.json({ message: 'Subscription canceled locally. Stripe error: ' + stripeError.message, user });
+      } else {
+        return res.json({ message: 'Subscription canceled', user });
+      }
   } catch (err) {
     console.error('Cancel subscription error:', err);
     return res.status(500).json({ message: err.message });
