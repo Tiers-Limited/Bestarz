@@ -91,6 +91,15 @@ const getProviderDashboard = async (req, res) => {
 			.limit(5);
 
 		return res.json({
+			provider: {
+				_id: provider._id,
+				id: provider._id,  // Fallback for compatibility
+				slug: provider.slug,
+				businessName: provider.businessName,
+				category: provider.category,
+				rating: provider.rating,
+				reviews: provider.reviews
+			},
 			stats: {
 				totalBookings,
 				pendingBookings,
@@ -537,11 +546,18 @@ const updateProviderSettings = async (req, res) => {
 
 
 
-const getProviderBySlug = async (req, res) => {
+const getProviderById = async (req, res) => {
 	try {
-		const { slug } = req.params;
+		const { id } = req.params;
+		const mongoose = require('mongoose');
 
-		const provider = await Provider.findOne({ slug })
+		// Validate that the id is a valid ObjectId
+		if (!mongoose.Types.ObjectId.isValid(id)) {
+			return res.status(400).json({ message: 'Invalid provider ID format' });
+		}
+		
+		// Find provider by ObjectId only
+		const provider = await Provider.findById(id)
 			.populate('user', 'firstName lastName profileImage email phone')
 			.select('-user.passwordHash ');
 
@@ -596,5 +612,5 @@ module.exports = {
 	deleteRateCard,
 	getProviderSettings,
 	updateProviderSettings,
-	getProviderBySlug
+	getProviderById
 };

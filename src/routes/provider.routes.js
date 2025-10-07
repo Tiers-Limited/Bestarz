@@ -15,7 +15,7 @@ const {
   deleteRateCard,
   getProviderSettings,
   updateProviderSettings,
-  getProviderBySlug
+  getProviderById
 } = require('../controllers/provider.controller.js');
 
 const { getBooking } = require('../controllers/booking.controller.js');
@@ -52,6 +52,6 @@ router.get('/settings', auth('provider'), getProviderSettings);
 router.put('/settings', auth('provider'), updateProviderSettings);
 
 // --- Public route ---
-router.get('/provider/:slug', getProviderBySlug);
+router.get('/provider/:id', getProviderById);
 
 module.exports = router;
