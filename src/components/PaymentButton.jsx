@@ -3,24 +3,42 @@ import { Button, Modal, message, Alert } from "antd";
 import { DollarSign, CreditCard } from "lucide-react";
 import { usePayment } from "../context/payment/PaymentContext";
 
-const PaymentButton = ({ booking }) => {
+const PaymentButton = ({ booking, paymentType, size = "default" }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [paymentInfo, setPaymentInfo] = useState(null);
   const { createPayment, loading } = usePayment();
 
   const getPaymentStatus = () => {
-    if (booking.status === "confirmed" && booking.paymentStatus === "unpaid") {
+    // If specific paymentType is passed, use it
+    if (paymentType === "advance" && booking.paymentStatus === "advance_pending") {
       return {
         type: "advance",
         label: "Pay Advance (30%)",
-        amount: booking.amount * 0.3,
-        description: "Pay 30% advance to confirm your booking",
+        amount: booking.advanceAmount || (booking.totalAmount * 0.3),
+        description: "Pay 30% advance to start your booking",
       };
-    } else if (booking.status === "completed" && booking.paymentStatus === "advance_paid") {
+    } else if (paymentType === "final" && booking.paymentStatus === "final_pending") {
       return {
         type: "final",
         label: "Pay Final Amount (70%)",
-        amount: booking.amount * 0.7,
+        amount: booking.remainingAmount || (booking.totalAmount * 0.7),
+        description: "Pay remaining 70% to complete the booking",
+      };
+    }
+
+    // Legacy fallback logic
+    if (booking.paymentStatus === "advance_pending") {
+      return {
+        type: "advance",
+        label: "Pay Advance (30%)",
+        amount: booking.advanceAmount || (booking.totalAmount * 0.3),
+        description: "Pay 30% advance to start your booking",
+      };
+    } else if (booking.paymentStatus === "final_pending") {
+      return {
+        type: "final",
+        label: "Pay Final Amount (70%)",
+        amount: booking.remainingAmount || (booking.totalAmount * 0.7),
         description: "Pay remaining 70% to complete the booking",
       };
     }
@@ -44,16 +62,18 @@ const PaymentButton = ({ booking }) => {
 
   if (!paymentStatus) return null;
 
-  const isPending =
-    (paymentStatus.type === "advance" && booking.paymentStatus === "advance_pending") ||
-    (paymentStatus.type === "final" && booking.paymentStatus === "final_pending");
+  // Show alert only if payment is actually being processed (not just pending)
+  // advance_pending and final_pending mean payment is NEEDED, not being processed
+  const isBeingProcessed =
+    (paymentStatus.type === "advance" && booking.paymentStatus === "advance_paid") ||
+    (paymentStatus.type === "final" && booking.paymentStatus === "final_paid");
 
-  if (isPending) {
+  if (isBeingProcessed) {
     return (
       <Alert
-        message="Payment Pending"
-        description="Your payment is being processed. Please refresh the page."
-        type="warning"
+        message="Payment Completed"
+        description="Your payment has been processed successfully."
+        type="success"
         showIcon
       />
     );
@@ -63,7 +83,8 @@ const PaymentButton = ({ booking }) => {
     <>
       <Button
         type="primary"
-        icon={<CreditCard size={18} />}
+        size={size}
+        icon={<CreditCard size={size === "small" ? 14 : 18} />}
         onClick={showPaymentModal}
         loading={loading}
       >

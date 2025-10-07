@@ -30,6 +30,7 @@ import ClientLayout from "../../components/ClientLayout";
 import { useNavigate } from "react-router-dom";
 import { useClient } from "../../context/client/ClientContext";
 import ClientReviewModal from "../../components/ClientReviewModal";
+import PaymentButton from "../../components/PaymentButton";
 import { useCreateConversation } from "../../hooks/useCreateConversation";
 
 const { Title, Paragraph } = Typography;
@@ -93,7 +94,8 @@ const ClientDashboard = () => {
       setReviewModalVisible(false);
       setSelectedBooking(null);
       reviewForm.resetFields();
-      fetchDashboard(); // Refresh data
+      // Refresh dashboard to update booking status
+      fetchDashboard();
     } else {
       message.error(result.error || "Failed to submit review");
     }
@@ -199,7 +201,7 @@ const ClientDashboard = () => {
       title: "Action",
       key: "action",
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           <Button
             size="small"
             onClick={() => {
@@ -209,7 +211,22 @@ const ClientDashboard = () => {
           >
             View
           </Button>
-          {record.status === "completed" && (
+          {/* Payment buttons for advance and final payments */}
+          {record.status === "ACCEPTED" && record.paymentStatus === "advance_pending" && (
+            <PaymentButton 
+              booking={record} 
+              paymentType="advance" 
+              size="small" 
+            />
+          )}
+          {record.paymentStatus === "final_pending" && (
+            <PaymentButton 
+              booking={record} 
+              paymentType="final" 
+              size="small" 
+            />
+          )}
+          {record.status === "COMPLETED" && !record.hasReview && (
             <Button
               size="small"
               type="primary"
@@ -217,6 +234,15 @@ const ClientDashboard = () => {
               onClick={() => openReviewModal(record)}
             >
               Review
+            </Button>
+          )}
+          {record.hasReview && (
+            <Button
+              size="small"
+              disabled
+              icon={<Star size={14} />}
+            >
+              Reviewed
             </Button>
           )}
         </Space>

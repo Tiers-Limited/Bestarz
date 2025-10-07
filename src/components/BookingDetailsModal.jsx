@@ -23,6 +23,7 @@ const BookingDetailsModal = ({
   getPaymentStatusColor,
   getClientInitials,
   getClientName,
+  actionButtons = null, // Optional action buttons for providers
 }) => {
   if (!booking) return null;
 
@@ -66,12 +67,15 @@ const BookingDetailsModal = ({
               {booking.paymentStatus.charAt(0).toUpperCase() + booking.paymentStatus.slice(1)}
             </Tag>
           </div>
-          <button
-            onClick={onClose}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-          >
-            Close
-          </button>
+          <div className="flex items-center space-x-3">
+            {actionButtons}
+            <button
+              onClick={onClose}
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+            >
+              Close
+            </button>
+          </div>
         </div>,
       ]}
       width={900}

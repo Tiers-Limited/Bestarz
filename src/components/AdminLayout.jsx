@@ -13,6 +13,7 @@ import {
   FileText,
   User,
   MessageCircle,
+  BellRing,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -26,7 +27,7 @@ const AdminLayout = ({ children }) => {
 
   const {user,signOut}=useAuth();
 
-  const {unreadCount}=useMessage();
+  const {unreadCount, enableNotifications}=useMessage();
 
   const menuItems = [
     {
@@ -168,6 +169,13 @@ const AdminLayout = ({ children }) => {
               >
                 Help
               </Button>
+              <Button
+                type="text"
+                icon={<BellRing size={16} />}
+                className="text-gray-300 hover:text-white"
+                onClick={enableNotifications}
+                title="Enable notifications"
+              />
               <Button
                 type="text"
                 icon={<Bell size={16} />}

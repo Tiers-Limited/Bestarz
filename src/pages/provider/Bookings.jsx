@@ -85,16 +85,89 @@ const ProviderBookings = () => {
     setSelectedBooking(null);
   };
 
+  // Handle accept/reject booking
+  const handleBookingAction = async (bookingId, action, totalAmount = null) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/bookings/${bookingId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: action,
+          totalAmount: action === 'ACCEPTED' ? totalAmount : undefined
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        message.success(`Booking ${action.toLowerCase()} successfully!`);
+        loadBookings(); // Refresh the bookings list
+      } else {
+        message.error(data.message || `Failed to ${action.toLowerCase()} booking`);
+      }
+    } catch (error) {
+      console.error('Booking action error:', error);
+      message.error('Network error. Please try again.');
+    }
+  };
+
+  // Show accept booking modal with amount input
+  const showAcceptModal = (booking) => {
+    Modal.confirm({
+      title: 'Accept Booking Request',
+      content: (
+        <div>
+          <p>Do you want to accept this booking request?</p>
+          <p><strong>Budget Range:</strong> ${booking.budgetMin} - ${booking.budgetMax}</p>
+          <div style={{ marginTop: 16 }}>
+            <label>Set Total Amount: $</label>
+            <input 
+              id="totalAmount"
+              type="number" 
+              min={booking.budgetMin} 
+              max={booking.budgetMax}
+              defaultValue={booking.budgetMin}
+              style={{ 
+                marginLeft: 8, 
+                padding: '4px 8px', 
+                border: '1px solid #d9d9d9', 
+                borderRadius: '4px',
+                width: '120px'
+              }}
+            />
+          </div>
+        </div>
+      ),
+      onOk() {
+        const totalAmount = document.getElementById('totalAmount')?.value;
+        if (!totalAmount || totalAmount < booking.budgetMin || totalAmount > booking.budgetMax) {
+          message.error('Please enter a valid amount within the budget range');
+          return false;
+        }
+        handleBookingAction(booking._id, 'ACCEPTED', parseFloat(totalAmount));
+      },
+      onCancel() {},
+    });
+  };
+
   const getStatusColor = (status) => {
-    switch (status.toLowerCase()) {
-      case "confirmed":
-        return "green";
-      case "pending":
+    switch (status) {
+      case "PENDING":
         return "orange";
-      case "cancelled":
-        return "red";
-      case "completed":
+      case "ACCEPTED":
         return "blue";
+      case "REJECTED":
+        return "red";
+      case "IN_PROGRESS":
+        return "purple";
+      case "COMPLETED":
+        return "green";
+      case "CANCELLED":
+        return "red";
       default:
         return "gray";
     }
@@ -360,6 +433,30 @@ const ProviderBookings = () => {
           getPaymentStatusColor={getPaymentStatusColor}
           getClientInitials={getClientInitials}
           getClientName={getClientName}
+          actionButtons={
+            selectedBooking?.status === "PENDING" ? (
+              <>
+                <button
+                  onClick={() => {
+                    handleModalClose();
+                    showAcceptModal(selectedBooking);
+                  }}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Accept
+                </button>
+                <button
+                  onClick={() => {
+                    handleModalClose();
+                    handleBookingAction(selectedBooking._id, "REJECTED");
+                  }}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Reject
+                </button>
+              </>
+            ) : null
+          }
         />
 
         <BookingStatusModal

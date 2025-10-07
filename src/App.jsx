@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { ConfigProvider, theme } from "antd";
+import { ConfigProvider, theme, App as AntdApp } from "antd";
 import "./App.css";
 import { AuthProvider } from "./context/AuthContext";
 import { ProviderProvider } from "./context/provider/ProviderContext";
@@ -89,9 +89,10 @@ const App = () => {
                   <ProviderProvider>
                     <CustomerProvider>
                       <ServiceRateProvider>
-                        <Router>
-                          <div className="App">
-                            <Routes>
+                        <AntdApp>
+                          <Router>
+                            <div className="App">
+                              <Routes>
                               {/* Public routes */}
                               <Route path="/" element={<LandingPage />} />
                               <Route path="/signin" element={<SignIn />} />
@@ -343,9 +344,10 @@ const App = () => {
                                   </ProtectedRoute>
                                 }
                               />
-                            </Routes>
-                          </div>
-                        </Router>
+                              </Routes>
+                            </div>
+                          </Router>
+                        </AntdApp>
                       </ServiceRateProvider>
                     </CustomerProvider>
                   </ProviderProvider>

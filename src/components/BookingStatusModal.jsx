@@ -17,8 +17,6 @@ const BookingStatusModal = ({
   const { updateBookingStatus, confirmBooking, loading } = useBooking();
   const [selectedStatus, setSelectedStatus] = useState(currentStatus);
 
-  console.log(currentStatus,"currentStatuscurrentStatus")
-
   const { user } = useAuth();
 
 

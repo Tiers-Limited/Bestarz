@@ -10,7 +10,8 @@ import {
   HelpCircle,
   FileText,
   MessageCircle,
-  Book
+  Book,
+  BellRing
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -26,7 +27,7 @@ const ClientLayout = ({ children }) => {
   const { user,signOut } = useAuth();
 
 
-  const {unreadCount}=useMessage();
+  const {unreadCount, enableNotifications}=useMessage();
 
   // ✅ Client-specific sidebar menu
   const menuItems = [
@@ -160,6 +161,13 @@ const ClientLayout = ({ children }) => {
               >
                 Help
               </Button>
+              <Button
+                type="text"
+                icon={<BellRing size={16} />}
+                className="text-gray-300 hover:text-white"
+                onClick={enableNotifications}
+                title="Enable notifications"
+              />
               <Button 
                 type="text" 
                 icon={<Bell size={16} />}

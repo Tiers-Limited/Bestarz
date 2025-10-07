@@ -72,7 +72,6 @@ const ProviderDashboard = () => {
   }
 
 
-  console.log(dashboardData,"dashboardData")
   const stats = dashboardData?.stats || {};
   const recentBookings = dashboardData?.recentBookings || [];
   const recentInquiries = dashboardData?.recentInquiries || [];

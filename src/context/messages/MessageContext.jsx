@@ -26,6 +26,48 @@ export const MessageProvider = ({ children }) => {
   const baseUrl = import.meta.env.VITE_BASE_URL;
   const socketUrl = import.meta.env.VITE_SOCKET_URL;
 
+  // Function to enable notifications
+  const enableNotifications = async () => {
+    if ("Notification" in window) {
+      if (Notification.permission === "default") {
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission === "granted") {
+            message.success("Notifications enabled! You'll receive message notifications.");
+            // Test notification
+            new Notification("Notifications enabled!", {
+              body: "You'll now receive message notifications",
+              icon: "/default-avatar.png",
+            });
+          } else if (permission === "denied") {
+            message.warning("Notification permission denied. You can enable notifications in your browser settings.");
+          } else {
+            message.info("Notification permission dismissed.");
+          }
+          return permission;
+        } catch (error) {
+          console.error("Error requesting notification permission:", error);
+          message.error("Failed to enable notifications.");
+          return "error";
+        }
+      } else if (Notification.permission === "granted") {
+        message.info("Notifications are already enabled.");
+        return "granted";
+      } else if (Notification.permission === "denied") {
+        message.warning(
+          "Notifications are blocked. To enable notifications: " +
+          "1. Click the lock/tune icon next to the URL in your browser's address bar " +
+          "2. Find notification settings and allow notifications for this site " +
+          "3. Refresh the page and try again."
+        );
+        return "denied";
+      }
+    } else {
+      message.warning("Notifications are not supported in this browser.");
+      return "not-supported";
+    }
+  };
+
   // Initialize Socket.IO connection
   useEffect(() => {
     if (token && user) {
@@ -34,10 +76,43 @@ export const MessageProvider = ({ children }) => {
         transports: ["websocket", "polling"],
       });
 
-      socketInstance.on("connect", () => {
-        console.log("Connected to socket server");
+      socketInstance.on("connect", async () => {
+        console.log("🔌 Socket connected successfully");
         // Join user room for receiving conversation updates
         socketInstance.emit("join_user_room", user._id);
+        
+        // Request notification permission for message notifications
+        if ("Notification" in window) {
+          if (Notification.permission === "default") {
+            try {
+              const permission = await Notification.requestPermission();
+              console.log("🔔 Notification permission:", permission);
+              if (permission === "granted") {
+                // Test notification to verify it's working
+                new Notification("Notifications enabled!", {
+                  body: "You'll now receive message notifications",
+                  icon: "/default-avatar.png",
+                });
+              }
+            } catch (error) {
+              console.error("❌ Error requesting notification permission:", error);
+            }
+          } else if (Notification.permission === "denied") {
+            console.log("🚫 Notification permission denied by user - not requesting again");
+          } else {
+            console.log("✅ Notification permission already granted");
+          }
+        } else {
+          console.log("🚫 Notifications not supported in this browser");
+        }
+      });
+
+      socketInstance.on("disconnect", () => {
+        console.log("🔌 Socket disconnected");
+      });
+
+      socketInstance.on("connect_error", (error) => {
+        console.error("🔌 Socket connection error:", error);
       });
 
       // 🔹 new_message - Handle incoming messages
@@ -84,9 +159,13 @@ export const MessageProvider = ({ children }) => {
 
 
       socketInstance.on("new_message", (newMessage) => {
-        console.log("Received new message:", newMessage);
+        console.log("📨 Received new_message event:", newMessage);
+        console.log("👤 Current user:", user._id);
+        console.log("💬 Message sender:", newMessage.sender._id);
+        console.log("🏠 Active conversation:", activeConversation?.id);
         const conversationId = newMessage.conversation;
-      
+        
+        // Update messages in real-time for active conversation
         setMessages((prev) => ({
           ...prev,
           [conversationId]: [
@@ -115,12 +194,96 @@ export const MessageProvider = ({ children }) => {
           if (conversationId !== activeConversation?.id) {
             fetchUnreadCount();
       
-            // ✅ Show desktop notification
-            if ("Notification" in window && Notification.permission === "granted") {
-              new Notification(`Message from ${newMessage.sender.firstName}`, {
-                body: newMessage.content,
-                icon: newMessage.sender.profileImage || "/default-avatar.png",
+            // ✅ Show desktop notification with role context
+            const senderRole = newMessage.sender.role || 'User';
+            const roleText = senderRole === 'admin' ? 'Admin' : senderRole === 'provider' ? 'Provider' : 'Client';
+            
+            if ("Notification" in window) {
+              if (Notification.permission === "granted") {
+                try {
+                  const notification = new Notification(`New message from ${roleText}: ${newMessage.sender.firstName || 'Unknown'}`, {
+                    body: newMessage.content,
+                    icon: newMessage.sender.profileImage || "/default-avatar.png",
+                    tag: `message-${conversationId}`, // Prevents duplicate notifications
+                    requireInteraction: false, // Auto-close after a few seconds
+                    badge: "/favicon.ico", // Small icon for notification badge
+                  });
+                  
+                  // Auto-close notification after 5 seconds
+                  setTimeout(() => {
+                    notification.close();
+                  }, 5000);
+                  
+                  console.log("Desktop notification shown for message");
+                  // Add click handler to open conversation
+                  notification.onclick = () => {
+                    window.focus();
+                    // Navigate to messages page based on user role
+                    const messageRoute = user.role === 'admin' ? '/admin/messages' : 
+                                       user.role === 'provider' ? '/provider/messages' : 
+                                       '/client/messages';
+                    window.location.href = messageRoute;
+                  };
+                  
+                  // Play notification sound (if supported)
+                  try {
+                    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSmN1fLNeSsFIXjK8N2OPwkWYbjq66NSDw1MpePtx2gebjyQ1fLNeSsFInfJ8N+OPQkUYLjq6qNTEg1JpOLxwmgeByeN1/LNeSsFInfJ8N2QQAoUXrTp66hVFAlFn+HyvmwhBymM1fLNeSsFInfI8N+OPQkUYLjq6qJUFAxFnOLywmgeAByhzPS9cCIEB1CH1fLNeSsFInfI8N6QPQkUXrXp66hWFAlFnOHyvmwhByeM1fLNeSsFInfI8N6QPQkUXrXp66hWFAlFnOHyv2whBSaM1fLNeSsFInnI8N6QPQkUXrXp66hWFAlFnOHyv2whBSaM1fLNeSsFIXnI8N6QPQkUXrXp66hWFAlGnOHyv2whBSaM1fLNeSsFIXjI8N6PPwkUXrPp66hVFAlGneDyv2seByaL1fHNeSsFIXjI8N+OQAkUXrPp66hWFAlGneDyv2whBSWM1fLNeSsFIXnI8N+OQAkUXrTp66hWFAlGneDyvmwhBSaM1fLNeSsFIXjI8N+OQAoUXrTp66hWFAlGneDyvmwhBSWM1fLNeSsFIXnI8N+OQAoUXrTp66hWFAlGneDywG0gBiWM1fLMeSsFInfJ8N+OQAkUYLXq66dWFAlGnODyv2whBSaM1fLNeSsFInbJ8N6QQAoUXrTp66hWFAlGneDyv2whBSaM1vLNeSsFInbH8N6QQAkUYLTm66hWFQxGneLyv2whBCaM1/PNCS4E');
+                    audio.volume = 0.3;
+                    audio.play().catch(e => console.log('Could not play notification sound'));
+                  } catch (e) {
+                    console.log('Notification sound not supported');
+                  }
+                  
+                } catch (error) {
+                  console.error("Error showing notification:", error);
+                  // Fallback to in-app notification with sound
+                  message.info(`💬 New message from ${roleText}: ${newMessage.sender.firstName || 'Unknown'}`);
+                  // Play sound even if desktop notification fails
+                  try {
+                    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSmN1fLNeSsFIXjK8N2OPwkWYbjq66NSDw1MpePtx2gebjyQ1fLNeSsFInfJ8N+OPQkUYLjq6qNTEg1JpOLxwmgeByeN1/LNeSsFInfJ8N2QQAoUXrTp66hVFAlFn+HyvmwhBymM1fLNeSsFInfI8N+OPQkUYLjq6qJUFAxFnOLywmgeAByhzPS9cCIEB1CH1fLNeSsFInfI8N6QPQkUXrXp66hWFAlFnOHyvmwhByeM1fLNeSsFInfI8N6QPQkUXrXp66hWFAlFnOHyv2whBSaM1fLNeSsFInnI8N6QPQkUXrXp66hWFAlFnOHyv2whBSaM1fLNeSsFIXnI8N6QPQkUXrXp66hWFAlGnOHyv2whBSaM1fLNeSsFIXjI8N6PPwkUXrPp66hVFAlGneDyv2seByaL1fHNeSsFIXjI8N+OQAkUXrPp66hWFAlGneDyv2whBSWM1fLNeSsFIXnI8N+OQAkUXrTp66hWFAlGneDyvmwhBSaM1fLNeSsFIXjI8N+OQAoUXrTp66hWFAlGneDyvmwhBSWM1fLNeSsFIXnI8N+OQAoUXrTp66hWFAlGneDywG0gBiWM1fLMeSsFInfJ8N+OQAkUYLXq66dWFAlGnODyv2whBSaM1fLNeSsFInbJ8N6QQAoUXrTp66hWFAlGneDyv2whBSaM1vLNeSsFInbH8N6QQAkUYLTm66hWFQxGneLyv2whBCaM1/PNCS4E');
+                    audio.volume = 0.3;
+                    audio.play().catch(e => console.log('Could not play notification sound'));
+                  } catch (e) {
+                    console.log('Notification sound not supported');
+                  }
+                }
+              } else {
+                console.log("Notification permission not granted:", Notification.permission);
+                // Fallback to in-app notification - more prominent when browser notifications are blocked
+                message.info({
+                  content: `💬 New message from ${roleText}: ${newMessage.sender.firstName || 'Unknown'}`,
+                  duration: 5,
+                  style: {
+                    marginTop: '60px', // Push below header
+                  },
+                });
+                // Play notification sound for in-app notifications too
+                try {
+                  const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSmN1fLNeSsFIXjK8N2OPwkWYbjq66NSDw1MpePtx2gebjyQ1fLNeSsFInfJ8N+OPQkUYLjq6qNTEg1JpOLxwmgeByeN1/LNeSsFInfJ8N2QQAoUXrTp66hVFAlFn+HyvmwhBymM1fLNeSsFInfI8N+OPQkUYLjq6qJUFAxFnOLywmgeAByhzPS9cCIEB1CH1fLNeSsFInfI8N6QPQkUXrXp66hWFAlFnOHyvmwhByeM1fLNeSsFInfI8N6QPQkUXrXp66hWFAlFnOHyv2whBSaM1fLNeSsFInnI8N6QPQkUXrXp66hWFAlFnOHyv2whBSaM1fLNeSsFIXnI8N6QPQkUXrXp66hWFAlGnOHyv2whBSaM1fLNeSsFIXjI8N6PPwkUXrPp66hVFAlGneDyv2seByaL1fHNeSsFIXjI8N+OQAkUXrPp66hWFAlGneDyv2whBSWM1fLNeSsFIXnI8N+OQAkUXrTp66hWFAlGneDyvmwhBSaM1fLNeSsFIXjI8N+OQAoUXrTp66hWFAlGneDyvmwhBSWM1fLNeSsFIXnI8N+OQAoUXrTp66hWFAlGneDywG0gBiWM1fLMeSsFInfJ8N+OQAkUYLXq66dWFAlGnODyv2whBSaM1fLNeSsFInbJ8N6QQAoUXrTp66hWFAlGneDyv2whBSaM1vLNeSsFInbH8N6QQAkUYLTm66hWFQxGneLyv2whBCaM1/PNCS4E');
+                  audio.volume = 0.3;
+                  audio.play().catch(e => console.log('Could not play notification sound'));
+                } catch (e) {
+                  console.log('Notification sound not supported');
+                }
+              }
+            } else {
+              console.log("Notifications not supported in this browser");
+              // Fallback to in-app notification
+              message.info({
+                content: `💬 New message from ${roleText}: ${newMessage.sender.firstName || 'Unknown'}`,
+                duration: 5,
+                style: {
+                  marginTop: '60px', // Push below header
+                },
               });
+              // Play notification sound for in-app notifications too
+              try {
+                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSmN1fLNeSsFIXjK8N2OPwkWYbjq66NSDw1MpePtx2gebjyQ1fLNeSsFInfJ8N+OPQkUYLjq6qNTEg1JpOLxwmgeByeN1/LNeSsFInfJ8N2QQAoUXrTp66hVFAlFn+HyvmwhBymM1fLNeSsFInfI8N+OPQkUYLjq6qJUFAxFnOLywmgeAByhzPS9cCIEB1CH1fLNeSsFInfI8N6QPQkUXrXp66hWFAlFnOHyvmwhByeM1fLNeSsFInfI8N6QPQkUXrXp66hWFAlFnOHyv2whBSaM1fLNeSsFInnI8N6QPQkUXrXp66hWFAlFnOHyv2whBSaM1fLNeSsFIXnI8N6QPQkUXrXp66hWFAlGnOHyv2whBSaM1fLNeSsFIXjI8N6PPwkUXrPp66hVFAlGneDyv2seByaL1fHNeSsFIXjI8N+OQAkUXrPp66hWFAlGneDyv2whBSWM1fLNeSsFIXnI8N+OQAkUXrTp66hWFAlGneDyvmwhBSaM1fLNeSsFIXjI8N+OQAoUXrTp66hWFAlGneDyvmwhBSWM1fLNeSsFIXnI8N+OQAoUXrTp66hWFAlGneDywG0gBiWM1fLMeSsFInfJ8N+OQAkUYLXq66dWFAlGnODyv2whBSaM1fLNeSsFInbJ8N6QQAoUXrTp66hWFAlGneDyv2whBSaM1vLNeSsFInbH8N6QQAkUYLTm66hWFQxGneLyv2whBCaM1/PNCS4E');
+                audio.volume = 0.3;
+                audio.play().catch(e => console.log('Could not play notification sound'));
+              } catch (e) {
+                console.log('Notification sound not supported');
+              }
             }
           }
         }
@@ -562,6 +725,7 @@ export const MessageProvider = ({ children }) => {
     createConversation,
     markAsRead,
     setActiveConversation: setActiveConversationAndFetch,
+    enableNotifications,
     
   };
 

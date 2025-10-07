@@ -38,7 +38,7 @@ const { Option } = Select;
 
 const PublicProviderPage = () => {
   const { slug } = useParams();
-  const { createBooking, loading: bookingLoading } = useBooking();
+  const { createAnonymousBooking, loading: bookingLoading } = useBooking();
   const [provider, setProvider] = useState(null);
   const [loading, setLoading] = useState(true);
   const [budgetRange, setBudgetRange] = useState([0, 1500]);
@@ -92,7 +92,7 @@ const PublicProviderPage = () => {
       },
     };
 
-    const result = await createBooking(bookingPayload);
+    const result = await createAnonymousBooking(bookingPayload);
 
     if (result.success) {
       message.success("Booking request sent successfully!");

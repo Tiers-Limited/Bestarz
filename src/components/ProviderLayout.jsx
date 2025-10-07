@@ -14,6 +14,7 @@ import {
   HelpCircle,
   Package,
   MessageCircle,
+  BellRing,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -28,7 +29,7 @@ const ProviderLayout = ({ children }) => {
 
   const { user, signOut } = useAuth();
 
-  const {unreadCount}=useMessage();
+  const {unreadCount, enableNotifications}=useMessage();
 
   console.log(user, "user");
 
@@ -49,11 +50,11 @@ const ProviderLayout = ({ children }) => {
       label: "Bookings",
     },
 
-    {
-      key: "/provider/services-rates",
-      icon: <Package size={18} />,
-      label: "Service Rates",
-    },
+    // {
+    //   key: "/provider/services-rates",
+    //   icon: <Package size={18} />,
+    //   label: "Service Rates",
+    // },
     {
       key: "/provider/customers",
       icon: <Users size={18} />,
@@ -174,6 +175,13 @@ const ProviderLayout = ({ children }) => {
               >
                 Help
               </Button>
+              <Button
+                type="text"
+                icon={<BellRing size={16} />}
+                className="text-gray-300 hover:text-white"
+                onClick={enableNotifications}
+                title="Enable notifications"
+              />
               <Button
                 type="text"
                 icon={<Bell size={16} />}

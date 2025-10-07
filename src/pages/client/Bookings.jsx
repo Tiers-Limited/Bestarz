@@ -190,13 +190,45 @@ const ClientBookings = () => {
     setSelectedBooking(null);
   };
 
+  // Handle marking booking as done
+  const handleMarkAsDone = async (bookingId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/bookings/${bookingId}/done`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        message.success('Event marked as done! Please proceed with final payment.');
+        loadBookings(); // Refresh the bookings list
+      } else {
+        message.error(data.message || 'Failed to mark event as done');
+      }
+    } catch (error) {
+      console.error('Mark as done error:', error);
+      message.error('Network error. Please try again.');
+    }
+  };
+
   const getStatusColor = (status) => {
-    switch (status.toLowerCase()) {
-      case "confirmed":
-        return "green";
-      case "pending":
+    switch (status) {
+      case "PENDING":
         return "orange";
-      case "cancelled":
+      case "ACCEPTED":
+        return "blue";
+      case "REJECTED":
+        return "red";
+      case "IN_PROGRESS":
+        return "purple";
+      case "COMPLETED":
+        return "green";
+      case "CANCELLED":
         return "red";
       case "completed":
         return "blue";
@@ -344,32 +376,58 @@ const ClientBookings = () => {
       key: "actions",
       className: "whitespace-nowrap",
       render: (_, booking) => {
-        console.log(booking, "Booking");
         return (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
+              size="small"
               icon={<MessageCircle size={14} />}
-              disabled={!booking.client}
               onClick={() =>
                 createAndNavigateToConversation(booking?.provider?.user?._id)
               }
             >
               Message
             </Button>
-            <Button type="primary" onClick={() => showBookingDetails(booking)}>
+            
+            <Button 
+              size="small" 
+              type="primary" 
+              onClick={() => showBookingDetails(booking)}
+            >
               Details
             </Button>
 
-            {booking.status === "confirmed" && booking.paymentStatus === "final_paid" && (
+            {/* Show Make Advance Payment button when advance payment is pending */}
+            {booking.paymentStatus === "advance_pending" && (
+              <PaymentButton 
+                booking={booking} 
+                paymentType="advance"
+                size="small"
+              />
+            )}
+
+            {/* Show Mark as Done button when advance payment is completed */}
+            {((booking.status === "IN_PROGRESS" || booking.status === "ACCEPTED") && 
+              (booking.advancePaid || booking.paymentStatus === "advance_paid")) && (
               <Button
+                size="small"
                 type="default"
-                onClick={() => handleCompleteBooking(booking._id)}
+                onClick={() => handleMarkAsDone(booking._id)}
               >
-                Mark Complete
+                Mark as Done
               </Button>
             )}
 
-            {booking.status === "completed" &&booking.paymentStatus==="final_paid"&& !booking.hasReview && (
+            {/* Show Make Final Payment button after marking as done */}
+            {booking.paymentStatus === "final_pending" && (
+              <PaymentButton 
+                booking={booking} 
+                paymentType="final"
+                size="small"
+              />
+            )}
+
+            {/* Show Leave Review button after final payment is completed */}
+            {booking.status === "COMPLETED" && booking.finalPaid && !booking.hasReview && (
               <Button
                 size="small"
                 type="primary"
@@ -379,8 +437,6 @@ const ClientBookings = () => {
                 Review
               </Button>
             )}
-
-            <PaymentButton booking={booking} />
           </div>
         );
       },

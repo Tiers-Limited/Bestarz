@@ -50,15 +50,44 @@ export const BookingProvider = ({ children }) => {
         };
       }
     } catch (error) {
-      console.error("Confirm booking error:", error);
-      return {
-        success: false,
-        error: "Network error. Please try again.",
-      };
+      console.error("Booking confirm error:", error);
+      return { success: false, error: "Network error. Please try again." };
     } finally {
       setLoading(false);
     }
   };
+
+  // --- Create anonymous booking (for public pages) ---
+  const createAnonymousBooking = async (bookingData) => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${baseUrl}/bookings/anonymous`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(bookingData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        return { success: true, data };
+      } else {
+        return {
+          success: false,
+          error: data.message || "Failed to create booking",
+        };
+      }
+    } catch (error) {
+      console.error("Anonymous booking create error:", error);
+      return { success: false, error: "Network error. Please try again." };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const createBooking = async (bookingData) => {
     try {
       setLoading(true);
@@ -180,6 +209,7 @@ export const BookingProvider = ({ children }) => {
     fetchBookings,
     updateBookingStatus,
     confirmBooking,
+    createAnonymousBooking,
   };
 
   return (
