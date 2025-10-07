@@ -4,8 +4,7 @@ const bookingSchema = new mongoose.Schema(
   {
     client: { 
       type: mongoose.Schema.Types.ObjectId, 
-      ref: 'User', 
-      required: true 
+      ref: 'User'
     },
     provider: { 
       type: mongoose.Schema.Types.ObjectId, 
@@ -37,8 +36,8 @@ const bookingSchema = new mongoose.Schema(
     
     status: { 
       type: String, 
-      enum: ['pending', 'confirmed', 'completed', 'cancelled'], 
-      default: 'pending' 
+      enum: ['PENDING', 'ACCEPTED', 'REJECTED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'], 
+      default: 'PENDING' 
     },
     
     // Confirmation tracking
@@ -64,7 +63,15 @@ const bookingSchema = new mongoose.Schema(
       default: 'pending'
     },
     
-    // Payment tracking
+    // Payment amounts breakdown
+    totalAmount: { type: Number }, // Total booking amount
+    advanceAmount: { type: Number }, // 30% of total
+    remainingAmount: { type: Number }, // 70% of total
+    
+    // Payment status tracking
+    advancePaid: { type: Boolean, default: false },
+    finalPaid: { type: Boolean, default: false },
+    
     paymentStatus: {
       type: String,
       enum: ['unpaid', 'advance_pending', 'advance_paid', 'final_pending', 'final_paid', 'refunded'],
@@ -81,6 +88,7 @@ const bookingSchema = new mongoose.Schema(
       ref: 'Payment'
     },
     
+    isAnonymous: { type: Boolean, default: false },
     notes: { type: String }
   },
   { timestamps: true }

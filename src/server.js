@@ -40,9 +40,6 @@ app.use((req, res, next) => {
   next();
 });
 
-console.log("Mongo URI:", process.env.MONGODB_URI);
-console.log("PORT:", process.env.PORT);
-
 app.use(cors({ origin: '*', credentials: false }));
 app.use(helmet());
 
@@ -57,12 +54,15 @@ app.use((req, res, next) => {
 app.use(morgan('dev'));
 
 const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/bestarz';
+console.log('🔄 Connecting to MongoDB...');
 mongoose.set('strictQuery', true);
 mongoose
   .connect(mongoUri)
-  .then(() => console.log('MongoDB connected'))
+  .then(() => {
+    console.log('✅ MongoDB connected successfully');
+  })
   .catch(err => {
-    console.error('MongoDB connection error:', err.message);
+    console.error('❌ MongoDB connection error:', err.message);
     process.exit(1);
   });
 

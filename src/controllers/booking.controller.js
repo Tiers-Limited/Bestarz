@@ -1,9 +1,10 @@
 const Booking = require('../models/Booking.js');
 const Provider = require('../models/Provider.js');
+const Review = require('../models/Review.js');
 const { transporter } = require("../config/nodemailer.js");
 const bookingEmailTemplate = require('../templates/bookingTemplate.js');
-const Review = require('../models/Review.js');
 
+// 1. Client submits a booking request (PENDING status)
 const createBooking = async (req, res) => {
 	try {
 		const clientId = req.user.id;
@@ -27,6 +28,7 @@ const createBooking = async (req, res) => {
 		const provider = await Provider.findById(providerId);
 		if (!provider) return res.status(404).json({ message: 'Provider not found' });
 
+		// Create booking with PENDING status
 		const booking = await Booking.create({
 			client: clientId,
 			provider: provider._id,
@@ -42,6 +44,7 @@ const createBooking = async (req, res) => {
 			budgetMax,
 			description,
 			contactInfo,
+			status: 'PENDING', // Initial status
 			paymentStatus: 'unpaid'
 		});
 
@@ -51,6 +54,7 @@ const createBooking = async (req, res) => {
 			{ path: 'client', select: 'firstName lastName email phone' }
 		]);
 
+		// Send notification email to provider
 		const mailOptions = {
 			from: process.env.EMAIL,
 			to: booking.provider.user.email,
@@ -60,8 +64,118 @@ const createBooking = async (req, res) => {
 
 		await transporter.sendMail(mailOptions);
 
-		return res.status(201).json({ booking });
+		return res.status(201).json({ 
+			message: 'Booking request submitted successfully',
+			booking 
+		});
 	} catch (err) {
+		return res.status(500).json({ message: err.message });
+	}
+};
+
+// 2. Provider accepts or rejects booking request
+const updateBookingStatus = async (req, res) => {
+	try {
+		const { id } = req.params;
+		const { status, totalAmount } = req.body; // ACCEPTED or REJECTED
+		const providerId = req.user.id;
+
+		const booking = await Booking.findById(id)
+			.populate('client', 'firstName lastName email')
+			.populate({ path: 'provider', populate: { path: 'user', select: 'firstName lastName email' } });
+
+		if (!booking) return res.status(404).json({ message: 'Booking not found' });
+
+		// Verify provider ownership
+		const provider = await Provider.findOne({ user: providerId });
+
+		if (!provider || String(booking.provider._id) !== String(provider._id)) {
+			return res.status(403).json({ message: 'Only the assigned provider can update this booking' });
+		}
+
+		// Only allow status change from PENDING
+		if (booking.status !== 'PENDING') {
+			return res.status(400).json({ message: 'Booking request can only be updated from PENDING status' });
+		}
+
+		// Update booking status
+		if (status === 'ACCEPTED') {
+			if (!totalAmount || totalAmount <= 0) {
+				return res.status(400).json({ message: 'Total amount must be provided when accepting booking' });
+			}
+
+			booking.status = 'ACCEPTED';
+			booking.totalAmount = totalAmount;
+			booking.advanceAmount = Math.round(totalAmount * 0.3 * 100) / 100; // 30%
+			booking.remainingAmount = Math.round(totalAmount * 0.7 * 100) / 100; // 70%
+			booking.confirmedAt = new Date();
+			booking.confirmedBy = providerId;
+			booking.paymentStatus = 'advance_pending';
+
+			// Send acceptance email to client
+			const clientEmailTemplate = `
+				<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+					<h2 style="color: #333;">Booking Request Accepted! 🎉</h2>
+					<p>Dear ${booking.client.firstName} ${booking.client.lastName},</p>
+					<p>Great news! Your booking request has been accepted by ${booking.provider.user.firstName} ${booking.provider.user.lastName}.</p>
+					
+					<div style="background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px;">
+						<h3>Payment Information:</h3>
+						<p><strong>Total Amount:</strong> $${booking.totalAmount}</p>
+						<p><strong>Advance Payment (30%):</strong> $${booking.advanceAmount}</p>
+						<p><strong>Remaining Payment (70%):</strong> $${booking.remainingAmount}</p>
+					</div>
+					
+					<p>Please make the advance payment to confirm your booking.</p>
+					<p>You can make payment through your dashboard.</p>
+					
+					<p>Best regards,<br>Best★rz Team</p>
+				</div>
+			`;
+
+			const mailOptions = {
+				from: process.env.EMAIL,
+				to: booking.client.email,
+				subject: "Your Booking Request Has Been Accepted - Best★rz",
+				html: clientEmailTemplate,
+			};
+
+			await transporter.sendMail(mailOptions);
+
+		} else if (status === 'REJECTED') {
+			booking.status = 'REJECTED';
+
+			// Send rejection email to client
+			const rejectionEmailTemplate = `
+				<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+					<h2 style="color: #333;">Booking Request Update</h2>
+					<p>Dear ${booking.client.firstName} ${booking.client.lastName},</p>
+					<p>We regret to inform you that your booking request has been declined by the provider.</p>
+					<p>You can browse other providers or try booking for different dates.</p>
+					<p>Best regards,<br>Best★rz Team</p>
+				</div>
+			`;
+
+			const mailOptions = {
+				from: process.env.EMAIL,
+				to: booking.client.email,
+				subject: "Booking Request Update - Best★rz",
+				html: rejectionEmailTemplate,
+			};
+
+			await transporter.sendMail(mailOptions);
+		} else {
+			return res.status(400).json({ message: 'Invalid status. Must be ACCEPTED or REJECTED' });
+		}
+
+		await booking.save();
+
+		return res.json({ 
+			message: `Booking ${status.toLowerCase()} successfully`, 
+			booking 
+		});
+	} catch (err) {
+		console.error('Update booking status error:', err);
 		return res.status(500).json({ message: err.message });
 	}
 };
@@ -157,82 +271,6 @@ const listMyBookings = async (req, res) => {
 		}
 
 		return res.status(403).json({ message: 'Forbidden' });
-	} catch (err) {
-		return res.status(500).json({ message: err.message });
-	}
-};
-
-const updateBookingStatus = async (req, res) => {
-	try {
-
-
-		console.log(req.user,"UESTSSS")
-		const { id } = req.params;
-		const { status, notes, amount } = req.body;
-		const booking = await Booking.findById(id);
-		if (!booking) return res.status(404).json({ message: 'Booking not found' });
-
-		// Provider can confirm/cancel, Client can complete
-		if (req.user.role === 'provider') {
-			const provider = await Provider.findOne({ user: req.user.id });
-			if (!provider || String(provider._id) !== String(booking.provider)) {
-				return res.status(403).json({ message: 'Forbidden' });
-			}
-			
-			// Provider can only confirm or cancel
-			if (status === 'confirmed') {
-				if (!amount || amount <= 0) {
-					return res.status(400).json({ message: 'Amount must be set when confirming booking' });
-				}
-				booking.amount = amount;
-				booking.status = 'confirmed';
-				booking.paymentStatus = 'unpaid'; // Ready for advance payment
-			} else if (status === 'cancelled') {
-				booking.status = 'cancelled';
-			} else {
-				return res.status(400).json({ message: 'Provider can only confirm or cancel bookings' });
-			}
-		} 
-		else if (req.user.role === 'client') {
-			// Client can only mark as completed
-
-			console.log(booking.client,"booking.client")
-			if (String(booking.client) !== String(req.user.id)) {
-				return res.status(403).json({ message: 'Forbidden' });
-			}
-			
-			if (status === 'completed') {
-				// Check if booking is confirmed and advance payment is made
-				if (booking.status !== 'confirmed') {
-					return res.status(400).json({ message: 'Booking must be confirmed first' });
-				}
-				if (booking.paymentStatus !== 'advance_paid') {
-					return res.status(400).json({ message: 'Advance payment must be completed first' });
-				}
-				booking.status = 'completed';
-				// Payment status will be updated when final payment is made
-			} else {
-				return res.status(400).json({ message: 'Client can only mark bookings as completed' });
-			}
-		} 
-		
-		else {
-			return res.status(403).json({ message: 'Forbidden' });
-		}
-
-		if (notes) booking.notes = notes;
-
-		await booking.save();
-
-		// Populate the updated booking
-		await booking.populate([
-			{ path: 'provider', populate: { path: 'user', select: 'firstName lastName email phone profileImage' } },
-			{ path: 'client', select: 'firstName lastName email phone profileImage' },
-			{ path: 'advancePaymentId', select: 'status amount paymentType processedAt' },
-			{ path: 'finalPaymentId', select: 'status amount paymentType processedAt' }
-		]);
-
-		return res.json({ booking });
 	} catch (err) {
 		return res.status(500).json({ message: err.message });
 	}
@@ -375,6 +413,50 @@ const confirmBooking = async (req, res) => {
 	}
 };
 
+// 4. Client marks booking as "Done" after event completion (triggers final payment)
+const markBookingDone = async (req, res) => {
+	try {
+		const { bookingId } = req.params;
+		const clientId = req.user.id;
+
+		// Find the booking
+		const booking = await Booking.findById(bookingId)
+			.populate('client', 'firstName lastName email')
+			.populate({ path: 'provider', populate: { path: 'user', select: 'firstName lastName email' } });
+
+		if (!booking) return res.status(404).json({ message: 'Booking not found' });
+
+		// Check if user is the client for this booking
+		if (String(booking.client._id) !== String(clientId)) {
+			return res.status(403).json({ message: 'Only the booking client can mark it as done' });
+		}
+
+		// Check if booking is in IN_PROGRESS status (advance payment made)
+		if (booking.status !== 'IN_PROGRESS') {
+			return res.status(400).json({ message: 'Booking must be in progress (advance payment completed) to mark as done' });
+		}
+
+		// Check if advance payment was made
+		if (!booking.advancePaid) {
+			return res.status(400).json({ message: 'Advance payment must be completed before marking as done' });
+		}
+
+		// Update status to trigger final payment
+		booking.paymentStatus = 'final_pending';
+		await booking.save();
+
+		return res.json({ 
+			message: 'Event marked as done. Please proceed with final payment to complete the booking.',
+			booking,
+			finalPaymentAmount: booking.remainingAmount
+		});
+	} catch (err) {
+		console.error('Mark booking done error:', err);
+		return res.status(500).json({ message: err.message });
+	}
+};
+
+// 5. Complete booking after final payment is made
 const completeBooking = async (req, res) => {
 	try {
 		const { bookingId } = req.params;
@@ -389,33 +471,28 @@ const completeBooking = async (req, res) => {
 
 		// Check if user is the client for this booking
 		if (String(booking.client._id) !== String(clientId)) {
-			return res.status(403).json({ message: 'Only the booking client can mark it as completed' });
+			return res.status(403).json({ message: 'Only the booking client can complete the booking' });
 		}
 
-		// Check if booking is confirmed
-		if (booking.status !== 'confirmed') {
-			return res.status(400).json({ message: 'Booking must be confirmed before it can be completed' });
+		// Check if final payment is completed
+		if (!booking.finalPaid || booking.paymentStatus !== 'final_paid') {
+			return res.status(400).json({ message: 'Final payment must be completed before completing booking' });
 		}
 
 		// Check if booking is already completed
-		if (booking.status === 'completed') {
+		if (booking.status === 'COMPLETED') {
 			return res.status(400).json({ message: 'Booking is already completed' });
 		}
 
-		// Check if payment is completed
-		if (booking.paymentStatus !== 'final_paid') {
-			return res.status(400).json({ message: 'Payment must be completed before marking booking as done' });
-		}
-
-		// Update booking status
-		booking.status = 'completed';
+		// Update booking status to COMPLETED
+		booking.status = 'COMPLETED';
 		booking.completedAt = new Date();
 		booking.completedBy = clientId;
 
-		// Calculate payment split (80% to provider, 20% to admin)
-		if (booking.amount) {
-			booking.providerAmount = Math.round(booking.amount * 0.8 * 100) / 100; // 80%
-			booking.adminAmount = Math.round(booking.amount * 0.2 * 100) / 100;   // 20%
+		// Calculate payment split (80% to provider, 20% to admin) based on total amount
+		if (booking.totalAmount) {
+			booking.providerAmount = Math.round(booking.totalAmount * 0.8 * 100) / 100; // 80%
+			booking.adminAmount = Math.round(booking.totalAmount * 0.2 * 100) / 100;   // 20%
 		}
 
 		// Attempt to transfer funds to provider
@@ -463,6 +540,72 @@ const completeBooking = async (req, res) => {
 	}
 };
 
+// Anonymous booking creation for public provider pages
+const createAnonymousBooking = async (req, res) => {
+	try {
+		const {
+			providerId,
+			serviceCategory,
+			eventType,
+			location,
+			guests,
+			dateStart,
+			dateEnd,
+			eventTime,
+			duration,
+			budgetMin,
+			budgetMax,
+			description,
+			contactInfo
+		} = req.body;
+
+		const provider = await Provider.findById(providerId);
+		if (!provider) return res.status(404).json({ message: 'Provider not found' });
+
+		// Create booking with PENDING status (no client ID for anonymous)
+		const booking = await Booking.create({
+			provider: provider._id,
+			serviceCategory,
+			eventType,
+			location,
+			guests,
+			dateStart,
+			dateEnd,
+			eventTime,
+			duration,
+			budgetMin,
+			budgetMax,
+			description,
+			contactInfo,
+			status: 'PENDING', // Initial status
+			paymentStatus: 'unpaid',
+			isAnonymous: true // Flag to indicate anonymous booking
+		});
+
+		// Populate the booking with provider details
+		await booking.populate([
+			{ path: 'provider', populate: { path: 'user', select: 'firstName lastName email phone' } }
+		]);
+
+		// Send notification email to provider
+		const mailOptions = {
+			from: process.env.EMAIL,
+			to: booking.provider.user.email,
+			subject: "New Anonymous Booking Request on Best★rz",
+			html: bookingEmailTemplate(booking),
+		};
+
+		await transporter.sendMail(mailOptions);
+
+		return res.status(201).json({ 
+			message: 'Booking request submitted successfully',
+			booking 
+		});
+	} catch (err) {
+		return res.status(500).json({ message: err.message });
+	}
+};
+
 module.exports = {
 	createBooking,
 	listMyBookings,
@@ -470,5 +613,7 @@ module.exports = {
 	getBooking,
 	getBookingStats,
 	confirmBooking,
-	completeBooking
+	markBookingDone,
+	completeBooking,
+	createAnonymousBooking
 };

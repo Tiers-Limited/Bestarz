@@ -2,6 +2,7 @@
 const User = require('../models/User.js');
 const Payment = require('../models/Payment.js');
 const Booking = require('../models/Booking.js');
+const Provider = require('../models/Provider.js');
 const Stripe = require('stripe');
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -15,11 +16,8 @@ const handleStripeWebhook = async (req, res) => {
     try {
       event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
     } catch (err) {
-      console.error('Webhook signature verification failed:', err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
-    
-    console.log(`Received webhook event: ${event.type}`);
     
     // Handle different event types
     switch (event.type) {
@@ -169,10 +167,27 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
       payment.processedAt = new Date();
       await payment.save();
       
-      // Update booking payment status
+      // Update booking payment status based on payment type
       const booking = await Booking.findById(payment.booking);
       if (booking) {
-        booking.paymentStatus = 'paid';
+        if (payment.paymentType === 'advance') {
+          // Advance payment completed - move booking to IN_PROGRESS
+          booking.paymentStatus = 'advance_paid';
+          booking.advancePaid = true;
+          booking.status = 'IN_PROGRESS';
+          console.log(`Advance payment completed for booking: ${booking._id}`);
+        } else if (payment.paymentType === 'final') {
+          // Final payment completed - mark booking as COMPLETED
+          booking.paymentStatus = 'final_paid';
+          booking.finalPaid = true;
+          booking.status = 'COMPLETED';
+          booking.completedAt = new Date();
+          
+          // Handle revenue transfer (80% to provider, 20% to admin)
+          await handleRevenueTransfer(payment, booking);
+          
+          console.log(`Final payment completed and booking marked as COMPLETED: ${booking._id}`);
+        }
         await booking.save();
       }
       
@@ -209,5 +224,58 @@ async function handlePaymentIntentFailed(paymentIntent) {
   }
 }
 
+// Handle revenue transfer (80% to provider, 20% to admin)
+async function handleRevenueTransfer(payment, booking) {
+  try {
+    console.log(`Processing revenue transfer for payment: ${payment._id}`);
+    
+    // Get provider's Stripe account ID
+    const provider = await User.findById(booking.provider.user).populate('provider');
+    
+    if (!provider.stripeAccountId) {
+      console.error(`Provider ${provider._id} does not have Stripe account set up`);
+      return;
+    }
+    
+    // Transfer 80% to provider
+    const providerAmount = payment.providerEarnings; // Already calculated as 80%
+    
+    try {
+      const transfer = await stripe.transfers.create({
+        amount: Math.round(providerAmount * 100), // Convert to cents
+        currency: 'usd',
+        destination: provider.stripeAccountId,
+        description: `Payment for booking ${booking._id} - ${payment.paymentType} payment`,
+        metadata: {
+          bookingId: booking._id.toString(),
+          paymentId: payment._id.toString(),
+          paymentType: payment.paymentType,
+          providerEarnings: providerAmount.toString()
+        }
+      });
+      
+      // Update payment record with transfer details
+      payment.transferStatus = 'transferred';
+      payment.stripeTransferId = transfer.id;
+      await payment.save();
+      
+      // Update booking revenue tracking
+      booking.providerAmount = (booking.providerAmount || 0) + providerAmount;
+      booking.adminAmount = (booking.adminAmount || 0) + payment.platformFee;
+      booking.transferStatus = payment.paymentType === 'final' ? 'transferred' : 'partial';
+      await booking.save();
+      
+      console.log(`Revenue transferred successfully: $${providerAmount} to provider, $${payment.platformFee} to admin`);
+      
+    } catch (transferError) {
+      console.error('Stripe transfer failed:', transferError);
+      payment.transferStatus = 'failed';
+      await payment.save();
+    }
+    
+  } catch (err) {
+    console.error('Error handling revenue transfer:', err);
+  }
+}
 
 module.exports = { handleStripeWebhook };

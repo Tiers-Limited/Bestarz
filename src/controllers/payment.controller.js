@@ -4,7 +4,7 @@ const Provider = require('../models/Provider.js');
 const User = require('../models/User.js');
 const { createPaymentLink, retrieveSession, transferToConnectedAccount } = require('../services/stripe.service.js');
 
-// Create advance payment (30%)
+// Create advance payment (30%) - after booking is ACCEPTED
 const createAdvancePayment = async (req, res) => {
 	try {
 		const { bookingId } = req.body;
@@ -20,12 +20,12 @@ const createAdvancePayment = async (req, res) => {
 			return res.status(404).json({ message: 'Booking not found' });
 		}
 
-		// Verify booking is confirmed and has amount set
-		if (booking.status !== 'confirmed') {
-			return res.status(400).json({ message: 'Booking must be confirmed first' });
+		// Verify booking is ACCEPTED and has total amount set
+		if (booking.status !== 'ACCEPTED') {
+			return res.status(400).json({ message: 'Booking must be accepted by provider first' });
 		}
 
-		if (!booking.amount) {
+		if (!booking.totalAmount) {
 			return res.status(400).json({ message: 'Booking amount not set by provider' });
 		}
 
@@ -46,11 +46,11 @@ const createAdvancePayment = async (req, res) => {
 			}
 		}
 
-		// Calculate payment amounts
-		const totalAmount = booking.amount;
-		const advanceAmount = Math.round(totalAmount * 0.30); // 30%
-		const platformFee = Math.round(advanceAmount * 0.20); // 20%
-		const providerEarnings = advanceAmount - platformFee; // 80%
+		// Calculate payment amounts (30% advance)
+		const totalAmount = booking.totalAmount;
+		const advanceAmount = booking.advanceAmount; // Already calculated as 30%
+		const platformFee = Math.round(advanceAmount * 0.20); // 20% to admin
+		const providerEarnings = Math.round(advanceAmount * 0.80); // 80% to provider
 
 		// Create payment record
 		const payment = await Payment.create({
@@ -94,7 +94,7 @@ const createAdvancePayment = async (req, res) => {
 	}
 };
 
-// Create final payment (70%)
+// Create final payment (70%) - after client marks booking as "Done"
 const createFinalPayment = async (req, res) => {
 	try {
 		const { bookingId } = req.body;
@@ -110,9 +110,9 @@ const createFinalPayment = async (req, res) => {
 			return res.status(404).json({ message: 'Booking not found' });
 		}
 
-		// Verify booking is completed
-		if (booking.status !== 'completed') {
-			return res.status(400).json({ message: 'Booking must be completed first' });
+		// Verify booking has final payment pending (client marked as done)
+		if (booking.paymentStatus !== 'final_pending') {
+			return res.status(400).json({ message: 'Event must be marked as done first' });
 		}
 
 		// Check if user is the client
@@ -121,7 +121,7 @@ const createFinalPayment = async (req, res) => {
 		}
 
 		// Check if advance payment was made
-		if (!booking.advancePaymentId || booking.paymentStatus !== 'advance_paid') {
+		if (!booking.advancePaid) {
 			return res.status(400).json({ message: 'Advance payment must be completed first' });
 		}
 
@@ -137,11 +137,11 @@ const createFinalPayment = async (req, res) => {
 			}
 		}
 
-		// Calculate payment amounts
-		const totalAmount = booking.amount;
-		const finalAmount = Math.round(totalAmount * 0.70); // 70%
-		const platformFee = Math.round(finalAmount * 0.20); // 20%
-		const providerEarnings = finalAmount - platformFee; // 80%
+		// Calculate payment amounts (70% final payment)
+		const totalAmount = booking.totalAmount;
+		const finalAmount = booking.remainingAmount; // Already calculated as 70%
+		const platformFee = Math.round(finalAmount * 0.20); // 20% to admin
+		const providerEarnings = Math.round(finalAmount * 0.80); // 80% to provider
 
 		// Create payment record
 		const payment = await Payment.create({

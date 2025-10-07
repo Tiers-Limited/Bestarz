@@ -18,8 +18,13 @@ const createReview = async (req, res) => {
 		}
 
 		// Check if booking is completed
-		if (booking.status !== 'completed') {
+		if (booking.status !== 'COMPLETED') {
 			return res.status(400).json({ message: 'Can only review completed bookings' });
+		}
+
+		// Check if both advance and final payments are completed
+		if (!booking.advancePaid || !booking.finalPaid) {
+			return res.status(400).json({ message: 'All payments must be completed before reviewing' });
 		}
 
 		// Check if review already exists

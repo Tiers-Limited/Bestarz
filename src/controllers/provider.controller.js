@@ -7,8 +7,43 @@ const Payment = require('../models/Payment.js');
 const getProviderDashboard = async (req, res) => {
 	try {
 		const userId = req.user.id;
-		const provider = await Provider.findOne({ user: userId });
-		if (!provider) return res.status(404).json({ message: 'Provider profile not found' });
+		
+		// Try to find existing provider profile
+		let provider = await Provider.findOne({ user: userId });
+		
+		// If no provider profile exists, create a basic one
+		if (!provider) {
+			const user = await User.findById(userId);
+			if (!user) {
+				return res.status(404).json({ message: 'User not found' });
+			}
+			
+			// Generate a basic slug from user's name
+			const baseName = `${user.firstName}-${user.lastName}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+			let slug = baseName;
+			let counter = 1;
+			while (await Provider.findOne({ slug })) {
+				slug = `${baseName}-${counter}`;
+				counter++;
+			}
+			
+			provider = await Provider.create({
+				user: userId,
+				businessName: `${user.firstName} ${user.lastName}`,
+				slug: slug,
+				category: 'General Services', // Default category
+				description: '',
+				services: [],
+				basePrice: 0,
+				location: '',
+				rating: 0,
+				reviews: [],
+				portfolio: [],
+				rateCards: [],
+				availability: {},
+				website: ''
+			});
+		}
 
 		// Get current date ranges
 		const now = new Date();
@@ -78,9 +113,49 @@ const getProviderDashboard = async (req, res) => {
 const getMyProviderProfile = async (req, res) => {
 	try {
 		const userId = req.user.id;
-		const provider = await Provider.findOne({ user: userId })
-			.populate('user');
-		if (!provider) return res.status(404).json({ message: 'Provider profile not found' });
+		
+		// Try to find existing provider profile
+		let provider = await Provider.findOne({ user: userId }).populate('user');
+		
+		// If no provider profile exists, create a basic one
+		if (!provider) {
+			console.log("getMyProviderProfile: Creating basic provider profile for user", userId);
+			const user = await User.findById(userId);
+			if (!user) {
+				return res.status(404).json({ message: 'User not found' });
+			}
+			
+			// Generate a basic slug from user's name
+			const baseName = `${user.firstName}-${user.lastName}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+			let slug = baseName;
+			let counter = 1;
+			while (await Provider.findOne({ slug })) {
+				slug = `${baseName}-${counter}`;
+				counter++;
+			}
+			
+			provider = await Provider.create({
+				user: userId,
+				businessName: `${user.firstName} ${user.lastName}`,
+				slug: slug,
+				category: 'General Services', // Default category
+				description: '',
+				services: [],
+				basePrice: 0,
+				location: '',
+				rating: 0,
+				reviews: [],
+				portfolio: [],
+				rateCards: [],
+				availability: {},
+				website: ''
+			});
+			console.log("getMyProviderProfile: Created provider profile", provider._id);
+			
+			// Populate the user again
+			provider = await Provider.findById(provider._id).populate('user');
+		}
+		
 		return res.json({ provider });
 	} catch (err) {
 		return res.status(500).json({ message: err.message });

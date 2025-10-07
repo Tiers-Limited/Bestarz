@@ -10,9 +10,6 @@ const jwt = require('jsonwebtoken');
 			const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret');
 			req.user = payload; // { id, role }
 
-
-			console.log(allowedRoles,"allowedRoles")
-
 			if (allowedRoles.length > 0 && !allowedRoles.includes(payload.role)) {
 				return res.status(403).json({ message: 'Forbidden' });
 			}
