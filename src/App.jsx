@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { ConfigProvider, theme, App as AntdApp } from "antd";
 import "./App.css";
 import { AuthProvider } from "./context/AuthContext";
@@ -109,7 +109,7 @@ const App = () => {
                               <Route path="/cancel" element={<Cancel />} />
 
                               <Route
-                                path="/provider/:slug"
+                                path="/provider/:id"
                                 element={<PublicProviderPage />}
                               />
 
@@ -257,6 +257,10 @@ const App = () => {
 
                               {/* Admin routes */}
                               <Route
+                                path="/admin"
+                                element={<Navigate to="/admin/dashboard" replace />}
+                              />
+                              <Route
                                 path="/admin/dashboard"
                                 element={
                                   <ProtectedRoute allowedRoles={["admin"]}>
@@ -345,18 +349,18 @@ const App = () => {
                                 }
                               />
                               </Routes>
-                            </div>
-                          </Router>
-                        </AntdApp>
-                      </ServiceRateProvider>
-                    </CustomerProvider>
-                  </ProviderProvider>
-                </BookingProvider>
-              </ClientProvider>
-            </AdminProvider>
-          </MessageProvider>
-        </PaymentProvider>
-      </AuthProvider>
+                                </div>
+                              </Router>
+                            </AntdApp>
+                          </ServiceRateProvider>
+                        </CustomerProvider>
+                      </ProviderProvider>
+                    </BookingProvider>
+                  </ClientProvider>
+                </AdminProvider>
+              </MessageProvider>
+            </PaymentProvider>
+          </AuthProvider>
     </ConfigProvider>
   );
 };

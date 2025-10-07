@@ -412,7 +412,7 @@ const AdminDashboard = () => {
             </Col>
           </Row>
           {/* Recent Activity Section */}
-          {stats?.recentBookings && stats.recentBookings.length > 0 && (
+          {bookings && bookings.length > 0 && (
             <Row gutter={[24, 24]} className="mt-8">
               <Col xs={24}>
                 <Card
@@ -424,41 +424,42 @@ const AdminDashboard = () => {
                   className="bg-gray-800 border-gray-700 shadow-lg"
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Recent Bookings */}
-                    <div>
-                      <Title level={5} className="text-white mb-4">
-                        Recent Bookings
-                      </Title>
-                      {stats.recentBookings
-                        .slice(0, 3)
-                        .map((booking, index) => (
-                          <div
-                            key={index}
-                            className="mb-4 p-4 bg-gray-900 rounded-lg hover:bg-gray-800 transition-all duration-300 shadow-sm"
-                          >
-                            <div className="flex justify-between items-center mb-2">
-                              <span className="text-white font-semibold text-md">
-                                {booking.client.firstName}{" "}
-                                {booking.client.lastName}
-                              </span>
-                              <Tag
-                                color="blue"
-                                className="uppercase text-xs font-medium"
-                              >
-                                {booking.serviceCategory}
-                              </Tag>
+                      {/* Recent Bookings */}
+                      <div>
+                        <Title level={5} className="text-white mb-4">
+                          Recent Bookings
+                        </Title>
+                        {bookings
+                          .filter(booking => booking && typeof booking === 'object')
+                          .slice(0, 3)
+                          .map((booking, index) => (
+                            <div
+                              key={index}
+                              className="mb-4 p-4 bg-gray-900 rounded-lg hover:bg-gray-800 transition-all duration-300 shadow-sm"
+                            >
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-white font-semibold text-md">
+                                  {booking.client?.firstName || "Unknown"}{" "}
+                                  {booking.client?.lastName || "Client"}
+                                </span>
+                                <Tag
+                                  color="blue"
+                                  className="uppercase text-xs font-medium"
+                                >
+                                  {booking.serviceCategory || "General"}
+                                </Tag>
+                              </div>
+                              <div className="text-gray-400 text-sm mb-1">
+                                Amount:{" "}
+                                <span className="text-green-400 font-medium">
+                                  ${booking.amount}
+                                </span>
+                              </div>
+                              <div className="text-gray-500 text-xs">
+                                {new Date(booking.createdAt).toLocaleDateString()}
+                              </div>
                             </div>
-                            <div className="text-gray-400 text-sm mb-1">
-                              Amount:{" "}
-                              <span className="text-green-400 font-medium">
-                                ${booking.amount}
-                              </span>
-                            </div>
-                            <div className="text-gray-500 text-xs">
-                              {new Date(booking.createdAt).toLocaleDateString()}
-                            </div>
-                          </div>
-                        ))}
+                          ))}
                     </div>
 
                     {/* Recent Payments */}

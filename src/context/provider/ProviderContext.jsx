@@ -208,10 +208,10 @@ export const ProviderProvider = ({ children }) => {
   };
 
 
-  const fetchProviderBySlug = async (slug) => {
+  const fetchProviderById = async (id) => {
     try {
       setLoading(true);
-      const response = await fetch(`${baseUrl}/providers/provider/${slug}`, {
+      const response = await fetch(`${baseUrl}/providers/provider/${id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -292,7 +292,7 @@ export const ProviderProvider = ({ children }) => {
     fetchBookings,
     updateProfile,
     updateBookingStatus,
-    fetchProviderBySlug
+    fetchProviderById
   };
 
   return (

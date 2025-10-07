@@ -49,7 +49,7 @@ const ProviderProfile = () => {
     }
   }, [profileData, form]);
 
-  const publicUrl = `${import.meta.env.VITE_FRONTEND_URL}/provider/${profileData?.slug}`;
+  const publicUrl = `${import.meta.env.VITE_FRONTEND_URL}/provider/${profileData?._id || profileData?.id}`;
 
   const categories = [
     'DJ & Music', 'Photography', 'Catering', 'Event Planning', 

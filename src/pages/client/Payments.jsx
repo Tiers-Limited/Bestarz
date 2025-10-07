@@ -226,16 +226,16 @@ const ClientPayments = () => {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
                     Transaction ID
                   </label>
-                  <p className="text-gray-900">{selectedPayment._id}</p>
+                  <p className="text-white">{selectedPayment._id}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
                     Amount
                   </label>
-                  <p className="text-gray-900 font-semibold">
+                  <p className="text-white font-semibold">
                     ${selectedPayment.amount.toLocaleString()} {selectedPayment.currency}
                   </p>
                 </div>
@@ -243,40 +243,40 @@ const ClientPayments = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
                     Status
                   </label>
-                  <Tag 
-                    color={selectedPayment.status === 'completed' || selectedPayment.status === 'complete' ? 'green' : 
+                  <Tag
+                    color={selectedPayment.status === 'completed' || selectedPayment.status === 'complete' ? 'green' :
                            selectedPayment.status === 'pending' ? 'orange' : 'red'}
                   >
                     {selectedPayment.status.toUpperCase()}
                   </Tag>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
                     Payment Method
                   </label>
-                  <p className="text-gray-900 capitalize">
+                  <p className="text-white capitalize">
                     {selectedPayment.paymentMethod || 'N/A'}
                   </p>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
+                <label className="block text-sm font-medium text-gray-400 mb-1">
                   Event Details
                 </label>
-                <div className="bg-gray-50 p-3 rounded">
-                  <p className="font-medium">{selectedPayment.booking?.eventType}</p>
-                  <p className="text-gray-600">
+                <div className="bg-gray-800 p-3 rounded">
+                  <p className="font-medium text-white">{selectedPayment.booking?.eventType}</p>
+                  <p className="text-gray-300">
                     Provider: {selectedPayment.provider?.businessName}
                   </p>
-                  <p className="text-gray-600">
-                    Date: {selectedPayment.booking?.dateStart && 
+                  <p className="text-gray-300">
+                    Date: {selectedPayment.booking?.dateStart &&
                            new Date(selectedPayment.booking.dateStart).toLocaleDateString()}
                   </p>
-                  <p className="text-gray-600">
+                  <p className="text-gray-300">
                     Location: {selectedPayment.booking?.location?.address}, {selectedPayment.booking?.location?.city}
                   </p>
                 </div>
@@ -284,18 +284,18 @@ const ClientPayments = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
                     Payment Date
                   </label>
-                  <p className="text-gray-900">
+                  <p className="text-white">
                     {new Date(selectedPayment.createdAt).toLocaleDateString()}
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
                     Last Updated
                   </label>
-                  <p className="text-gray-900">
+                  <p className="text-white">
                     {new Date(selectedPayment.updatedAt).toLocaleDateString()}
                   </p>
                 </div>
@@ -303,10 +303,10 @@ const ClientPayments = () => {
 
               {selectedPayment.stripePaymentIntentId && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
                     Stripe Payment ID
                   </label>
-                  <p className="text-gray-900 text-sm font-mono">
+                  <p className="text-white text-sm font-mono">
                     {selectedPayment.stripePaymentIntentId}
                   </p>
                 </div>

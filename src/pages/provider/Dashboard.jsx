@@ -266,7 +266,12 @@ const ProviderDashboard = () => {
             <Button 
               type="primary" 
               icon={<ExternalLink size={16} />}
-              onClick={() => window.open(`/provider/${user?.slug}`, '_blank')}
+              onClick={() => {
+                const providerId = dashboardData?.provider?._id || dashboardData?.provider?.id;
+                console.log('Provider ID for public page:', providerId);
+                console.log('Dashboard data:', dashboardData);
+                window.open(`/provider/${providerId}`, '_blank');
+              }}
               className="glow-button"
             >
               View Public Page

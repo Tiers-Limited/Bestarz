@@ -37,7 +37,7 @@ const { TextArea } = Input;
 const { Option } = Select;
 
 const PublicProviderPage = () => {
-  const { slug } = useParams();
+  const { id } = useParams();
   const { createAnonymousBooking, loading: bookingLoading } = useBooking();
   const [provider, setProvider] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -51,7 +51,7 @@ const PublicProviderPage = () => {
     const fetchProvider = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`${baseUrl}/providers/provider/${slug}`);
+        const res = await fetch(`${baseUrl}/providers/provider/${id}`);
         const data = await res.json();
         if (res.ok) {
           setProvider(data.provider);
@@ -67,7 +67,7 @@ const PublicProviderPage = () => {
     };
 
     fetchProvider();
-  }, [slug, baseUrl]);
+  }, [id, baseUrl]);
 
   const onFinish = async (values) => {
     if (!provider) return;

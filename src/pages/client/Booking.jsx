@@ -107,7 +107,7 @@ const ClientBooking = () => {
 
   const handleProviderSelect = (provider) => {
     console.log("Selected provider:", provider);
-    navigate(`/provider/${provider.slug}`);
+    navigate(`/provider/${provider._id || provider.id}`);
   };
 
   const steps = [

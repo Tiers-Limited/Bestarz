@@ -18,16 +18,21 @@ import {
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useProvider } from "../context/provider/ProviderContext";
 import { getInitials } from "../utils/helper";
 import { useMessage } from "../context/messages/MessageContext";
+import NotificationContainer from "./NotificationContainer";
+import { NotificationProvider, useNotification } from "../context/NotificationContext";
 
 const { Sider, Content, Header } = Layout;
 
-const ProviderLayout = ({ children }) => {
+const ProviderLayoutContent = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const { user, signOut } = useAuth();
+  const { dashboardData } = useProvider();
+  const notification = useNotification();
 
   const {unreadCount, enableNotifications}=useMessage();
 
@@ -158,9 +163,16 @@ const ProviderLayout = ({ children }) => {
               <Button
                 type="text"
                 icon={<ExternalLink size={16} />}
-                onClick={() =>
-                  window.open(`/provider/${user?.slug}`, "_blank")
-                }
+                onClick={() => {
+                  const providerId = dashboardData?.provider?._id || dashboardData?.provider?.id;
+                  console.log('Header Public Page - Provider ID:', providerId);
+                  if (providerId) {
+                    window.open(`/provider/${providerId}`, "_blank");
+                    notification.success("Opening your public page!");
+                  } else {
+                    notification.error("Provider ID not found. Please refresh the page.");
+                  }
+                }}
                 className="text-gray-300 hover:text-white"
               >
                 Public Page
@@ -234,6 +246,17 @@ const ProviderLayout = ({ children }) => {
         <Content className="bg-black">{children}</Content>
       </Layout>
     </Layout>
+  );
+};
+
+const ProviderLayout = ({ children }) => {
+  return (
+    <NotificationProvider>
+      <ProviderLayoutContent>
+        {children}
+      </ProviderLayoutContent>
+      <NotificationContainer />
+    </NotificationProvider>
   );
 };
 
