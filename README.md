@@ -182,4 +182,4 @@ src/
 
 ## 📄 License
 
-This project is proprietary software for Best★rz platform.</content>
+This project is proprietary software for Best★rz platform.
