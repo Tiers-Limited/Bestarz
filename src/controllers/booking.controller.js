@@ -543,6 +543,8 @@ const completeBooking = async (req, res) => {
 // Anonymous booking creation for public provider pages
 const createAnonymousBooking = async (req, res) => {
 	try {
+		console.log('📝 Anonymous booking request received:', req.body);
+		
 		const {
 			providerId,
 			serviceCategory,
@@ -559,10 +561,16 @@ const createAnonymousBooking = async (req, res) => {
 			contactInfo
 		} = req.body;
 
+		console.log('🔍 Looking for provider:', providerId);
 		const provider = await Provider.findById(providerId);
-		if (!provider) return res.status(404).json({ message: 'Provider not found' });
+		if (!provider) {
+			console.log('❌ Provider not found:', providerId);
+			return res.status(404).json({ message: 'Provider not found' });
+		}
+		console.log('✅ Provider found:', provider._id);
 
 		// Create booking with PENDING status (no client ID for anonymous)
+		console.log('📝 Creating anonymous booking...');
 		const booking = await Booking.create({
 			provider: provider._id,
 			serviceCategory,
@@ -581,27 +589,40 @@ const createAnonymousBooking = async (req, res) => {
 			paymentStatus: 'unpaid',
 			isAnonymous: true // Flag to indicate anonymous booking
 		});
+		console.log('✅ Booking created:', booking._id);
 
 		// Populate the booking with provider details
+		console.log('🔄 Populating booking with provider details...');
 		await booking.populate([
 			{ path: 'provider', populate: { path: 'user', select: 'firstName lastName email phone' } }
 		]);
 
-		// Send notification email to provider
-		const mailOptions = {
-			from: process.env.EMAIL,
-			to: booking.provider.user.email,
-			subject: "New Anonymous Booking Request on Best★rz",
-			html: bookingEmailTemplate(booking),
-		};
+		// Send notification email to provider (skip if email not configured)
+		try {
+			if (process.env.EMAIL && transporter && booking.provider.user?.email) {
+				console.log('📧 Sending email notification...');
+				const mailOptions = {
+					from: process.env.EMAIL,
+					to: booking.provider.user.email,
+					subject: "New Anonymous Booking Request on Best★rz",
+					html: bookingEmailTemplate(booking),
+				};
+				await transporter.sendMail(mailOptions);
+				console.log('✅ Email sent successfully');
+			} else {
+				console.log('⚠️ Email sending skipped (not configured or missing recipient)');
+			}
+		} catch (emailError) {
+			console.log('⚠️ Email sending failed, but continuing:', emailError.message);
+		}
 
-		await transporter.sendMail(mailOptions);
-
+		console.log('✅ Anonymous booking completed successfully');
 		return res.status(201).json({ 
 			message: 'Booking request submitted successfully',
 			booking 
 		});
 	} catch (err) {
+		console.error('❌ Anonymous booking error:', err);
 		return res.status(500).json({ message: err.message });
 	}
 };
