@@ -36,8 +36,6 @@ const ProviderLayoutContent = ({ children }) => {
 
   const {unreadCount, enableNotifications}=useMessage();
 
-  console.log(user, "user");
-
   const menuItems = [
     {
       key: "/provider/dashboard",

@@ -50,6 +50,19 @@ const ProviderBookings = () => {
 
   const { bookings, pagination } = bookingsData;
 
+  // Debug bookings data
+  console.log('📅 Provider Bookings Component - Bookings data:', {
+    bookingsCount: bookings?.length || 0,
+    bookings: bookings?.slice(0, 3).map(b => ({
+      id: b._id,
+      eventType: b.eventType,
+      dateStart: b.dateStart,
+      status: b.status,
+      hasClient: !!b.client
+    })),
+    pagination
+  });
+
   const [statusModal, setStatusModal] = useState({
     visible: false,
     booking: null,
@@ -65,8 +78,27 @@ const ProviderBookings = () => {
     }
   };
 
+  // Load all bookings for calendar view (not paginated)
+  const loadAllBookings = async () => {
+    console.log('📅 Loading all bookings for calendar...');
+    const result = await fetchBookings({ limit: 1000 }); // Get all bookings for calendar (high limit)
+    if (!result.success) {
+      message.error(result.error);
+    } else {
+      console.log('✅ Loaded bookings for calendar:', result.data?.bookings?.length || 0);
+    }
+  };
+
   useEffect(() => {
-    loadBookings();
+    loadAllBookings(); // Load all bookings instead of just first page
+    
+    // Auto-refresh bookings every 30 seconds to catch new bookings
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing bookings...');
+      loadAllBookings();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const handlePageChange = (page) => {
@@ -105,7 +137,7 @@ const ProviderBookings = () => {
 
       if (response.ok) {
         message.success(`Booking ${action.toLowerCase()} successfully!`);
-        loadBookings(); // Refresh the bookings list
+        loadAllBookings(); // Refresh all bookings for calendar
       } else {
         message.error(data.message || `Failed to ${action.toLowerCase()} booking`);
       }
@@ -220,9 +252,18 @@ const ProviderBookings = () => {
   // Calendar helper functions
   const getBookingsForDate = (date) => {
     const dateString = dayjs(date).format("YYYY-MM-DD");
-    return bookings.filter(booking => 
+    const filteredBookings = bookings.filter(booking => 
       dayjs(booking.dateStart).format("YYYY-MM-DD") === dateString
     );
+    
+    // Debug date filtering
+    if (filteredBookings.length > 0) {
+      console.log(`📅 Found ${filteredBookings.length} bookings for date ${dateString}:`, 
+        filteredBookings.map(b => ({ id: b._id, eventType: b.eventType, status: b.status }))
+      );
+    }
+    
+    return filteredBookings;
   };
 
   // Show all bookings for selected date in a modal
@@ -241,6 +282,17 @@ const ProviderBookings = () => {
           <Title level={2} className="text-white mb-0 text-xl sm:text-2xl">
             Bookings
           </Title>
+          <Button 
+            type="primary" 
+            onClick={() => {
+              loadAllBookings();
+              message.info('Refreshing bookings...');
+            }}
+            loading={loading}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            Refresh Bookings
+          </Button>
         </div>
 
         <>
@@ -251,13 +303,15 @@ const ProviderBookings = () => {
                 onSelect={handleCalendarSelect}
                 className="custom-calendar min-w-full"
                 fullscreen={false}
-                dateFullCellRender={(date) => {
+                fullCellRender={(date) => {
                   const isToday = dayjs(date).isSame(dayjs(), 'day');
                   const bookingsForDate = getBookingsForDate(date);
                   const hasBookings = bookingsForDate.length > 0;
 
-                  const confirmedBookings = bookingsForDate.filter(b => b.status === 'confirmed');
-                  const pendingBookings = bookingsForDate.filter(b => b.status === 'pending');
+                  const confirmedBookings = bookingsForDate.filter(b => b.status === 'ACCEPTED');
+                  const pendingBookings = bookingsForDate.filter(b => b.status === 'PENDING');
+                  const completedBookings = bookingsForDate.filter(b => b.status === 'COMPLETED');
+                  const inProgressBookings = bookingsForDate.filter(b => b.status === 'IN_PROGRESS');
                   const cancelledBookings = bookingsForDate.filter(b => b.status === 'cancelled');
 
                   // Create tooltip content with booking details
@@ -274,11 +328,7 @@ const ProviderBookings = () => {
                                 <div className="truncate">{getClientName(booking)}</div>
                               </div>
                               <Tag
-                                color={
-                                  booking.status === 'confirmed' ? 'green' :
-                                  booking.status === 'pending' ? 'orange' :
-                                  booking.status === 'cancelled' ? 'red' : 'blue'
-                                }
+                                color={getStatusColor(booking.status)}
                                 size="small"
                                 className="text-xs"
                               >
@@ -322,9 +372,9 @@ const ProviderBookings = () => {
                     <Tooltip
                       title={tooltipContent}
                       placement="right"
-                      overlayStyle={{ maxWidth: '320px' }}
+                      styles={{ root: { maxWidth: '320px' } }}
                       trigger={hasBookings ? ['hover'] : []}
-                      overlayClassName="calendar-tooltip"
+                      classNames={{ root: "calendar-tooltip" }}
                     >
                       <div className={`
                         relative h-12 w-full flex flex-col items-center justify-center p-1 min-w-0
@@ -341,13 +391,19 @@ const ProviderBookings = () => {
                         {hasBookings && (
                           <div className="flex space-x-1">
                             {confirmedBookings.length > 0 && (
-                              <div className="w-2 h-2 bg-green-500 rounded-full shadow-sm"></div>
+                              <div className="w-2 h-2 bg-blue-500 rounded-full shadow-sm" title={`${confirmedBookings.length} Accepted`}></div>
                             )}
                             {pendingBookings.length > 0 && (
-                              <div className="w-2 h-2 bg-yellow-500 rounded-full shadow-sm"></div>
+                              <div className="w-2 h-2 bg-orange-500 rounded-full shadow-sm" title={`${pendingBookings.length} Pending`}></div>
+                            )}
+                            {inProgressBookings.length > 0 && (
+                              <div className="w-2 h-2 bg-purple-500 rounded-full shadow-sm" title={`${inProgressBookings.length} In Progress`}></div>
+                            )}
+                            {completedBookings.length > 0 && (
+                              <div className="w-2 h-2 bg-green-500 rounded-full shadow-sm" title={`${completedBookings.length} Completed`}></div>
                             )}
                             {cancelledBookings.length > 0 && (
-                              <div className="w-2 h-2 bg-red-500 rounded-full shadow-sm"></div>
+                              <div className="w-2 h-2 bg-red-500 rounded-full shadow-sm" title={`${cancelledBookings.length} Cancelled`}></div>
                             )}
                           </div>
                         )}
@@ -387,21 +443,6 @@ const ProviderBookings = () => {
                           size="small"
                         />
                       </div>
-
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
-                        <div className="flex items-center space-x-1">
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span className="text-gray-300">Confirmed</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                          <span className="text-gray-300">Pending</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                          <span className="text-gray-300">Cancelled</span>
-                        </div>
-                      </div>
                     </div>
                   );
                 }}
@@ -422,6 +463,13 @@ const ProviderBookings = () => {
               <div className="mt-2 text-xs sm:text-sm text-gray-400">
                 Hover over dates with colored dots to see booking details. Click any date to view all bookings for that day.
               </div>
+              <ul className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs sm:text-sm text-gray-300 mt-4">
+                <li className="flex items-center"><div className="w-3 h-3 rounded-full bg-blue-500 mr-2 shadow-sm"></div>Accepted</li>
+                <li className="flex items-center"><div className="w-3 h-3 rounded-full bg-orange-500 mr-2 shadow-sm"></div>Pending</li>
+                <li className="flex items-center"><div className="w-3 h-3 rounded-full bg-purple-500 mr-2 shadow-sm"></div>In Progress</li>
+                <li className="flex items-center"><div className="w-3 h-3 rounded-full bg-green-500 mr-2 shadow-sm"></div>Completed</li>
+                <li className="flex items-center"><div className="w-3 h-3 rounded-full bg-red-500 mr-2 shadow-sm"></div>Cancelled</li>
+              </ul>
             </div>
           </Card>
 

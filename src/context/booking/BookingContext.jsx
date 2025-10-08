@@ -120,15 +120,18 @@ export const BookingProvider = ({ children }) => {
   };
 
   // --- Fetch bookings (with filters/pagination) ---
-  const fetchBookings = async ({ status, page = 1, limit = 10 } = {}) => {
+  const fetchBookings = async ({ status, page = 1, limit = 10, startDate, endDate } = {}) => {
     try {
       setLoading(true);
 
-      const query = new URLSearchParams({
-        ...(status && { status }),
-        page: String(page),
-        limit: String(limit),
-      });
+      const query = new URLSearchParams();
+      if (status && status !== 'all') query.append('status', status);
+      if (page) query.append('page', String(page));
+      if (limit) query.append('limit', String(limit));
+      if (startDate) query.append('startDate', startDate);
+      if (endDate) query.append('endDate', endDate);
+      
+      console.log("Fetching bookings with query:", query.toString());
 
       const response = await fetch(
         `${baseUrl}/bookings/me?${query.toString()}`,

@@ -54,6 +54,9 @@ import ClientBookings from "./pages/client/Bookings";
 import { MessageProvider } from "./context/messages/MessageContext";
 import { PaymentProvider } from "./context/payment/PaymentContext";
 
+import PaymentSuccess from "./pages/payment/PaymentSuccess";
+import PaymentCancel from "./pages/payment/PaymentCancel";
+
 const App = () => {
   useEffect(() => {
     if ("Notification" in window) {
@@ -107,6 +110,8 @@ const App = () => {
                               />
                               <Route path="/success" element={<Success />} />
                               <Route path="/cancel" element={<Cancel />} />
+                              <Route path="/payment/success" element={<PaymentSuccess />} />
+                              <Route path="/payment/cancel" element={<PaymentCancel />} />
 
                               <Route
                                 path="/provider/:id"

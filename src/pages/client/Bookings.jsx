@@ -135,6 +135,7 @@ const ClientBookings = () => {
   };
 
   const loadBookings = async (params = {}) => {
+    console.log('Loading client bookings with params:', params);
     const result = await fetchBookings(params);
     if (!result.success) {
       message.error(result.error);
@@ -216,6 +217,41 @@ const ClientBookings = () => {
     }
   };
 
+  // Manual payment completion for testing (bypasses webhook)
+  const handleManualCompletePayment = async (booking) => {
+    try {
+      const token = localStorage.getItem('token');
+      const paymentId = booking.paymentStatus === 'advance_pending' 
+        ? booking.advancePaymentId 
+        : booking.finalPaymentId;
+      
+      if (!paymentId) {
+        message.error('Payment ID not found');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:5000/api/payments/${paymentId}/complete`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        message.success('Payment completed successfully! (Test Mode)');
+        loadBookings(); // Refresh the bookings list
+      } else {
+        message.error(data.message || 'Failed to complete payment');
+      }
+    } catch (error) {
+      console.error('Manual complete payment error:', error);
+      message.error('Network error. Please try again.');
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case "PENDING":
@@ -268,32 +304,32 @@ const ClientBookings = () => {
   };
 
   const getClientName = (booking) => {
-    if (booking.client && booking.client.firstName && booking.client.lastName) {
-      return `${booking.client.firstName} ${booking.client.lastName}`;
+    if (booking.provider?.user?.firstName) {
+      return `${booking.provider.user.firstName} ${booking.provider.user.lastName || ''}`.trim();
     }
-    return "Anonymous Client";
+    return "Anonymous Provider";
   };
 
   const getClientInitials = (booking) => {
-    if (booking.client && booking.client.firstName && booking.client.lastName) {
-      return `${booking.client.firstName[0]}${booking.client.lastName[0]}`;
+    if (booking.provider?.user?.firstName) {
+      return `${booking.provider.user.firstName[0]}${booking.provider.user.lastName ? booking.provider.user.lastName[0] : ''}`;
     }
-    return "AC";
+    return "AP";
   };
 
   // Table columns configuration
   const columns = [
     {
-      title: "Client",
-      dataIndex: "client",
-      key: "client",
+      title: "Provider",
+      dataIndex: "provider",
+      key: "provider",
       className: "whitespace-nowrap",
 
       render: (_, booking) => (
         <div className="flex items-center">
-          {booking.client?.profileImage ? (
+          {booking.provider?.user?.profileImage ? (
             <Avatar
-              src={booking.client.profileImage}
+              src={booking.provider.user.profileImage}
               size={32}
               className="mr-2"
             />
@@ -453,16 +489,18 @@ const ClientBookings = () => {
         {/* Filters */}
         <div className="mb-6 flex flex-wrap gap-4">
           <Select
-            value={statusFilter}
+            defaultValue="all"
+            style={{ width: 150 }}
             onChange={handleStatusFilterChange}
-            className="w-40"
-            placeholder="Filter by status"
+            className="bg-gray-800 text-white rounded-md"
           >
             <Option value="all">All Statuses</Option>
-            <Option value="pending">Pending</Option>
-            <Option value="confirmed">Confirmed</Option>
-            <Option value="completed">Completed</Option>
-            <Option value="cancelled">Cancelled</Option>
+            <Option value="PENDING">Pending</Option>
+            <Option value="ACCEPTED">Accepted</Option>
+            <Option value="REJECTED">Rejected</Option>
+            <Option value="IN_PROGRESS">In Progress</Option>
+            <Option value="COMPLETED">Completed</Option>
+            <Option value="CANCELLED">Cancelled</Option>
           </Select>
 
           <RangePicker

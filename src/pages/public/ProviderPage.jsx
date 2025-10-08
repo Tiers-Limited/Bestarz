@@ -16,7 +16,7 @@ import {
   Avatar,
   Divider,
   Image,
-  message,
+  App,
   Spin,
   Slider,
   Select
@@ -37,8 +37,9 @@ const { TextArea } = Input;
 const { Option } = Select;
 
 const PublicProviderPage = () => {
+  const { message } = App.useApp(); // Fix for Ant Design warning
   const { id } = useParams();
-  const { createAnonymousBooking, loading: bookingLoading } = useBooking();
+  const { createAnonymousBooking, createBooking, loading: bookingLoading } = useBooking();
   const [provider, setProvider] = useState(null);
   const [loading, setLoading] = useState(true);
   const [budgetRange, setBudgetRange] = useState([0, 1500]);
@@ -73,6 +74,12 @@ const PublicProviderPage = () => {
     if (!provider) return;
 
     // Format the booking payload to match backend expectations
+    console.log('🎯 Provider data for booking:', { 
+      id: provider.id, 
+      _id: provider._id, 
+      businessName: provider.businessName 
+    });
+    
     const bookingPayload = {
       providerId: provider.id || provider._id,
       serviceCategory: provider.category, // Use provider's category
@@ -92,7 +99,17 @@ const PublicProviderPage = () => {
       },
     };
 
-    const result = await createAnonymousBooking(bookingPayload);
+    let result;
+    
+    if (user) {
+      // User is logged in - create regular booking
+      console.log('Creating regular booking for logged-in user:', user.email);
+      result = await createBooking(bookingPayload);
+    } else {
+      // User is not logged in - create anonymous booking
+      console.log('Creating anonymous booking for non-logged-in user');
+      result = await createAnonymousBooking(bookingPayload);
+    }
 
     if (result.success) {
       message.success("Booking request sent successfully!");
@@ -129,9 +146,11 @@ const PublicProviderPage = () => {
          
 
             {
-              !user && <Link to="/signup">
-                <Button type="primary">Join Bestarz</Button>
-              </Link>
+              user? <Link to="/client/dashboard">
+              <Button type="primary">Go To Dashboard</Button>
+            </Link>:  <Link to="/signup">
+              <Button type="primary">Join Bestarz</Button>
+            </Link>
             }
 
            

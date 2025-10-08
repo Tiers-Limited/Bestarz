@@ -46,6 +46,24 @@
   background: transparent;
   border-bottom: 1px solid #374151;
   padding-bottom: 16px;
+  color: #d1d5db; /* Light gray text for header */
+}
+
+.custom-calendar .ant-picker-calendar-header .ant-picker-calendar-year-select,
+.custom-calendar .ant-picker-calendar-header .ant-picker-calendar-month-select {
+  color: #d1d5db;
+}
+
+.custom-calendar .ant-picker-calendar-header .ant-radio-button-wrapper {
+  background: transparent;
+  color: #d1d5db;
+  border-color: #4b5563;
+}
+
+.custom-calendar .ant-picker-calendar-header .ant-radio-button-wrapper-checked {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
 }
 
 .custom-calendar .ant-picker-calendar-body {
