@@ -490,8 +490,8 @@ const AdminDashboard = () => {
                               </Tag>
                             </div>
                             <div className="text-gray-400 text-sm mb-1">
-                              {payment.client.firstName}{" "}
-                              {payment.client.lastName}
+                              {payment.client?.firstName || 'Unknown'}{" "}
+                              {payment.client?.lastName || ''}
                             </div>
                             <div className="text-gray-500 text-xs">
                               {new Date(payment.createdAt).toLocaleDateString()}

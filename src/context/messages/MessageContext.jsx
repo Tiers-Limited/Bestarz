@@ -302,7 +302,7 @@ export const MessageProvider = ({ children }) => {
 
         const newConversation = {
           id: conv._id,
-          title: otherParticipant
+          title: otherParticipant && otherParticipant.firstName && otherParticipant.lastName
             ? `${otherParticipant.firstName} ${otherParticipant.lastName}`
             : "Unknown User",
           avatarUrl: otherParticipant?.profileImage,
@@ -382,7 +382,9 @@ export const MessageProvider = ({ children }) => {
   const formatMessage = (msg) => ({
     id: msg._id,
     senderId: msg.sender._id,
-    senderName: `${msg.sender.firstName} ${msg.sender.lastName}`,
+    senderName: msg.sender?.firstName && msg.sender?.lastName 
+      ? `${msg.sender.firstName} ${msg.sender.lastName}` 
+      : 'Unknown User',
     text: msg.content,
     timestamp: formatTime(msg.createdAt),
     messageType: msg.messageType,
@@ -443,7 +445,7 @@ export const MessageProvider = ({ children }) => {
 
             return {
               id: conv._id,
-              title: otherParticipant
+              title: otherParticipant && otherParticipant.firstName && otherParticipant.lastName
                 ? `${otherParticipant.firstName} ${otherParticipant.lastName}`
                 : "Unknown User",
               avatarUrl: otherParticipant?.profileImage,
@@ -599,7 +601,7 @@ export const MessageProvider = ({ children }) => {
             id: conv._id,
             title:
               conv.title ||
-              (otherParticipant
+              (otherParticipant && otherParticipant.firstName && otherParticipant.lastName
                 ? `${otherParticipant.firstName} ${otherParticipant.lastName}`
                 : "Unknown User"),
             avatarUrl: otherParticipant?.profileImage,

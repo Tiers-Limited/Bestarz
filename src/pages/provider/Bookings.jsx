@@ -204,14 +204,14 @@ const ProviderBookings = () => {
   };
 
   const getClientName = (booking) => {
-    if (booking.client) {
+    if (booking.client && booking.client.firstName && booking.client.lastName) {
       return `${booking.client.firstName} ${booking.client.lastName}`;
     }
     return "Anonymous Client";
   };
 
   const getClientInitials = (booking) => {
-    if (booking.client) {
+    if (booking.client && booking.client.firstName && booking.client.lastName) {
       return `${booking.client.firstName[0]}${booking.client.lastName[0]}`;
     }
     return "AC";

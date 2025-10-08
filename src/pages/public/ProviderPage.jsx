@@ -129,11 +129,9 @@ const PublicProviderPage = () => {
          
 
             {
-              user? <Link to="/client/dashboard">
-              <Button type="primary">Go To Dashboard</Button>
-            </Link>:  <Link to="/signup">
-              <Button type="primary">Join Bestarz</Button>
-            </Link>
+              !user && <Link to="/signup">
+                <Button type="primary">Join Bestarz</Button>
+              </Link>
             }
 
            

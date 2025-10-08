@@ -94,9 +94,11 @@ export const CustomerProvider = ({ children }) => {
     return {
       key: apiCustomer._id,
       id: apiCustomer._id,
-      name: `${apiCustomer.firstName} ${apiCustomer.lastName}`,
-      firstName: apiCustomer.firstName,
-      lastName: apiCustomer.lastName,
+      name: apiCustomer.firstName && apiCustomer.lastName 
+        ? `${apiCustomer.firstName} ${apiCustomer.lastName}` 
+        : 'Unknown Customer',
+      firstName: apiCustomer.firstName || '',
+      lastName: apiCustomer.lastName || '',
       email: apiCustomer.email,
       phone: apiCustomer.phone,
       profileImage: apiCustomer.profileImage,

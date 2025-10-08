@@ -102,10 +102,12 @@ export const EarningsProvider = ({ children }) => {
       id: payment._id,
       date: new Date(payment.createdAt).toLocaleDateString(),
       createdAt: payment.createdAt,
-      clientName: `${payment.client.firstName} ${payment.client.lastName}`,
-      clientEmail: payment.client.email,
-      clientPhone: payment.client.phone,
-      clientImage: payment.client.profileImage,
+      clientName: payment.client?.firstName && payment.client?.lastName 
+        ? `${payment.client.firstName} ${payment.client.lastName}` 
+        : 'Unknown Client',
+      clientEmail: payment.client?.email || 'N/A',
+      clientPhone: payment.client?.phone || 'N/A',
+      clientImage: payment.client?.profileImage,
       service: `${payment.booking.eventType} - ${payment.booking.serviceCategory}`,
       eventType: payment.booking.eventType,
       serviceCategory: payment.booking.serviceCategory,

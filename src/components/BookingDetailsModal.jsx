@@ -163,7 +163,7 @@ const BookingDetailsModal = ({
                 <Mail className="w-4 h-4 mr-2 text-gray-400" />
                 <span className="text-white">{booking.contactInfo.email}</span>
               </div>
-              {booking.client && (
+              {booking.client && booking.client.phone && (
                 <div className="flex items-center">
                   <Phone className="w-4 h-4 mr-2 text-gray-400" />
                   <span className="text-white">Client: {booking.client.phone}</span>
