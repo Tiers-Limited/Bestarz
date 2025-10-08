@@ -185,6 +185,64 @@ const createFinalPayment = async (req, res) => {
 	}
 };
 
+// Manual payment completion for testing (bypasses webhook)
+const manualCompletePayment = async (req, res) => {
+	try {
+		const { paymentId } = req.params;
+		
+		console.log('🔧 Manual payment completion requested for:', paymentId);
+		
+		const payment = await Payment.findById(paymentId);
+		
+		if (!payment) {
+			return res.status(404).json({ message: 'Payment not found' });
+		}
+		
+		if (payment.status === 'completed') {
+			return res.json({
+				success: true,
+				payment,
+				message: 'Payment already completed'
+			});
+		}
+		
+		// Update payment status
+		payment.status = 'completed';
+		payment.processedAt = new Date();
+		await payment.save();
+		
+		console.log('✅ Payment marked as completed:', payment._id);
+		
+		// Update booking payment status
+		const booking = await Booking.findById(payment.booking);
+		if (booking) {
+			if (payment.paymentType === 'advance') {
+				booking.paymentStatus = 'advance_paid';
+				booking.advancePaid = true;
+				booking.status = 'IN_PROGRESS';
+				console.log(`✅ Booking status updated to IN_PROGRESS for advance payment`);
+			} else if (payment.paymentType === 'final') {
+				booking.paymentStatus = 'final_paid';
+				booking.finalPaid = true;
+				booking.status = 'COMPLETED';
+				booking.completedAt = new Date();
+				console.log(`✅ Booking status updated to COMPLETED for final payment`);
+			}
+			await booking.save();
+		}
+		
+		return res.json({
+			success: true,
+			payment,
+			booking,
+			message: 'Payment completed successfully'
+		});
+	} catch (err) {
+		console.error('Manual complete payment error:', err);
+		return res.status(500).json({ message: err.message });
+	}
+};
+
 // Confirm payment (called by webhook or frontend after successful payment)
 const confirmPayment = async (req, res) => {
 	try {
@@ -456,10 +514,112 @@ const getPaymentStats = async (req, res) => {
 	}
 };
 
+// Verify payment session (optional frontend verification)
+const verifyPaymentSession = async (req, res) => {
+	try {
+		const { sessionId } = req.body;
+		
+		if (!sessionId) {
+			return res.status(400).json({ message: 'Session ID required' });
+		}
+
+		// Retrieve session from Stripe
+		const session = await retrieveSession(sessionId);
+		
+		if (!session) {
+			return res.status(404).json({ message: 'Session not found' });
+		}
+
+		// Check if payment was successful
+		const isSuccessful = session.payment_status === 'paid';
+		
+		// If payment is successful but database not updated, manually trigger webhook processing
+		if (isSuccessful && session.metadata) {
+			console.log('🔄 Payment successful, checking if database needs updating...');
+			
+			const { bookingId, paymentType } = session.metadata;
+			if (bookingId && paymentType) {
+				// Check if payment is still pending in database
+				const payment = await Payment.findOne({
+					booking: bookingId,
+					paymentType: paymentType,
+					status: 'pending'
+				});
+				
+				if (payment) {
+					console.log('⚠️ Payment successful but database not updated. Manually processing...');
+					
+					// Manually trigger the webhook handler logic
+					try {
+						// Import the webhook handler
+						const { handleStripeWebhook } = require('./webhook.controller.js');
+						
+						// Create a mock webhook event
+						const mockEvent = {
+							type: 'checkout.session.completed',
+							id: `evt_mock_${Date.now()}`,
+							data: {
+								object: session
+							}
+						};
+						
+						// Process the mock event (this will update the database)
+						console.log('🔧 Manually processing webhook event...');
+						// We can't call the full webhook handler due to signature verification
+						// So we'll update the payment directly here
+						
+						payment.status = 'completed';
+						payment.stripePaymentIntentId = session.id;
+						payment.transactionId = session.payment_intent;
+						payment.processedAt = new Date();
+						await payment.save();
+						
+						// Update booking
+						const booking = await Booking.findById(bookingId);
+						if (booking) {
+							if (paymentType === 'advance') {
+								booking.paymentStatus = 'advance_paid';
+								booking.advancePaid = true;
+								booking.status = 'IN_PROGRESS';
+							} else if (paymentType === 'final') {
+								booking.paymentStatus = 'final_paid';
+								booking.finalPaid = true;
+								booking.status = 'COMPLETED';
+								booking.completedAt = new Date();
+							}
+							await booking.save();
+						}
+						
+						console.log('✅ Payment and booking updated successfully');
+						
+					} catch (updateError) {
+						console.error('❌ Failed to update payment:', updateError);
+					}
+				}
+			}
+		}
+		
+		return res.json({
+			success: true,
+			sessionId: session.id,
+			paymentStatus: session.payment_status,
+			isSuccessful,
+			metadata: session.metadata,
+			message: isSuccessful ? 'Payment verified successfully' : 'Payment not completed'
+		});
+		
+	} catch (err) {
+		console.error('Verify payment session error:', err);
+		return res.status(500).json({ message: err.message });
+	}
+};
+
 module.exports = {
 	createAdvancePayment,
 	createFinalPayment,
 	confirmPayment,
+	manualCompletePayment,
+	verifyPaymentSession,
 	getPayment,
 	getBookingPayments,
 	getMyPayments,

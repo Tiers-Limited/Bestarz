@@ -1,5 +1,6 @@
 const Booking = require('../models/Booking.js');
 const Provider = require('../models/Provider.js');
+const User = require('../models/User.js');
 const Review = require('../models/Review.js');
 const { transporter } = require("../config/nodemailer.js");
 const bookingEmailTemplate = require('../templates/bookingTemplate.js');
@@ -29,6 +30,14 @@ const createBooking = async (req, res) => {
 		if (!provider) return res.status(404).json({ message: 'Provider not found' });
 
 		// Create booking with PENDING status
+		console.log('📝 Creating regular booking with data:', {
+			clientId,
+			providerId: provider._id,
+			eventType,
+			dateStart,
+			dateEnd
+		});
+		
 		const booking = await Booking.create({
 			client: clientId,
 			provider: provider._id,
@@ -47,6 +56,8 @@ const createBooking = async (req, res) => {
 			status: 'PENDING', // Initial status
 			paymentStatus: 'unpaid'
 		});
+		
+		console.log('✅ Regular booking created:', booking._id);
 
 		// Populate the booking with provider and client details
 		await booking.populate([
@@ -84,7 +95,36 @@ const updateBookingStatus = async (req, res) => {
 			.populate('client', 'firstName lastName email')
 			.populate({ path: 'provider', populate: { path: 'user', select: 'firstName lastName email' } });
 
+		console.log('🔍 Booking status update - booking data:', {
+			id,
+			bookingExists: !!booking,
+			clientId: booking?.client,
+			client: booking?.client ? { 
+				id: booking.client._id, 
+				firstName: booking.client.firstName, 
+				lastName: booking.client.lastName,
+				email: booking.client.email
+			} : null,
+			provider: booking?.provider ? {
+				id: booking.provider._id,
+				user: booking.provider.user ? {
+					firstName: booking.provider.user.firstName,
+					lastName: booking.provider.user.lastName
+				} : null
+			} : null
+		});
+
 		if (!booking) return res.status(404).json({ message: 'Booking not found' });
+
+		// If client data is missing, try to fetch it separately
+		if (!booking.client && booking.client) {
+			console.log('⚠️ Client data not populated, attempting separate fetch for client ID:', booking.client);
+			const clientUser = await User.findById(booking.client).select('firstName lastName email');
+			if (clientUser) {
+				booking.client = clientUser;
+				console.log('✅ Client data fetched separately:', { firstName: clientUser.firstName, email: clientUser.email });
+			}
+		}
 
 		// Verify provider ownership
 		const provider = await Provider.findOne({ user: providerId });
@@ -113,11 +153,14 @@ const updateBookingStatus = async (req, res) => {
 			booking.paymentStatus = 'advance_pending';
 
 			// Send acceptance email to client
+			const clientName = booking.client ? `${booking.client.firstName || 'Client'} ${booking.client.lastName || ''}`.trim() : 'Client';
+			const providerName = booking.provider?.user ? `${booking.provider.user.firstName || 'Provider'} ${booking.provider.user.lastName || ''}`.trim() : 'Provider';
+			
 			const clientEmailTemplate = `
 				<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
 					<h2 style="color: #333;">Booking Request Accepted! 🎉</h2>
-					<p>Dear ${booking.client.firstName} ${booking.client.lastName},</p>
-					<p>Great news! Your booking request has been accepted by ${booking.provider.user.firstName} ${booking.provider.user.lastName}.</p>
+					<p>Dear ${clientName},</p>
+					<p>Great news! Your booking request has been accepted by ${providerName}.</p>
 					
 					<div style="background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px;">
 						<h3>Payment Information:</h3>
@@ -133,9 +176,14 @@ const updateBookingStatus = async (req, res) => {
 				</div>
 			`;
 
+			const clientEmail = booking.client?.email;
+			if (!clientEmail) {
+				console.error('❌ Client email not found for booking:', id, 'Client data:', booking.client);
+			}
+
 			const mailOptions = {
 				from: process.env.EMAIL,
-				to: booking.client.email,
+				to: clientEmail || 'noreply@bestarz.com',
 				subject: "Your Booking Request Has Been Accepted - Best★rz",
 				html: clientEmailTemplate,
 			};
@@ -146,19 +194,26 @@ const updateBookingStatus = async (req, res) => {
 			booking.status = 'REJECTED';
 
 			// Send rejection email to client
+			const clientName = booking.client ? `${booking.client.firstName || 'Client'} ${booking.client.lastName || ''}`.trim() : 'Client';
+			const clientEmail = booking.client?.email;
+			
 			const rejectionEmailTemplate = `
 				<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
 					<h2 style="color: #333;">Booking Request Update</h2>
-					<p>Dear ${booking.client.firstName} ${booking.client.lastName},</p>
+					<p>Dear ${clientName},</p>
 					<p>We regret to inform you that your booking request has been declined by the provider.</p>
 					<p>You can browse other providers or try booking for different dates.</p>
 					<p>Best regards,<br>Best★rz Team</p>
 				</div>
 			`;
 
+			if (!clientEmail) {
+				console.error('❌ Client email not found for booking rejection:', id, 'Client data:', booking.client);
+			}
+
 			const mailOptions = {
 				from: process.env.EMAIL,
-				to: booking.client.email,
+				to: clientEmail || 'noreply@bestarz.com',
 				subject: "Booking Request Update - Best★rz",
 				html: rejectionEmailTemplate,
 			};
@@ -185,13 +240,37 @@ const listMyBookings = async (req, res) => {
 		const role = req.user.role;
 		const { status, page = 1, limit = 20 } = req.query;
 
+		console.log('📋 listMyBookings called - role:', role, 'userId:', req.user.id, 'query params:', req.query);
+
 		let filter = {};
-		if (status) filter.status = status;
+		if (status && status !== 'all') {
+			filter.status = status;
+			console.log('✅ Status filter applied:', status);
+		} else {
+			console.log('🔄 No status filter - showing all bookings');
+		}
 
 		if (role === 'client') {
-			filter.client = req.user.id;
+			// Find both regular bookings (with client ID) and anonymous bookings (with matching email)
+			const clientEmail = req.user.email;
+			const clientFilter = {
+				$or: [
+					{ client: req.user.id }, // Regular bookings
+					{ 
+						isAnonymous: true, 
+						'contactInfo.email': clientEmail // Anonymous bookings with matching email
+					}
+				]
+			};
+			
+			// Add status filter if provided
+			if (filter.status) {
+				clientFilter.status = filter.status;
+			}
+			
+			console.log('🔍 Client booking filter (including anonymous):', JSON.stringify(clientFilter, null, 2));
 
-			const bookings = await Booking.find(filter)
+			const bookings = await Booking.find(clientFilter)
 				.populate([
 					{ path: 'provider', populate: { path: 'user', select: 'firstName lastName email phone profileImage' } },
 					{ path: 'client', select: 'firstName lastName email phone profileImage' },
@@ -216,7 +295,23 @@ const listMyBookings = async (req, res) => {
 				review: reviewMap[booking._id.toString()] || null
 			}));
 
-			const total = await Booking.countDocuments(filter);
+			const total = await Booking.countDocuments(clientFilter);
+
+			console.log('📊 Client booking query results:');
+			console.log('   Filter used:', JSON.stringify(clientFilter));
+			console.log('   Total in DB:', total);
+			console.log('   Retrieved:', bookings.length);
+			if (bookings.length > 0) {
+				console.log('   First booking:', {
+					id: bookings[0]._id,
+					status: bookings[0].status,
+					clientId: bookings[0].client,
+					providerName: bookings[0].provider?.user ? `${bookings[0].provider.user.firstName} ${bookings[0].provider.user.lastName}` : 'No provider'
+				});
+			} else {
+				console.log('   ❌ No bookings found');
+			}
+
 			return res.json({
 				bookings: bookingsWithReviews,
 				pagination: {
@@ -230,9 +325,12 @@ const listMyBookings = async (req, res) => {
 
 		if (role === 'provider') {
 			const provider = await Provider.findOne({ user: req.user.id });
+			console.log('👤 Provider lookup for bookings:', provider ? { id: provider._id, specialties: provider.specialties } : 'Not found');
+			
 			if (!provider) return res.json({ bookings: [], pagination: { page: 1, limit: Number(limit), total: 0, pages: 0 } });
 
 			filter.provider = provider._id;
+			console.log('🔍 Provider booking filter:', filter);
 
 			const bookings = await Booking.find(filter)
 				.populate([
@@ -259,6 +357,17 @@ const listMyBookings = async (req, res) => {
 			}));
 
 			const total = await Booking.countDocuments(filter);
+			
+			console.log('📊 Provider booking results:', { 
+				bookingsFound: bookings.length, 
+				totalCount: total,
+				firstBooking: bookings[0] ? {
+					id: bookings[0]._id,
+					status: bookings[0].status,
+					client: bookings[0].client ? bookings[0].client.firstName : 'No client'
+				} : 'None'
+			});
+			
 			return res.json({
 				bookings: bookingsWithReviews,
 				pagination: {
@@ -565,9 +674,20 @@ const createAnonymousBooking = async (req, res) => {
 		const provider = await Provider.findById(providerId);
 		if (!provider) {
 			console.log('❌ Provider not found:', providerId);
+			// Additional debugging: show available providers
+			const availableProviders = await Provider.find({}).select('_id businessName user').limit(3);
+			console.log('Available providers:', availableProviders.map(p => ({ 
+				id: p._id, 
+				businessName: p.businessName, 
+				userId: p.user 
+			})));
 			return res.status(404).json({ message: 'Provider not found' });
 		}
-		console.log('✅ Provider found:', provider._id);
+		console.log('✅ Provider found:', { 
+			id: provider._id, 
+			businessName: provider.businessName, 
+			userId: provider.user 
+		});
 
 		// Create booking with PENDING status (no client ID for anonymous)
 		console.log('📝 Creating anonymous booking...');

@@ -5,6 +5,8 @@ const {
 	createAdvancePayment,
 	createFinalPayment,
 	confirmPayment,
+	manualCompletePayment,
+	verifyPaymentSession,
 	getPayment,
 	getBookingPayments,
 	getMyPayments,
@@ -21,6 +23,12 @@ router.post('/final', auth('client'), createFinalPayment);
 
 // Confirm payment (webhook or frontend callback)
 router.post('/confirm', confirmPayment);
+
+// Verify payment session (optional frontend verification)
+router.post('/verify-session', auth(), verifyPaymentSession);
+
+// Manual complete payment for testing (bypasses webhook)
+router.post('/:paymentId/complete', auth(), manualCompletePayment);
 
 // Get my payments
 router.get('/me', auth(['client', 'provider']), getMyPayments);

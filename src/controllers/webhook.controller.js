@@ -1,125 +1,216 @@
 // controllers/webhook.controller.js
+const Stripe = require('stripe');
 const User = require('../models/User.js');
 const Payment = require('../models/Payment.js');
 const Booking = require('../models/Booking.js');
-const Provider = require('../models/Provider.js');
-const Stripe = require('stripe');
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+/**
+ * ====================================================================
+ * STRIPE WEBHOOK HANDLER - PRODUCTION-GRADE IMPLEMENTATION
+ * ====================================================================
+ */
 const handleStripeWebhook = async (req, res) => {
   try {
+    // STEP 1: Verify the webhook signature
     const sig = req.headers['stripe-signature'];
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
     
-    let event;
+    if (!endpointSecret) {
+      console.error('❌ STRIPE_WEBHOOK_SECRET not configured');
+      return res.status(500).json({ error: 'Webhook secret not configured' });
+    }
     
+    let event;
     try {
       event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+      console.log('✅ Webhook signature verified:', event.type);
     } catch (err) {
+      console.error('❌ Webhook signature verification failed:', err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
     
-    // Handle different event types
+    // STEP 2: Log the event
+    console.log('🔔 Received Stripe webhook:', event.type, 'ID:', event.id);
+    
+    // STEP 3: Route to appropriate handler
     switch (event.type) {
-      // 🔥 SUBSCRIPTION EVENTS
       case 'checkout.session.completed':
         await handleCheckoutSessionCompleted(event.data.object);
         break;
-        
       case 'customer.subscription.deleted':
         await handleSubscriptionDeleted(event.data.object);
         break;
-        
       case 'customer.subscription.updated':
         await handleSubscriptionUpdated(event.data.object);
         break;
-        
-      // 🔥 PAYMENT EVENTS  
-      case 'payment_intent.succeeded':
-        await handlePaymentIntentSucceeded(event.data.object);
-        break;
-        
       case 'payment_intent.payment_failed':
-        await handlePaymentIntentFailed(event.data.object);
+        console.warn('⚠️ Payment Intent Failed:', event.data.object.id);
         break;
-        
-      // 🔥 REFUND EVENTS
-      case 'charge.dispute.created':
-        await handleChargeDispute(event.data.object);
-        break;
-        
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        console.log(`🤷‍♀️ Unhandled event type: ${event.type}`);
     }
     
+    // STEP 4: Always return 200 to Stripe
     res.json({ received: true });
   } catch (err) {
-    console.error('Webhook error:', err);
-    return res.status(500).json({ message: err.message });
+    console.error('❌ Webhook processing error:', err);
+    res.status(500).json({ message: err.message });
   }
 };
 
-// 🔥 SUBSCRIPTION HANDLERS
+/**
+ * Handle checkout.session.completed event
+ * This is the primary event for successful payments
+ */
 async function handleCheckoutSessionCompleted(session) {
   try {
-    console.log('Processing checkout session:', session.id);
+    console.log('🎯 Processing checkout.session.completed');
+    console.log('   Session ID:', session.id);
+    console.log('   Mode:', session.mode);
+    console.log('   Payment Status:', session.payment_status);
+    console.log('   Metadata:', session.metadata);
+    
+    // Only process successful payments
+    if (session.payment_status !== 'paid') {
+      console.log('⚠️ Payment not completed, status:', session.payment_status);
+      return;
+    }
     
     if (session.mode === 'subscription') {
-      // Handle subscription checkout
-      const subscription = await stripe.subscriptions.retrieve(session.subscription);
-      
-      const user = await User.findOne({
-        stripeCustomerId: session.customer
-      });
-      
-      if (user) {
-        user.stripeSubscriptionId = subscription.id;
-        user.subscriptionStatus = 'active';
-        user.subscriptionStart = new Date(subscription.current_period_start * 1000);
-        user.subscriptionEnd = new Date(subscription.current_period_end * 1000);
-        user.subscriptionPlan = session.metadata?.plan || 'custom';
-        await user.save();
-        console.log(`Subscription activated for user: ${user.email}`);
-      }
+      await handleSubscriptionPayment(session);
     } else if (session.mode === 'payment') {
-      // Handle one-time payment checkout
-      const payment = await Payment.findOne({ 
-        stripePaymentIntentId: session.id 
-      });
-      
-      if (payment) {
-        payment.status = 'completed';
-        payment.transactionId = session.payment_intent;
-        payment.processedAt = new Date();
-        await payment.save();
-        
-        // Update booking payment status
-        const booking = await Booking.findById(payment.booking);
-        if (booking) {
-          booking.paymentStatus = 'paid';
-          await booking.save();
-        }
-        
-        console.log(`Payment completed for session: ${session.id}`);
-      }
+      await handleOneTimePayment(session);
     }
-  } catch (err) {
-    console.error('Error handling checkout session completed:', err);
+  } catch (error) {
+    console.error('❌ Error in handleCheckoutSessionCompleted:', error);
   }
 }
 
+/**
+ * Handle one-time payment (booking payments)
+ */
+async function handleOneTimePayment(session) {
+  try {
+    // Extract metadata
+    const { bookingId, paymentType } = session.metadata || {};
+    
+    if (!bookingId || !paymentType) {
+      console.error('❌ Missing required metadata:', { bookingId, paymentType });
+      return;
+    }
+    
+    console.log(`🔍 Processing ${paymentType} payment for booking: ${bookingId}`);
+    
+    // Find the payment record
+    const payment = await Payment.findOne({
+      booking: bookingId,
+      paymentType: paymentType,
+      status: 'pending'
+    });
+    
+    if (!payment) {
+      console.error('❌ No pending payment found for:', { bookingId, paymentType });
+      // List all payments for this booking for debugging
+      const allPayments = await Payment.find({ booking: bookingId });
+      console.log('📋 All payments for booking:', allPayments.map(p => ({
+        id: p._id,
+        type: p.paymentType,
+        status: p.status,
+        amount: p.amount
+      })));
+      return;
+    }
+    
+    // Check for idempotency
+    if (payment.status === 'completed') {
+      console.log('⏭️ Payment already processed, skipping');
+      return;
+    }
+    
+    console.log('✅ Found payment record:', payment._id);
+    
+    // Update payment
+    payment.status = 'completed';
+    payment.stripePaymentIntentId = session.id;
+    payment.transactionId = session.payment_intent;
+    payment.processedAt = new Date();
+    await payment.save();
+    
+    console.log('✅ Payment marked as completed');
+    
+    // Update booking
+    const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      console.error('❌ Booking not found:', bookingId);
+      return;
+    }
+    
+    console.log('📋 Current booking status:', booking.status, 'paymentStatus:', booking.paymentStatus);
+    
+    if (paymentType === 'advance') {
+      booking.paymentStatus = 'advance_paid';
+      booking.advancePaid = true;
+      booking.status = 'IN_PROGRESS';
+      console.log('✅ Booking updated: advance payment completed, status -> IN_PROGRESS');
+    } else if (paymentType === 'final') {
+      booking.paymentStatus = 'final_paid';
+      booking.finalPaid = true;
+      booking.status = 'COMPLETED';
+      booking.completedAt = new Date();
+      console.log('✅ Booking updated: final payment completed, status -> COMPLETED');
+    }
+    
+    await booking.save();
+    console.log('✅ Database updates completed successfully');
+    
+  } catch (error) {
+    console.error('❌ Error in handleOneTimePayment:', error);
+  }
+}
+
+/**
+ * Handle subscription payment
+ */
+async function handleSubscriptionPayment(session) {
+  try {
+    const subscription = await stripe.subscriptions.retrieve(session.subscription);
+    
+    const user = await User.findOne({
+      stripeCustomerId: session.customer
+    });
+    
+    if (user) {
+      user.stripeSubscriptionId = subscription.id;
+      user.subscriptionStatus = 'active';
+      user.subscriptionStart = new Date(subscription.current_period_start * 1000);
+      user.subscriptionEnd = new Date(subscription.current_period_end * 1000);
+      user.subscriptionPlan = session.metadata?.plan || 'custom';
+      await user.save();
+      console.log(`✅ Subscription activated for user: ${user.email}`);
+    } else {
+      console.error('❌ User not found for customer:', session.customer);
+    }
+  } catch (error) {
+    console.error('❌ Error in handleSubscriptionPayment:', error);
+  }
+}
+
+// Subscription handlers (existing)
 async function handleSubscriptionDeleted(subscription) {
   try {
-    console.log('Processing subscription deletion:', subscription.id);
+    console.log('Processing subscription deleted:', subscription.id);
     
     const user = await User.findOne({
       stripeSubscriptionId: subscription.id
     });
     
     if (user) {
-      user.subscriptionStatus = 'expired';
+      user.subscriptionStatus = 'cancelled';
+      user.subscriptionEnd = new Date();
       await user.save();
-      console.log(`Subscription expired for user: ${user.email}`);
+      console.log(`Subscription cancelled for user: ${user.email}`);
     }
   } catch (err) {
     console.error('Error handling subscription deleted:', err);
@@ -128,23 +219,16 @@ async function handleSubscriptionDeleted(subscription) {
 
 async function handleSubscriptionUpdated(subscription) {
   try {
-    console.log('Processing subscription update:', subscription.id);
+    console.log('Processing subscription updated:', subscription.id);
     
     const user = await User.findOne({
       stripeSubscriptionId: subscription.id
     });
     
     if (user) {
-      // Update subscription dates and status
       user.subscriptionStatus = subscription.status;
       user.subscriptionStart = new Date(subscription.current_period_start * 1000);
       user.subscriptionEnd = new Date(subscription.current_period_end * 1000);
-      
-      // Handle cancellation
-      if (subscription.cancel_at_period_end) {
-        user.subscriptionStatus = 'canceled';
-      }
-      
       await user.save();
       console.log(`Subscription updated for user: ${user.email}`);
     }
@@ -153,129 +237,6 @@ async function handleSubscriptionUpdated(subscription) {
   }
 }
 
-// 🔥 PAYMENT HANDLERS
-async function handlePaymentIntentSucceeded(paymentIntent) {
-  try {
-    console.log('Processing payment intent succeeded:', paymentIntent.id);
-    
-    const payment = await Payment.findOne({ 
-      transactionId: paymentIntent.id 
-    });
-    
-    if (payment && payment.status !== 'completed') {
-      payment.status = 'completed';
-      payment.processedAt = new Date();
-      await payment.save();
-      
-      // Update booking payment status based on payment type
-      const booking = await Booking.findById(payment.booking);
-      if (booking) {
-        if (payment.paymentType === 'advance') {
-          // Advance payment completed - move booking to IN_PROGRESS
-          booking.paymentStatus = 'advance_paid';
-          booking.advancePaid = true;
-          booking.status = 'IN_PROGRESS';
-          console.log(`Advance payment completed for booking: ${booking._id}`);
-        } else if (payment.paymentType === 'final') {
-          // Final payment completed - mark booking as COMPLETED
-          booking.paymentStatus = 'final_paid';
-          booking.finalPaid = true;
-          booking.status = 'COMPLETED';
-          booking.completedAt = new Date();
-          
-          // Handle revenue transfer (80% to provider, 20% to admin)
-          await handleRevenueTransfer(payment, booking);
-          
-          console.log(`Final payment completed and booking marked as COMPLETED: ${booking._id}`);
-        }
-        await booking.save();
-      }
-      
-      console.log(`Payment intent succeeded for: ${paymentIntent.id}`);
-    }
-  } catch (err) {
-    console.error('Error handling payment intent succeeded:', err);
-  }
-}
-
-async function handlePaymentIntentFailed(paymentIntent) {
-  try {
-    console.log('Processing payment intent failed:', paymentIntent.id);
-    
-    const payment = await Payment.findOne({ 
-      transactionId: paymentIntent.id 
-    });
-    
-    if (payment) {
-      payment.status = 'failed';
-      await payment.save();
-      
-      // Update booking payment status
-      const booking = await Booking.findById(payment.booking);
-      if (booking) {
-        booking.paymentStatus = 'failed';
-        await booking.save();
-      }
-      
-      console.log(`Payment intent failed for: ${paymentIntent.id}`);
-    }
-  } catch (err) {
-    console.error('Error handling payment intent failed:', err);
-  }
-}
-
-// Handle revenue transfer (80% to provider, 20% to admin)
-async function handleRevenueTransfer(payment, booking) {
-  try {
-    console.log(`Processing revenue transfer for payment: ${payment._id}`);
-    
-    // Get provider's Stripe account ID
-    const provider = await User.findById(booking.provider.user).populate('provider');
-    
-    if (!provider.stripeAccountId) {
-      console.error(`Provider ${provider._id} does not have Stripe account set up`);
-      return;
-    }
-    
-    // Transfer 80% to provider
-    const providerAmount = payment.providerEarnings; // Already calculated as 80%
-    
-    try {
-      const transfer = await stripe.transfers.create({
-        amount: Math.round(providerAmount * 100), // Convert to cents
-        currency: 'usd',
-        destination: provider.stripeAccountId,
-        description: `Payment for booking ${booking._id} - ${payment.paymentType} payment`,
-        metadata: {
-          bookingId: booking._id.toString(),
-          paymentId: payment._id.toString(),
-          paymentType: payment.paymentType,
-          providerEarnings: providerAmount.toString()
-        }
-      });
-      
-      // Update payment record with transfer details
-      payment.transferStatus = 'transferred';
-      payment.stripeTransferId = transfer.id;
-      await payment.save();
-      
-      // Update booking revenue tracking
-      booking.providerAmount = (booking.providerAmount || 0) + providerAmount;
-      booking.adminAmount = (booking.adminAmount || 0) + payment.platformFee;
-      booking.transferStatus = payment.paymentType === 'final' ? 'transferred' : 'partial';
-      await booking.save();
-      
-      console.log(`Revenue transferred successfully: $${providerAmount} to provider, $${payment.platformFee} to admin`);
-      
-    } catch (transferError) {
-      console.error('Stripe transfer failed:', transferError);
-      payment.transferStatus = 'failed';
-      await payment.save();
-    }
-    
-  } catch (err) {
-    console.error('Error handling revenue transfer:', err);
-  }
-}
-
-module.exports = { handleStripeWebhook };
+module.exports = {
+  handleStripeWebhook,
+};

@@ -217,8 +217,23 @@ const getProviderBookings = async (req, res) => {
 		const userId = req.user.id;
 		const { status, page = 1, limit = 20, startDate, endDate } = req.query;
 
+		console.log('📋 getProviderBookings - userId:', userId, 'filters:', { status, page, limit, startDate, endDate });
+
 		const provider = await Provider.findOne({ user: userId });
-		if (!provider) return res.status(404).json({ message: 'Provider profile not found' });
+		console.log('👤 Provider lookup result:', provider ? { 
+			id: provider._id, 
+			userId: provider.user,
+			businessName: provider.businessName,
+			specialties: provider.specialties 
+		} : 'Not found');
+		
+		if (!provider) {
+			console.log('❌ No provider found for user ID:', userId);
+			console.log('🔍 Available providers in DB:');
+			const allProviders = await Provider.find({}).select('user businessName').limit(5);
+			console.log(allProviders.map(p => ({ id: p._id, userId: p.user, businessName: p.businessName })));
+			return res.status(404).json({ message: 'Provider profile not found' });
+		}
 
 		let filter = { provider: provider._id };
 		if (status) filter.status = status;
@@ -228,6 +243,24 @@ const getProviderBookings = async (req, res) => {
 			if (endDate) filter.dateStart.$lte = new Date(endDate);
 		}
 
+		console.log('🔍 Booking filter:', filter);
+		
+		// Additional debugging: Check if there are any bookings for ANY provider from this user
+		const allBookingsForUser = await Booking.find({ 
+			$or: [
+				{ client: userId },  // Bookings where user is the client
+				{ provider: provider._id }  // Bookings for this provider
+			]
+		}).select('_id provider client status eventType dateStart').limit(5);
+		
+		console.log('🔍 All related bookings for debugging:', allBookingsForUser.map(b => ({
+			id: b._id,
+			providerId: b.provider,
+			clientId: b.client,
+			status: b.status,
+			eventType: b.eventType
+		})));
+
 		const bookings = await Booking.find(filter)
 			.populate('client', 'firstName lastName email phone profileImage')
 			.sort({ dateStart: 1 })
@@ -235,6 +268,20 @@ const getProviderBookings = async (req, res) => {
 			.limit(Number(limit));
 
 		const total = await Booking.countDocuments(filter);
+		
+		console.log('📊 Booking results:', { 
+			bookingsFound: bookings.length, 
+			totalCount: total,
+			firstBooking: bookings[0] ? {
+				id: bookings[0]._id,
+				status: bookings[0].status,
+				client: bookings[0].client ? bookings[0].client.firstName : 'No client',
+				isAnonymous: bookings[0].isAnonymous,
+				eventType: bookings[0].eventType,
+				dateStart: bookings[0].dateStart
+			} : 'None',
+			allBookingIds: bookings.map(b => ({ id: b._id, status: b.status, hasClient: !!b.client }))
+		});
 
 		return res.json({
 			bookings,
@@ -352,12 +399,36 @@ const getProviderEarnings = async (req, res) => {
 	try {
 		const userId = req.user.id;
 		const { page = 1, limit = 20, status } = req.query;
+		
+		console.log('💰 Getting provider earnings for user:', userId);
 
 		const provider = await Provider.findOne({ user: userId });
-		if (!provider) return res.status(404).json({ message: 'Provider profile not found' });
+		if (!provider) {
+			console.log('❌ Provider profile not found for user:', userId);
+			return res.status(404).json({ message: 'Provider profile not found' });
+		}
+		
+		console.log('✅ Provider found:', provider._id);
+
+		// Let's check if ANY payments exist in the database
+		const allPaymentsCount = await Payment.countDocuments({});
+		console.log('📊 Total payments in database:', allPaymentsCount);
+
+		// Check total bookings in database
+		const totalBookingsCount = await Booking.countDocuments({});
+		console.log('📊 Total bookings in database:', totalBookingsCount);
+
+		// Check if this provider has ANY bookings
+		const allBookings = await Booking.find({ provider: provider._id });
+		console.log('📅 Provider bookings count:', allBookings.length);
+		if (allBookings.length > 0) {
+			console.log('📋 Booking statuses:', allBookings.map(b => ({ id: b._id, status: b.status, paymentStatus: b.paymentStatus })));
+		}
 
 		let filter = { provider: provider._id };
 		if (status) filter.status = status;
+		
+		console.log('🔍 Payment filter:', filter);
 
 		const payments = await Payment.find(filter)
 			.select('amount platformFee providerEarnings status createdAt processedAt stripePaymentIntentId paymentMethod currency paymentType totalAmount')
@@ -368,11 +439,15 @@ const getProviderEarnings = async (req, res) => {
 			.sort({ createdAt: -1 })
 			.skip((Number(page) - 1) * Number(limit))
 			.limit(Number(limit));
+			
+		console.log('📊 Found payments:', payments.length);
 
 		const total = await Payment.countDocuments(filter);
+		console.log('📈 Total payment count:', total);
 
 		// Calculate stats
 		const allPayments = await Payment.find({ provider: provider._id, status: 'completed' });
+		console.log('💳 All completed payments:', allPayments.length);
 		const totalEarnings = allPayments.reduce((sum, payment) => sum + payment.providerEarnings, 0);
 
 		const thisMonth = new Date();
@@ -384,7 +459,15 @@ const getProviderEarnings = async (req, res) => {
 			.reduce((sum, payment) => sum + payment.providerEarnings, 0);
 
 		const pendingPayments = await Payment.find({ provider: provider._id, status: 'pending' });
+		console.log('⏳ Pending payments:', pendingPayments.length);
 		const upcomingPayout = pendingPayments.reduce((sum, payment) => sum + payment.providerEarnings, 0);
+
+		console.log('✅ Returning earnings data:', {
+			paymentsCount: payments.length,
+			totalEarnings,
+			thisMonthEarnings,
+			upcomingPayout
+		});
 
 		return res.json({
 			payments,
@@ -401,6 +484,7 @@ const getProviderEarnings = async (req, res) => {
 			}
 		});
 	} catch (err) {
+		console.error('❌ Provider earnings error:', err);
 		return res.status(500).json({ message: err.message });
 	}
 };
