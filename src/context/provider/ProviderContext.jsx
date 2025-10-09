@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "../AuthContext";
 import { EarningsProvider } from "./EarningsContext";
 import { SubscriptionProvider } from "./SubscriptionContext";
@@ -281,6 +281,14 @@ export const ProviderProvider = ({ children }) => {
       setLoading(false);
     }
   };
+
+  // ✅ Auto-fetch profile data when token is available
+  useEffect(() => {
+    if (token) {
+      console.log('🔄 ProviderContext: Auto-fetching profile data...');
+      fetchProfileData();
+    }
+  }, [token]);
 
   const value = {
     dashboardData,

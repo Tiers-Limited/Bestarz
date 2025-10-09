@@ -1,10 +1,9 @@
 import React from "react";
-import { Card, Typography, Button, Row, Col, List, Tag, Space, Modal } from "antd";
+import { Card, Typography, Button, Row, Col, List, Tag, Space, Modal, message } from "antd";
 import { Check, Star, Zap, Crown, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ProviderLayout from "../../components/ProviderLayout";
 import { useSubscription } from "../../context/provider/SubscriptionContext";
-import { message } from '../../utils';
 import { useProvider } from "../../context/provider/ProviderContext";
 
 const { Title, Paragraph } = Typography;
@@ -73,8 +72,19 @@ const ProviderSubscription = () => {
     },
   ];
 
-  console.log(profileData,"profileDataprofileData");
-  console.log(subscription,"subscriptionData");
+  console.log('🔍 DEBUG INFO:');
+  console.log('profileData:', profileData);
+  console.log('subscription:', subscription);
+  console.log('loading:', loading);
+
+  // Enhanced debugging
+  console.log('🔍 DETAILED SUBSCRIPTION DEBUG:');
+  console.log('subscription.subscriptionPlan:', subscription?.subscriptionPlan);
+  console.log('subscription.subscriptionStatus:', subscription?.subscriptionStatus);
+  console.log('subscription.subscriptionEnd:', subscription?.subscriptionEnd);
+  console.log('profileData.user.subscriptionPlan:', profileData?.user?.subscriptionPlan);
+  console.log('profileData.user.subscriptionStatus:', profileData?.user?.subscriptionStatus);
+  console.log('profileData.user.subscriptionEnd:', profileData?.user?.subscriptionEnd);
 
   const currentPlan = {
     name: subscription?.subscriptionPlan || profileData?.user?.subscriptionPlan || "",
@@ -82,15 +92,43 @@ const ProviderSubscription = () => {
     status: subscription?.subscriptionStatus || profileData?.user?.subscriptionStatus || "canceled",
   };
 
-  console.log(currentPlan,"currentPlancurrentPlan");
+  console.log('🎯 FINAL currentPlan:', currentPlan);
 
   const handleSelectPlan = async (plan) => {
-    if (currentPlan.name?.toLowerCase() === plan.name.toLowerCase()) return;
+    console.log('🎯 handleSelectPlan called with plan:', plan);
+    console.log('📋 Current plan:', currentPlan);
+    
+    if (currentPlan.name?.toLowerCase() === plan.name.toLowerCase()) {
+      console.log('⏭️ Same plan selected, skipping');
+      return;
+    }
 
-    if (currentPlan.status === "active") {
-      await updateSubscription(plan.name.toLowerCase(), plan.price);
-    } else {
-      await createSubscription(plan.name.toLowerCase(), plan.price);
+    try {
+      console.log('🔄 Creating subscription for plan:', plan.name.toLowerCase());
+      
+      // For new subscriptions, create checkout session
+      const result = await createSubscription(plan.name.toLowerCase());
+      
+      console.log('📊 Subscription result:', result);
+      
+      if (result.success) {
+        message.success('Redirecting to Stripe Checkout...');
+        console.log('✅ Success! Payment link:', result.paymentLink);
+        
+        // Redirect to Stripe Checkout
+        if (result.paymentLink) {
+          window.location.href = result.paymentLink;
+        } else {
+          console.error('❌ No payment link in successful result');
+          message.error('No payment link received');
+        }
+      } else {
+        console.error('❌ Subscription creation failed:', result.error);
+        message.error(result.error || 'Failed to create subscription');
+      }
+    } catch (error) {
+      console.error('❌ Subscription error:', error);
+      message.error('An error occurred. Please try again.');
     }
   };
 
