@@ -110,7 +110,7 @@ export const CustomerProvider = ({ children }) => {
       timeline: apiCustomer.bookingHistory?.map(booking => ({
         date: booking.dateStart ? new Date(booking.dateStart).toLocaleDateString() : '',
         event: `${booking.eventType} - ${booking.serviceCategory}`,
-        amount: `$${booking.amount || 0}`,
+        amount: `$${(booking.amount && !isNaN(booking.amount)) ? booking.amount : 0}`,
         status: booking.status,
         notes: booking.notes || booking.description || '',
         location: booking.location,

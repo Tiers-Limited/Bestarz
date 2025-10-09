@@ -14,7 +14,6 @@ const ProviderDashboard = () => {
   const navigate = useNavigate();
   const { dashboardData, loading, fetchDashboardData } = useProvider();
   const { user } = useAuth();
- 
 
   const { createAndNavigateToAdminConversation } = useCreateConversation();
 
@@ -55,6 +54,7 @@ const ProviderDashboard = () => {
   };
 
   const formatCurrency = (amount) => {
+    if (amount == null || isNaN(amount)) return '$0.00';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
@@ -125,8 +125,10 @@ const ProviderDashboard = () => {
                         {booking.status.toUpperCase()}
                       </Tag>
                       <span className="text-green-400 font-bold">
-                        {booking.amount ? formatCurrency(booking.amount) : 
-                         `${formatCurrency(booking.budget)}`}
+                        {(booking.amount || booking.totalAmount) ? formatCurrency(booking.amount || booking.totalAmount) : 
+                         (booking.budgetMin && booking.budgetMax) ? 
+                         `${formatCurrency(booking.budgetMin)} - ${formatCurrency(booking.budgetMax)}` : 
+                         formatCurrency(0)}
                       </span>
                     </div>
                   </div>
@@ -211,7 +213,9 @@ const ProviderDashboard = () => {
                     </span>
                     <div className="flex items-center space-x-2">
                       <span className="text-green-400 font-bold">
-                        {formatCurrency(inquiry.budgetMin)} - {formatCurrency(inquiry.budgetMax)}
+                        {(inquiry.budgetMin && inquiry.budgetMax) ? 
+                         `${formatCurrency(inquiry.budgetMin)} - ${formatCurrency(inquiry.budgetMax)}` : 
+                         'Budget not specified'}
                       </span>
                       <span className="text-gray-400 text-sm flex items-center">
                         <Clock size={12} className="mr-1" />

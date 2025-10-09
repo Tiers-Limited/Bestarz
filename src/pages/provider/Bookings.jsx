@@ -150,30 +150,162 @@ const ProviderBookings = () => {
   // Show accept booking modal with amount input
   const showAcceptModal = (booking) => {
     Modal.confirm({
-      title: 'Accept Booking Request',
+      title: (
+        <div style={{ 
+          color: '#ffffff', 
+          fontSize: '20px', 
+          fontWeight: '600',
+          textAlign: 'center',
+          marginBottom: '8px'
+        }}>
+          Accept Booking Request
+        </div>
+      ),
+      className: 'accept-booking-modal',
+      width: 480,
+      centered: true,
+      maskStyle: { backgroundColor: 'rgba(0, 0, 0, 0.7)' },
       content: (
-        <div>
-          <p>Do you want to accept this booking request?</p>
-          <p><strong>Budget Range:</strong> ${booking.budgetMin} - ${booking.budgetMax}</p>
-          <div style={{ marginTop: 16 }}>
-            <label>Set Total Amount: $</label>
-            <input 
-              id="totalAmount"
-              type="number" 
-              min={booking.budgetMin} 
-              max={booking.budgetMax}
-              defaultValue={booking.budgetMin}
-              style={{ 
-                marginLeft: 8, 
-                padding: '4px 8px', 
-                border: '1px solid #d9d9d9', 
-                borderRadius: '4px',
-                width: '120px'
-              }}
-            />
+        <div style={{ 
+          backgroundColor: '#1f2937',
+          padding: '24px',
+          borderRadius: '12px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+        }}>
+          {/* Client Info Section */}
+          <div style={{
+            backgroundColor: '#374151',
+            padding: '16px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            border: '1px solid #4b5563'
+          }}>
+            <h4 style={{ 
+              color: '#f9fafb', 
+              margin: '0 0 12px 0',
+              fontSize: '16px',
+              fontWeight: '600'
+            }}>
+              Client Information
+            </h4>
+            <div style={{ color: '#d1d5db', fontSize: '14px', lineHeight: '1.6' }}>
+              <div><strong style={{ color: '#f9fafb' }}>Name:</strong> {booking.client?.firstName} {booking.client?.lastName}</div>
+              <div><strong style={{ color: '#f9fafb' }}>Service:</strong> {booking.serviceCategory} - {booking.eventType}</div>
+              <div><strong style={{ color: '#f9fafb' }}>Date:</strong> {new Date(booking.dateStart).toLocaleDateString()}</div>
+              <div><strong style={{ color: '#f9fafb' }}>Guests:</strong> {booking.guests} people</div>
+            </div>
+          </div>
+
+          {/* Budget Section */}
+          <div style={{
+            backgroundColor: '#065f46',
+            padding: '16px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            border: '1px solid #059669'
+          }}>
+            <h4 style={{ 
+              color: '#ecfdf5', 
+              margin: '0 0 8px 0',
+              fontSize: '16px',
+              fontWeight: '600'
+            }}>
+              Budget Range
+            </h4>
+            <div style={{ 
+              color: '#a7f3d0',
+              fontSize: '18px',
+              fontWeight: '700'
+            }}>
+              ${booking.budgetMin?.toLocaleString()} - ${booking.budgetMax?.toLocaleString()}
+            </div>
+          </div>
+
+          {/* Amount Input Section */}
+          <div style={{
+            backgroundColor: '#1e3a8a',
+            padding: '20px',
+            borderRadius: '8px',
+            border: '1px solid #3b82f6'
+          }}>
+            <label style={{ 
+              color: '#dbeafe',
+              fontWeight: '600',
+              fontSize: '16px',
+              display: 'block',
+              marginBottom: '12px'
+            }}>
+              Set Your Quote Amount
+            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ 
+                color: '#93c5fd', 
+                fontSize: '18px', 
+                fontWeight: '600' 
+              }}>$</span>
+              <input 
+                id="totalAmount"
+                type="number" 
+                min={booking.budgetMin} 
+                max={booking.budgetMax}
+                defaultValue={booking.budgetMin}
+                placeholder="Enter amount"
+                style={{ 
+                  padding: '12px 16px', 
+                  border: '2px solid #60a5fa', 
+                  borderRadius: '8px',
+                  width: '140px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: '#1e40af',
+                  backgroundColor: '#ffffff',
+                  outline: 'none',
+                  transition: 'all 0.3s ease'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(96, 165, 250, 0.2)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#60a5fa';
+                  e.target.style.boxShadow = 'none';
+                }}
+              />
+            </div>
+            <p style={{ 
+              color: '#9ca3af',
+              fontSize: '12px',
+              marginTop: '8px',
+              fontStyle: 'italic'
+            }}>
+              Amount must be within the client's budget range
+            </p>
           </div>
         </div>
       ),
+      okText: 'Accept Booking',
+      cancelText: 'Cancel',
+      okButtonProps: {
+        style: {
+          backgroundColor: '#059669',
+          borderColor: '#059669',
+          height: '44px',
+          fontSize: '16px',
+          fontWeight: '600',
+          borderRadius: '8px',
+          color: '#ffffff'
+        }
+      },
+      cancelButtonProps: {
+        style: {
+          height: '44px',
+          fontSize: '16px',
+          borderRadius: '8px',
+          backgroundColor: '#374151',
+          borderColor: '#6b7280',
+          color: '#ffffff'
+        }
+      },
       onOk() {
         const totalAmount = document.getElementById('totalAmount')?.value;
         if (!totalAmount || totalAmount < booking.budgetMin || totalAmount > booking.budgetMax) {
@@ -229,6 +361,7 @@ const ProviderBookings = () => {
   };
 
   const formatCurrency = (amount) => {
+    if (amount == null || isNaN(amount)) return '$0.00';
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",

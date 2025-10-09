@@ -112,6 +112,24 @@ const App = () => {
                               <Route path="/cancel" element={<Cancel />} />
                               <Route path="/payment/success" element={<PaymentSuccess />} />
                               <Route path="/payment/cancel" element={<PaymentCancel />} />
+                              
+                              {/* Client-specific payment routes */}
+                              <Route 
+                                path="/client/payment/success" 
+                                element={
+                                  <ProtectedRoute allowedRoles={["client"]}>
+                                    <PaymentSuccess />
+                                  </ProtectedRoute>
+                                } 
+                              />
+                              <Route 
+                                path="/client/payment/cancel" 
+                                element={
+                                  <ProtectedRoute allowedRoles={["client"]}>
+                                    <PaymentCancel />
+                                  </ProtectedRoute>
+                                } 
+                              />
 
                               <Route
                                 path="/provider/:id"
@@ -233,6 +251,24 @@ const App = () => {
                                     <ProviderNotifications />
                                   </ProtectedRoute>
                                 }
+                              />
+                              
+                              {/* Provider-specific payment routes */}
+                              <Route 
+                                path="/provider/payment/success" 
+                                element={
+                                  <ProtectedRoute allowedRoles={["provider"]}>
+                                    <PaymentSuccess />
+                                  </ProtectedRoute>
+                                } 
+                              />
+                              <Route 
+                                path="/provider/payment/cancel" 
+                                element={
+                                  <ProtectedRoute allowedRoles={["provider"]}>
+                                    <PaymentCancel />
+                                  </ProtectedRoute>
+                                } 
                               />
                               <Route
                                 path="/provider/bookings"

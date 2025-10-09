@@ -18,9 +18,9 @@ const PaymentSuccess = () => {
     if (sessionId) {
       console.log('Payment successful with session ID:', sessionId);
       verifyPaymentSession(sessionId);
-      message.success('Your payment was processed successfully!');
+      // Removed duplicate success message - will be shown in verifyPaymentSession
     }
-  }, [sessionId, message]);
+  }, [sessionId]);
 
   const verifyPaymentSession = async (sessionId) => {
     try {
@@ -43,7 +43,7 @@ const PaymentSuccess = () => {
         const data = await response.json();
         console.log('✅ Subscription session verified with backend:', data);
         setPaymentType('subscription');
-        message.success('Your subscription has been activated successfully!');
+        // Removed duplicate message - will show single success message below
         
         // IMMEDIATE subscription context refresh after successful backend verification
         if (user?.role === 'provider') {
@@ -67,19 +67,18 @@ const PaymentSuccess = () => {
               console.log('� The backend verification was successful, so forcing page reload to sync UI...');
               
               // Show user message and reload page to force fresh context
-              message.success('Subscription activated! Refreshing page to update display...', 3);
+              console.log('Reloading page to sync UI with backend...');
               setTimeout(() => {
                 window.location.reload();
-              }, 1500);
+              }, 2000);
             } else {
               console.log('✅ Context successfully refreshed - subscription is now active in UI!');
               console.log('🎉 Automatically navigating to subscription page...');
               
-              // Show success message and auto-navigate to subscription page
-              message.success('Subscription activated successfully! Redirecting to your subscription page...', 3);
+              // Auto-navigate to subscription page without additional messages
               setTimeout(() => {
                 navigate('/provider/subscription');
-              }, 2000); // 2 second delay to let user see the success message
+              }, 3000); // 3 second delay to let user see the success page
             }
           }, 1000);
           
@@ -106,8 +105,7 @@ const PaymentSuccess = () => {
         console.log('✅ Payment session verified with backend:', data);
         setPaymentType('booking');
         
-        // Show success message and auto-navigate for booking payment
-        message.success('Payment successful! Your booking has been processed. Redirecting to your bookings...', 4);
+        // Auto-navigate for booking payment without additional messages
         setTimeout(() => {
           const bookingLink = user?.role === 'provider' ? "/provider/dashboard" : "/client/bookings";
           navigate(bookingLink);
@@ -153,19 +151,41 @@ const PaymentSuccess = () => {
   const content = getSuccessContent();
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-900">
-      <Result
-        icon={<CheckCircle className="w-16 h-16 text-green-500" />}
-        title={content.title}
-        subTitle={content.subTitle}
-        extra={[
-          <Link to={content.buttonLink} key="dashboard">
-            <Button type="primary">
+    <div className="flex items-center justify-center min-h-screen bg-gray-900 px-4">
+      <div className="max-w-md w-full text-center">
+        {/* Centered Success Icon */}
+        <div className="flex justify-center mb-8">
+          <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
+            <CheckCircle className="w-12 h-12 text-white" />
+          </div>
+        </div>
+        
+        {/* Success Content */}
+        <div className="bg-gray-800 rounded-lg p-8 shadow-2xl border border-gray-700">
+          <h1 className="text-3xl font-bold text-white mb-4">
+            {content.title}
+          </h1>
+          <p className="text-gray-300 text-base mb-8 leading-relaxed">
+            {content.subTitle}
+          </p>
+          
+          {/* Action Button */}
+          <Link to={content.buttonLink}>
+            <Button 
+              type="primary" 
+              size="large"
+              className="w-full h-12 text-lg font-semibold"
+              style={{
+                backgroundColor: '#3b82f6',
+                borderColor: '#3b82f6',
+                borderRadius: '8px'
+              }}
+            >
               {content.buttonText}
             </Button>
-          </Link>,
-        ]}
-      />
+          </Link>
+        </div>
+      </div>
     </div>
   );
 };

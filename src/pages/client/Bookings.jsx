@@ -191,8 +191,8 @@ const ClientBookings = () => {
     setSelectedBooking(null);
   };
 
-  // Handle marking booking as done
-  const handleMarkAsDone = async (bookingId) => {
+  // Handle marking booking as done and automatically trigger payment
+  const handleMarkAsDoneAndPay = async (bookingId) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/bookings/${bookingId}/done`, {
@@ -206,8 +206,43 @@ const ClientBookings = () => {
       const data = await response.json();
 
       if (response.ok) {
-        message.success('Event marked as done! Please proceed with final payment.');
-        loadBookings(); // Refresh the bookings list
+        message.success('Event marked as done! Proceeding to final payment...');
+        
+        // Wait a moment for the backend to update, then trigger payment
+        setTimeout(async () => {
+          try {
+            // Create payment session for final payment with client-specific redirect URLs
+            const baseUrl = window.location.origin;
+            const paymentResponse = await fetch('http://localhost:5000/api/payments/create-session', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                bookingId: bookingId,
+                paymentType: 'final',
+                successUrl: `${baseUrl}/client/payment/success`,
+                cancelUrl: `${baseUrl}/client/payment/cancel`
+              }),
+            });
+
+            const paymentData = await paymentResponse.json();
+
+            if (paymentResponse.ok && paymentData.url) {
+              // Redirect to Stripe checkout
+              window.location.href = paymentData.url;
+            } else {
+              message.error(paymentData.message || 'Failed to create payment session');
+              loadBookings(); // Refresh to show updated status
+            }
+          } catch (paymentError) {
+            console.error('Payment creation error:', paymentError);
+            message.error('Failed to create payment session. Please try again.');
+            loadBookings(); // Refresh to show updated status
+          }
+        }, 1000);
+        
       } else {
         message.error(data.message || 'Failed to mark event as done');
       }
@@ -216,6 +251,9 @@ const ClientBookings = () => {
       message.error('Network error. Please try again.');
     }
   };
+
+  // Legacy function for backward compatibility
+  const handleMarkAsDone = handleMarkAsDoneAndPay;
 
   // Manual payment completion for testing (bypasses webhook)
   const handleManualCompletePayment = async (booking) => {
@@ -441,37 +479,45 @@ const ClientBookings = () => {
               />
             )}
 
-            {/* Show Mark as Done button when advance payment is completed */}
-            {((booking.status === "IN_PROGRESS" || booking.status === "ACCEPTED") && 
-              (booking.advancePaid || booking.paymentStatus === "advance_paid")) && (
-              <Button
-                size="small"
-                type="default"
-                onClick={() => handleMarkAsDone(booking._id)}
-              >
-                Mark as Done
-              </Button>
-            )}
-
-            {/* Show Make Final Payment button after marking as done */}
-            {booking.paymentStatus === "final_pending" && (
+            {/* Show Make Final Payment button when advance is paid or final payment is pending */}
+            {(((booking.status === "IN_PROGRESS" || booking.status === "ACCEPTED") && 
+              (booking.advancePaid || booking.paymentStatus === "advance_paid")) ||
+              booking.paymentStatus === "final_pending") && (
               <PaymentButton 
                 booking={booking} 
                 paymentType="final"
                 size="small"
+                onBeforePayment={() => handleMarkAsDone(booking._id)}
               />
             )}
 
             {/* Show Leave Review button after final payment is completed */}
-            {booking.status === "COMPLETED" && booking.finalPaid && !booking.hasReview && (
-              <Button
-                size="small"
-                type="primary"
-                icon={<Star size={14} />}
-                onClick={() => openReviewModal(booking)}
-              >
-                Review
-              </Button>
+            {booking.status === "COMPLETED" && booking.finalPaid && (
+              booking.hasReview ? (
+                <Button
+                  size="small"
+                  type="default"
+                  icon={<Star size={14} />}
+                  disabled
+                  style={{ 
+                    backgroundColor: '#059669', 
+                    borderColor: '#059669', 
+                    color: '#ffffff',
+                    opacity: 0.8
+                  }}
+                >
+                  Reviewed
+                </Button>
+              ) : (
+                <Button
+                  size="small"
+                  type="primary"
+                  icon={<Star size={14} />}
+                  onClick={() => openReviewModal(booking)}
+                >
+                  Review
+                </Button>
+              )
             )}
           </div>
         );

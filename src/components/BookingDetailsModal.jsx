@@ -30,11 +30,13 @@ const BookingDetailsModal = ({
   const formatDateTime = (dateString) =>
     dayjs(dateString).format("MMM DD, YYYY [at] h:mm A");
 
-  const formatCurrency = (amount) =>
-    new Intl.NumberFormat("en-US", {
+  const formatCurrency = (amount) => {
+    if (amount == null || isNaN(amount)) return '$0.00';
+    return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
     }).format(amount);
+  };
 
   return (
     <Modal

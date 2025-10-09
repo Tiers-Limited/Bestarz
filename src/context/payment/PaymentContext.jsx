@@ -11,16 +11,28 @@ export const PaymentProvider = ({ children }) => {
   const { token } = useAuth();
   const [loading, setLoading] = useState(false);
 
-const baseUrl = import.meta.env.VITE_BASE_URL;
+const apiBaseUrl = import.meta.env.VITE_BASE_URL;
 
   // Create advance/final payment
-  const createPayment = async (bookingId, type) => {
+  const createPayment = async (bookingId, type, userRole = 'client') => {
     setLoading(true);
     try {
       const endpoint = type === "advance" ? "/payments/advance" : "/payments/final";
+      const frontendBaseUrl = window.location.origin;
+      const successUrl = userRole === 'provider' 
+        ? `${frontendBaseUrl}/provider/payment/success`
+        : `${frontendBaseUrl}/client/payment/success`;
+      const cancelUrl = userRole === 'provider'
+        ? `${frontendBaseUrl}/provider/payment/cancel`
+        : `${frontendBaseUrl}/client/payment/cancel`;
+        
       const res = await axios.post(
-        `${baseUrl}${endpoint}`,
-        { bookingId },
+        `${apiBaseUrl}${endpoint}`,
+        { 
+          bookingId,
+          successUrl,
+          cancelUrl 
+        },
         {
           headers: {
             Authorization: `Bearer ${token}`,

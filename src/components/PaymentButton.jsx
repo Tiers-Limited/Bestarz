@@ -2,11 +2,13 @@ import React, { useState } from "react";
 import { Button, Modal, message, Alert } from "antd";
 import { DollarSign, CreditCard } from "lucide-react";
 import { usePayment } from "../context/payment/PaymentContext";
+import { useAuth } from "../context/AuthContext";
 
-const PaymentButton = ({ booking, paymentType, size = "default" }) => {
+const PaymentButton = ({ booking, paymentType, size = "default", onBeforePayment }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [paymentInfo, setPaymentInfo] = useState(null);
   const { createPayment, loading } = usePayment();
+  const { user } = useAuth();
 
   const getPaymentStatus = () => {
     // If specific paymentType is passed, use it
@@ -49,7 +51,19 @@ const PaymentButton = ({ booking, paymentType, size = "default" }) => {
 
   const handlePayment = async () => {
     if (!paymentStatus) return;
-    const result = await createPayment(booking._id, paymentStatus.type);
+    
+    // Execute callback before payment if provided
+    if (onBeforePayment) {
+      try {
+        await onBeforePayment();
+      } catch (error) {
+        console.error('Before payment callback failed:', error);
+        return;
+      }
+    }
+    
+    const userRole = user?.role || 'client';
+    const result = await createPayment(booking._id, paymentStatus.type, userRole);
     if (!result.success) {
       message.error(result.error);
     }
@@ -127,11 +141,11 @@ const PaymentButton = ({ booking, paymentType, size = "default" }) => {
             </div>
             <div className="flex justify-between">
               <span className="text-white">Total Booking Amount:</span>
-              <span className="font-semibold">${booking.amount?.toFixed(2)}</span>
+              <span className="font-semibold">${(booking.amount && !isNaN(booking.amount)) ? booking.amount.toFixed(2) : '0.00'}</span>
             </div>
             <div className="flex justify-between text-lg font-bold border-t pt-2 mt-2">
               <span>Amount to Pay:</span>
-              <span className="text-blue-600">${paymentInfo?.amount?.toFixed(2)}</span>
+              <span className="text-blue-600">${(paymentInfo?.amount && !isNaN(paymentInfo.amount)) ? paymentInfo.amount.toFixed(2) : '0.00'}</span>
             </div>
           </div>
         </div>

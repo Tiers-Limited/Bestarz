@@ -1,13 +1,15 @@
 import React, { useEffect, useRef } from 'react';
-import { Form, Input, Button, Card, Typography, Space, Divider, Checkbox, message } from 'antd';
+import { Form, Input, Button, Card, Typography, Space, Divider, Checkbox } from 'antd';
 import { Mail, Lock, ArrowLeft } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { App } from 'antd';
 
 const { Title, Paragraph, Link } = Typography;
 
 const SignIn = () => {
   const navigate = useNavigate();
+  const { message } = App.useApp();
 
   const { signIn, loading, getRoleDashboard } = useAuth();
 

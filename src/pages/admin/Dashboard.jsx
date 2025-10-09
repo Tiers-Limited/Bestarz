@@ -452,7 +452,7 @@ const AdminDashboard = () => {
                               <div className="text-gray-400 text-sm mb-1">
                                 Amount:{" "}
                                 <span className="text-green-400 font-medium">
-                                  ${booking.amount}
+                                  ${(booking.amount || 0).toLocaleString()}
                                 </span>
                               </div>
                               <div className="text-gray-500 text-xs">
@@ -476,17 +476,13 @@ const AdminDashboard = () => {
                           >
                             <div className="flex justify-between items-center mb-2">
                               <span className="text-white font-semibold text-md">
-                                ${payment.platformFee || payment.amount}
+                                ${(payment.platformFee || payment.amount || 0).toLocaleString()}
                               </span>
                               <Tag
-                                color={
-                                  payment.status === "Completed"
-                                    ? "green"
-                                    : "red"
-                                }
+                                color="green"
                                 className="uppercase text-xs font-medium"
                               >
-                                {payment.status}
+                                payment
                               </Tag>
                             </div>
                             <div className="text-gray-400 text-sm mb-1">
