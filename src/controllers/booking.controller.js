@@ -145,6 +145,7 @@ const updateBookingStatus = async (req, res) => {
 			}
 
 			booking.status = 'ACCEPTED';
+			booking.amount = totalAmount; // Set the amount field as defined in the Booking model
 			booking.totalAmount = totalAmount;
 			booking.advanceAmount = Math.round(totalAmount * 0.3 * 100) / 100; // 30%
 			booking.remainingAmount = Math.round(totalAmount * 0.7 * 100) / 100; // 70%

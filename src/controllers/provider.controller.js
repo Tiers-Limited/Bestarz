@@ -356,7 +356,7 @@ const getProviderCustomers = async (req, res) => {
 
 			const customer = customerMap.get(customerId);
 			customer.totalBookings += 1;
-			if (booking.amount) customer.totalSpent += booking.amount;
+			if (booking.amount && typeof booking.amount === 'number') customer.totalSpent += booking.amount;
 			if (!customer.lastBooking || booking.dateStart > customer.lastBooking) {
 				customer.lastBooking = booking.dateStart;
 			}

@@ -31,9 +31,9 @@ const getPlatformStats = async (req, res) => {
             currentRevenueAgg,
             prevRevenueAgg
         ] = await Promise.all([
-            // Total revenue
+            // Total revenue - filter out null/undefined platformFee and ensure numeric
             Payment.aggregate([
-                { $match: { status: 'completed' } },
+                { $match: { status: 'completed', platformFee: { $exists: true, $ne: null, $type: 'number' } } },
                 { $group: { _id: null, total: { $sum: '$platformFee' } } }
             ]),
             // Active providers based on User.isActive
@@ -68,31 +68,43 @@ const getPlatformStats = async (req, res) => {
                 .populate('provider.user', 'firstName lastName')
                 .sort({ createdAt: -1 })
                 .limit(5),
-            // Current month revenue
+            // Current month revenue - filter out null/undefined platformFee and ensure numeric
             Payment.aggregate([
-                { $match: { status: 'completed', createdAt: { $gte: startOfCurrentMonth, $lte: endOfCurrentMonth } } },
+                { $match: {
+                    status: 'completed',
+                    createdAt: { $gte: startOfCurrentMonth, $lte: endOfCurrentMonth },
+                    platformFee: { $exists: true, $ne: null, $type: 'number' }
+                } },
                 { $group: { _id: null, total: { $sum: '$platformFee' } } }
             ]),
-            // Previous month revenue
+            // Previous month revenue - filter out null/undefined platformFee and ensure numeric
             Payment.aggregate([
-                { $match: { status: 'completed', createdAt: { $gte: startOfPrevMonth, $lte: endOfPrevMonth } } },
+                { $match: {
+                    status: 'completed',
+                    createdAt: { $gte: startOfPrevMonth, $lte: endOfPrevMonth },
+                    platformFee: { $exists: true, $ne: null, $type: 'number' }
+                } },
                 { $group: { _id: null, total: { $sum: '$platformFee' } } }
             ])
         ]);
 
-        const totalRevenue = totalRevenueAgg[0]?.total || 0;
+        // Ensure all revenue values are numbers, defaulting to 0 if NaN
+        const totalRevenue = isNaN(totalRevenueAgg[0]?.total) ? 0 : (totalRevenueAgg[0]?.total || 0);
         const activeProviders = activeProvidersAgg[0]?.activeProviders || 0;
-        const currentTotal = currentRevenueAgg[0]?.total || 0;
-        const prevTotal = prevRevenueAgg[0]?.total || 0;
+        const currentTotal = isNaN(currentRevenueAgg[0]?.total) ? 0 : (currentRevenueAgg[0]?.total || 0);
+        const prevTotal = isNaN(prevRevenueAgg[0]?.total) ? 0 : (prevRevenueAgg[0]?.total || 0);
 
         const growthRate = prevTotal > 0 ? ((currentTotal - prevTotal) / prevTotal) * 100 : 0;
+
+        // Ensure growthRate is not NaN
+        const safeGrowthRate = isNaN(growthRate) ? 0 : growthRate;
 
         return res.json({
             totalRevenue,
             activeProviders,
             totalBookings,
             totalClients,
-            growthRate,
+            growthRate: safeGrowthRate,
             recentBookings,
             recentPayments
         });
