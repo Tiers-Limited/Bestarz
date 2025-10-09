@@ -169,7 +169,7 @@ app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/client', clientRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/reviews', reviewRoutes);
-app.use('/api/webhook', webhookRoutes);
+app.use('/api/webhooks', webhookRoutes); // Fixed: changed to plural to match Stripe conventions
 app.use('/api/messages', messageRoutes);
 app.use('/api/support', supportRoutes);
 

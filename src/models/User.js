@@ -22,14 +22,22 @@ const userSchema = new mongoose.Schema(
     stripeCustomerId: { type: String },
     stripeAccountId: { type: String }, 
 
+    // Enhanced subscription fields
     subscriptionPlan: {
       type: String,
       enum: ['starter', 'professional', 'enterprise', 'none'],
       default: 'none'
     },
-    subscriptionStatus: { type: String, enum: ['active', 'canceled', 'expired'], default: 'canceled' },
+    subscriptionStatus: { 
+      type: String, 
+      enum: ['active', 'canceled', 'canceled_pending', 'expired', 'incomplete', 'past_due'], 
+      default: 'canceled' 
+    },
     stripeSubscriptionId: { type: String },
-    stripeCustomerId: { type: String },
+    stripePriceId: { type: String }, // Store the price ID for plan identification
+    currentPeriodStart: { type: Date },
+    currentPeriodEnd: { type: Date },
+    cancelAtPeriodEnd: { type: Boolean, default: false },
     subscriptionStart: { type: Date },
     subscriptionEnd: { type: Date }
   },

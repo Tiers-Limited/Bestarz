@@ -176,6 +176,170 @@ const createAccountLink = async (accountId, refreshUrl, returnUrl) => {
 	}
 };
 
+/**
+ * Create a Stripe Checkout Session for subscription payments
+ * 
+ * @param {string} userId - User ID to store in metadata
+ * @param {string} customerEmail - User's email
+ * @param {string} planType - 'starter', 'professional', or 'enterprise'
+ * @returns {Object} { sessionId, paymentLink }
+ */
+const createSubscriptionCheckout = async (userId, customerEmail, planType) => {
+	try {
+		console.log('🔧 Creating subscription checkout:', { userId, customerEmail, planType });
+		
+		// Validate Stripe configuration
+		if (!process.env.STRIPE_SECRET_KEY) {
+			throw new Error('STRIPE_SECRET_KEY not configured');
+		}
+		
+		// Define plan pricing (for dynamic price creation)
+		const PLAN_CONFIGS = {
+			starter: { amount: 2900, name: 'Starter Plan' }, // $29.00
+			professional: { amount: 6900, name: 'Professional Plan' }, // $69.00
+			enterprise: { amount: 14900, name: 'Enterprise Plan' } // $149.00
+		};
+
+		const planConfig = PLAN_CONFIGS[planType.toLowerCase()];
+		if (!planConfig) {
+			throw new Error(`Invalid plan type: ${planType}`);
+		}
+		
+		console.log('📋 Using plan config:', planConfig);
+
+		// Create or retrieve customer
+		let customer;
+		try {
+			const customers = await stripe.customers.list({
+				email: customerEmail,
+				limit: 1
+			});
+			customer = customers.data[0];
+		} catch (error) {
+			console.log('Error finding customer:', error.message);
+		}
+
+		if (!customer) {
+			customer = await stripe.customers.create({
+				email: customerEmail,
+				metadata: {
+					userId: userId
+				}
+			});
+		}
+
+		// Create checkout session for subscription with dynamic pricing
+		const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+		console.log('🌐 Frontend URL:', frontendUrl);
+		
+		// CRITICAL: Ensure userId is a string for metadata
+		const userIdString = userId.toString();
+		
+		console.log('📝 Creating session with metadata:', {
+			userId: userIdString,
+			planType: planType,
+			customerId: customer.id
+		});
+		
+		const session = await stripe.checkout.sessions.create({
+			customer: customer.id,
+			payment_method_types: ['card'],
+			line_items: [
+				{
+					price_data: {
+						currency: 'usd',
+						product_data: {
+							name: planConfig.name,
+							description: `Monthly subscription to ${planConfig.name}`,
+						},
+						unit_amount: planConfig.amount,
+						recurring: {
+							interval: 'month',
+						},
+					},
+					quantity: 1,
+				},
+			],
+			mode: 'subscription',
+			success_url: `${frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+			cancel_url: `${frontendUrl}/provider/subscription`,
+			// CRITICAL: Session metadata for webhook access
+			metadata: {
+				userId: userIdString,
+				planType: planType.toLowerCase()
+			},
+			// CRITICAL: Subscription metadata for ongoing management
+			subscription_data: {
+				metadata: {
+					userId: userIdString,
+					planType: planType.toLowerCase()
+				}
+			}
+		});
+
+		console.log('✅ Subscription Checkout Session created:', {
+			sessionId: session.id,
+			customerId: customer.id,
+			planType,
+			userId
+		});
+
+		return {
+			sessionId: session.id,
+			paymentLink: session.url,
+			customerId: customer.id
+		};
+
+	} catch (error) {
+		console.error('❌ Subscription checkout creation error:', error);
+		throw new Error(`Failed to create subscription checkout: ${error.message}`);
+	}
+};
+
+/**
+ * Cancel a Stripe subscription
+ * 
+ * @param {string} subscriptionId - Stripe subscription ID
+ * @param {boolean} immediate - Cancel immediately or at period end
+ * @returns {Object} Updated subscription object
+ */
+const cancelSubscription = async (subscriptionId, immediate = false) => {
+	try {
+		if (immediate) {
+			// Cancel immediately
+			const subscription = await stripe.subscriptions.cancel(subscriptionId);
+			console.log('✅ Subscription canceled immediately:', subscriptionId);
+			return subscription;
+		} else {
+			// Cancel at period end
+			const subscription = await stripe.subscriptions.update(subscriptionId, {
+				cancel_at_period_end: true
+			});
+			console.log('✅ Subscription set to cancel at period end:', subscriptionId);
+			return subscription;
+		}
+	} catch (error) {
+		console.error('❌ Subscription cancellation error:', error);
+		throw new Error(`Failed to cancel subscription: ${error.message}`);
+	}
+};
+
+/**
+ * Retrieve subscription details from Stripe
+ * 
+ * @param {string} subscriptionId - Stripe subscription ID
+ * @returns {Object} Subscription object
+ */
+const getSubscription = async (subscriptionId) => {
+	try {
+		const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+		return subscription;
+	} catch (error) {
+		console.error('❌ Subscription retrieval error:', error);
+		throw new Error(`Failed to retrieve subscription: ${error.message}`);
+	}
+};
+
 module.exports = {
 	createPaymentLink,
 	retrieveSession,
@@ -183,4 +347,8 @@ module.exports = {
 	getAccountBalance,
 	getConnectedAccount,
 	createAccountLink,
+	// New subscription functions
+	createSubscriptionCheckout,
+	cancelSubscription,
+	getSubscription,
 };
